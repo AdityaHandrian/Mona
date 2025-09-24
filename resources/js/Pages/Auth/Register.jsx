@@ -7,15 +7,16 @@ import { Head, Link, useForm } from '@inertiajs/react';
 
 export default function Register() {
     const { data, setData, post, processing, errors, reset } = useForm({
-        name: '',
+        first_name: '',
+        last_name: '',
         email: '',
         password: '',
         password_confirmation: '',
+        terms: false,
     });
 
     const submit = (e) => {
         e.preventDefault();
-
         post(route('register'), {
             onFinish: () => reset('password', 'password_confirmation'),
         });
@@ -25,38 +26,6 @@ export default function Register() {
         <GuestLayout>
             <Head title="Register" />
 
-            <form onSubmit={submit}>
-                <div className="flex flex-col items-center">
-                    {/* Logo */}
-                    <div className="flex items-center mb-6">
-                        <img src="/logo.png" alt="Mona Logo" className="h-10 mr-2"/>
-                        </div>
-
-                {/* {Background} */}
-                <div className="min-h-screen flex items-center justify-center"
-                    style={{backgroundColor: "#F8F7F0"}} >
-                    </div>
-
-                {/* {Card} */}
-                <div className=""></div>
-
-
-                    <InputLabel htmlFor="name" value="Name" />
-
-                    <TextInput
-                        id="name"
-                        name="name"
-                        value={data.name}
-                        className="mt-1 block w-full"
-                        autoComplete="name"
-                        isFocused={true}
-                        onChange={(e) => setData('name', e.target.value)}
-                        required
-                    />
-
-                    <InputError message={errors.name} className="mt-2" />
-                </div>
-=======
             <div className="flex flex-col items-center min-h-screen bg-[#F8F7F0] py-10">
                 {/* Logo */}
                 <div className="flex items-center mb-6">
@@ -99,7 +68,6 @@ export default function Register() {
                             />
                             <InputError message={errors.last_name} className="mt-2" />
                         </div>
->>>>>>> Stashed changes
 
                         <div>
                             <InputLabel htmlFor="email" value="Email Address" />
@@ -153,6 +121,7 @@ export default function Register() {
                                 checked={data.terms}
                                 onChange={(e) => setData('terms', e.target.checked)}
                                 className="mr-2"
+                                required
                             />
                             I agree to the{" "}
                             <a href="#" className="text-green-700 ml-1 hover:underline">

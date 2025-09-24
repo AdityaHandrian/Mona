@@ -23,10 +23,10 @@ export default function AppLayout({ children, title, auth, navigation }) {
             <div className="min-h-screen bg-[#F8F7F0] font-sans">
                 {/* Integrated Header with Navigation */}
                 <header className="border-b border-[#E0E0E0] bg-white">
-                    <div className="max-w-[1500px] mx-auto px-6 py-6 flex items-center justify-between">
+                    <div className="max-w-[1500px] mx-auto px-6 py-4 flex items-center justify-between">
                         {/* Logo */}
                         <Link href="/" className="flex items-center space-x-3">
-                            <img src="/images/logo.png" alt="MONA Logo" className="max-h-20"/>
+                            <img src="/images/logo.png" alt="MONA Logo" className="max-h-14"/>
                             <span className="text-2xl font-bold text-[#058743]">MONA</span>
                         </Link>
 

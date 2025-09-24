@@ -395,6 +395,13 @@ export default function ScanReceipt({ auth }) {
         }
     };
 
+    const handleCameraClick = () => {
+        // Force environment (back) camera by setting capture attribute dynamically
+        const cameraInput = document.getElementById('camera-input');
+        cameraInput.setAttribute('capture', 'environment');
+        cameraInput.click();
+    };
+
     return (
         <AppLayout 
             title="MONA - Scan Receipt" 
@@ -474,7 +481,7 @@ export default function ScanReceipt({ auth }) {
                                     
                                     <button 
                                         type="button"
-                                        onClick={() => document.getElementById('camera-input').click()}
+                                        onClick={handleCameraClick}
                                         className="flex-1 px-4 py-2 border border-[#058743] text-[#058743] rounded hover:bg-[#058743] hover:text-white transition-colors duration-200 flex items-center justify-center gap-2 group"
                                     >
                                         {/* Green camera icon (default) */}

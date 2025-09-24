@@ -30,12 +30,12 @@ export default function Landing({ auth }) {
                         <span className="font-bold text-[#058743]">MONA</span> is the simplest way to manage your personal finances. Track spending, create budgets, and achieve your savings goals with ease.
                     </p>
 
-                        <a
-                            href="/Register"
+                        <Link
+                            href={route('register')}
                             className="inline-block bg-[#058743] text-white px-10 py-4 rounded-lg text-xl font-semibold hover:bg-[#046635] transition-colors duration-200"
                         >
                             Sign Up For Free
-                        </a>
+                        </Link>
                         </div>
                     </div>
                 </section>

@@ -18,7 +18,6 @@ export default function Show({ auth, mustVerifyEmail, status }) {
 
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-                    {/* Card Profile Settings */}
                     <div className="p-6 bg-white shadow-sm sm:rounded-lg">
                         <div className="flex items-start space-x-4">
                             <UserCircleIcon className="h-7 w-7 text-gray-500"/>
@@ -54,7 +53,6 @@ export default function Show({ auth, mustVerifyEmail, status }) {
                         </div>
                     </div>
 
-                    {/* Card Preferences */}
                     <div className="p-6 bg-white shadow-sm sm:rounded-lg">
                         <div className="flex items-start space-x-4">
                             <Cog6ToothIcon className="h-7 w-7 text-gray-500"/>
@@ -75,7 +73,6 @@ export default function Show({ auth, mustVerifyEmail, status }) {
                         </div>
                     </div>
 
-                    {/* Tombol Edit Profile */}
                     <div className="flex justify-end">
                          <Link href={route('profile.edit')} className="inline-flex items-center px-6 py-2 bg-green-600 border border-transparent rounded-full font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150">
                             Edit Profile
@@ -84,7 +81,6 @@ export default function Show({ auth, mustVerifyEmail, status }) {
                 </div>
             </div>
 
-            {/* Floating Chat Button */}
             <div className="fixed bottom-8 right-8">
                 <button className="p-4 bg-green-600 rounded-full shadow-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
                     <ChatBubbleBottomCenterTextIcon className="h-7 w-7 text-white"/>

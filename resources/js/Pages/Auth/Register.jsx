@@ -2,7 +2,6 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
-import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
 export default function Register() {
@@ -23,13 +22,13 @@ export default function Register() {
     };
 
     return (
-        <GuestLayout>
+        <>
             <Head title="Register" />
-
+            
             <div className="flex flex-col items-center min-h-screen bg-[#F8F7F0] py-10">
                 {/* Logo */}
                 <div className="flex items-center mb-6">
-                    <img src="/logo.png" alt="Mona Logo" className="h-10 mr-2" />
+                    <img src="images/logo.png" alt="Mona Logo" className="h-10 mr-2" />
                     <span className="text-green-700 font-bold text-xl">MONA</span>
                 </div>
 
@@ -149,6 +148,6 @@ export default function Register() {
                     </p>
                 </div>
             </div>
-        </GuestLayout>
+        </>
     );
 }

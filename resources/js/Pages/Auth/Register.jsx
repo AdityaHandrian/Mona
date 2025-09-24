@@ -29,7 +29,7 @@ export default function Register() {
                     <Link href="/">
                 <div className="flex items-center space-x-2">
                     <img 
-                    src="/images/logo"
+                    src="/images/logo.png"
                     alt="MONA Logo"
                     className="h-10 w-auto"
                     />
@@ -135,7 +135,7 @@ export default function Register() {
                         <div className="text-center mt-4">
                             <Link
                                 href={route('login')}
-                                className="text-sm text-[#058743] hover:text-green-800 underline"
+                                className="text-sm text-[#] hover:text-green-800 underline"
                             >
                                 Already have an account? Log In
                             </Link>

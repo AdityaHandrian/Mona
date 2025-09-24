@@ -7,24 +7,61 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
-Route::get('/', function () {
+Route::get('/', function (Request $request) {
+    // If user is authenticated, redirect to dashboard
+    if ($request->user()) {
+        return redirect()->route('dashboard');
+    }
+    
     return Inertia::render('Landing', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
     ]);
 });
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
+Route::get('/dashboard', function (Request $request) {
+    return Inertia::render('Dashboard', [
+        'auth' => [
+            'user' => $request->user(),
+        ],
+    ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::get('/transaction', function (Request $request) {
+    return Inertia::render('Transaction', [
+        'auth' => [
+            'user' => $request->user(),
+        ],
+    ]);
+})->middleware(['auth', 'verified'])->name('transaction');
+
+Route::get('/scan-receipt', function (Request $request) {
+    return Inertia::render('ScanReceipt', [
+        'auth' => [
+            'user' => $request->user(),
+        ],
+    ]);
+})->middleware(['auth', 'verified'])->name('scan-receipt');
+
+Route::get('/budget', function (Request $request) {
+    return Inertia::render('Budget', [
+        'auth' => [
+            'user' => $request->user(),
+        ],
+    ]);
+})->middleware(['auth', 'verified'])->name('budget');
+
+Route::get('/history', function (Request $request) {
+    return Inertia::render('History', [
+        'auth' => [
+            'user' => $request->user(),
+        ],
+    ]);
+})->middleware(['auth', 'verified'])->name('history');
 
 Route::get('/testing', function () {
     return view('testing');
 })->name('testing');
-
-Route::get('/scan-receipt', function () {
-    return Inertia::render('ScanReceipt');
-})->name('scan-receipt');
 
 Route::post('/process-receipt', [OcrController::class, 'processReceipt']);
 

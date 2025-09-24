@@ -78,6 +78,20 @@ export default function Register() {
                                 <InputError message={errors.last_name} className="mt-2" />
                             </div>
                         </div>
+                 <div className="mt-4">
+                            <TextInput
+                                id="password_confirmation"
+                                type="password"
+                                name="password_confirmation"
+                                value={data.password_confirmation}
+                                className="mt-1 block w-full"
+                                autoComplete="new-password"
+                                onChange={(e) => setData('password_confirmation', e.target.value)}
+                                required
+                                placeholder="Confirm Password"
+                            />
+                            <InputError message={errors.password_confirmation} className="mt-2" />
+                        </div>        
 
                         <div className="mt-4">
                             <TextInput

@@ -7,7 +7,12 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
-Route::get('/', function () {
+Route::get('/', function (Request $request) {
+    // If user is authenticated, redirect to dashboard
+    if ($request->user()) {
+        return redirect()->route('dashboard');
+    }
+    
     return Inertia::render('Landing', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),

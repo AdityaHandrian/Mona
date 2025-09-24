@@ -46,6 +46,21 @@ export default function Dashboard({ auth }) {
         return auth?.user?.name || 'User';
     };
 
+    // Get time-based greeting
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        
+        if (hour >= 5 && hour < 12) {
+            return 'Good morning';
+        } else if (hour >= 12 && hour < 17) {
+            return 'Good afternoon';
+        } else if (hour >= 17 && hour < 21) {
+            return 'Good evening';
+        } else {
+            return 'Good night';
+        }
+    };
+
     // Calculate max value for chart scaling
     const maxValue = Math.max(
         ...dashboardData.monthlyData.map(data => Math.max(data.income, data.expenses))
@@ -61,7 +76,7 @@ export default function Dashboard({ auth }) {
                     {/* Welcome Message */}
                     <div className="mb-8">
                         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                            Good morning, {getUserName()}!
+                            {getGreeting()}, {getUserName()}!
                         </h1>
                         <p className="text-gray-600">
                             Here is the overview of your financial health

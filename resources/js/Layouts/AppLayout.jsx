@@ -1,4 +1,5 @@
 import { Head, Link, usePage } from '@inertiajs/react';
+import FloatingChatbot from '@/Components/FloatingChatbot';
 
 export default function AppLayout({ children, title, auth, navigation }) {
     const { url } = usePage();
@@ -94,6 +95,9 @@ export default function AppLayout({ children, title, auth, navigation }) {
                 <main>
                     {children}
                 </main>
+
+                {/* Floating Chatbot - only show when user is authenticated */}
+                {auth?.user && <FloatingChatbot />}
             </div>
         </>
     );

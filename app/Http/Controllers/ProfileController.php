@@ -14,6 +14,17 @@ use Inertia\Response;
 class ProfileController extends Controller
 {
     /**
+     * Display the user's profile information.
+     */
+    public function show(Request $request): Response // <-- Method 'show' dipindahkan ke sini
+    {
+        return Inertia::render('Profile/Show', [
+            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'status' => session('status'),
+        ]);
+    }
+
+    /**
      * Display the user's profile form.
      */
     public function edit(Request $request): Response
@@ -37,7 +48,7 @@ class ProfileController extends Controller
 
         $request->user()->save();
 
-        return Redirect::route('profile.edit');
+        return Redirect::route('profile.edit'); // Nanti ini bisa diubah ke profile.show
     }
 
     /**

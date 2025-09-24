@@ -4,7 +4,7 @@ import AppLayout from '@/Layouts/AppLayout';
 export default function Landing({ auth }) {
     const landingNavigation = (
         <a
-            href="/scan-receipt"
+            href="/dashboard"
             className="bg-[#058743] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#046635] transition-colors duration-200"
         >
             Get Started

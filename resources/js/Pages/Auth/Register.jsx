@@ -25,7 +25,6 @@ export default function Register() {
         <GuestLayout>
             <Head title="Register" />
 
-<<<<<<< Updated upstream
             <form onSubmit={submit}>
                 <div className="flex flex-col items-center">
                     {/* Logo */}

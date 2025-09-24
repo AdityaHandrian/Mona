@@ -25,48 +25,37 @@ export default function Register() {
         <GuestLayout>
             <Head title="Register" />
 
-            <div className="flex flex-col items-center">
-                {/* Logo */}
-                <div className="flex items-center mb-6">
-                    <img src="/logo.png" alt="Mona Logo" className="h-10 mr-2" />
-                    <span className="text-green-700 font-bold text-xl">MONA</span>
+            <form onSubmit={submit}>
+                <div className="flex flex-col items-center">
+                    {/* Logo */}
+                    <div className="flex items-center mb-6">
+                        <img src="/logo.png" alt="Mona Logo" className="h-10 mr-2"/>
+                        </div>
+
+                {/* {Background} */}
+                <div className="min-h-screen flex items-center justify-center"
+                    style={{backgroundColor: "#F8F7F0"}} >
+                    </div>
+
+                {/* {Card} */}
+                <div className=""></div>
+
+
+                    <InputLabel htmlFor="name" value="Name" />
+
+                    <TextInput
+                        id="name"
+                        name="name"
+                        value={data.name}
+                        className="mt-1 block w-full"
+                        autoComplete="name"
+                        isFocused={true}
+                        onChange={(e) => setData('name', e.target.value)}
+                        required
+                    />
+
+                    <InputError message={errors.name} className="mt-2" />
                 </div>
-
-                {/* Card */}
-                <div className="bg-white p-8 rounded-2xl shadow-md w-full max-w-md">
-                    <h1 className="text-2xl font-bold text-center mb-2">
-                        Create Your Account
-                    </h1>
-                    <p className="text-center text-gray-600 mb-6">
-                        Join <span className="text-green-700 font-semibold">MONA</span> for Free Today!
-                    </p>
-
-                    <form onSubmit={submit} className="space-y-4">
-                        <div>
-                            <InputLabel htmlFor="first_name" value="First Name" />
-                            <TextInput
-                                id="first_name"
-                                name="first_name"
-                                value={data.first_name}
-                                className="mt-1 block w-full"
-                                onChange={(e) => setData('first_name', e.target.value)}
-                                required
-                            />
-                            <InputError message={errors.first_name} className="mt-2" />
-                        </div>
-
-                        <div>
-                            <InputLabel htmlFor="last_name" value="Last Name" />
-                            <TextInput
-                                id="last_name"
-                                name="last_name"
-                                value={data.last_name}
-                                className="mt-1 block w-full"
-                                onChange={(e) => setData('last_name', e.target.value)}
-                                required
-                            />
-                            <InputError message={errors.last_name} className="mt-2" />
-                        </div>
 
                         <div>
                             <InputLabel htmlFor="email" value="Email Address" />

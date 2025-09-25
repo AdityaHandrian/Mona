@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\OcrController;
-use App\Http\Controllers\ImageController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
@@ -64,8 +63,6 @@ Route::get('/testing', function () {
 })->name('testing');
 
 Route::post('/process-receipt', [OcrController::class, 'processReceipt']);
-
-Route::get('/images/{filename}', [ImageController::class, 'show'])->name('image.show');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');

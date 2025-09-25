@@ -185,7 +185,7 @@ export default function Login({ status, canResetPassword }) {
                         {/* Optional: Additional Footer */}
                         <div className="text-center mt-8">
                             <p className="text-xs text-[#757575]">
-                                © 2024 MONA. All rights reserved.
+                                © 2025 MONA. All rights reserved.
                             </p>
                         </div>
                     </div>

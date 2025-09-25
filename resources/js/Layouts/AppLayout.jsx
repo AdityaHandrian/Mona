@@ -26,10 +26,10 @@ export default function AppLayout({ children, title, auth, navigation }) {
                 <header className="border-b border-[#E0E0E0] bg-white">
                     <div className="max-w-[1500px] mx-auto px-6 py-4 flex items-center justify-between">
                         {/* Logo */}
-                        <div className="flex items-center space-x-3">
+                        <Link href="/" className="flex items-center space-x-3">
                             <img src="/images/logo.png" alt="MONA Logo" className="max-h-14"/>
-                            <span className="text-2xl font-bold text-[#058743] select-none cursor-default">MONA</span>
-                        </div>
+                            <span className="text-2xl font-bold text-[#058743] select-none">MONA</span>
+                        </Link>
 
                         {/* Right Side - Navigation and Profile */}
                         {auth?.user ? (
@@ -67,7 +67,7 @@ export default function AppLayout({ children, title, auth, navigation }) {
                                 {/* Profile Picture */}
                                 <div className="relative">
                                     <Link
-                                        href={route('profile.edit')}
+                                        href={route('profile.show')}
                                         className="block relative group"
                                     >
                                         {auth.user.profile_photo ? (

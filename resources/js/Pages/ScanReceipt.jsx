@@ -461,7 +461,6 @@ export default function ScanReceipt({ auth }) {
         <AppLayout 
             title="MONA - Scan Receipt" 
             auth={auth}
-            navigation={null}
         >
             {/* Page Content */}
             <div className="py-10">

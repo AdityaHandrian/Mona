@@ -56,27 +56,27 @@ export default function Transaction({ auth }) {
         >
             <Head title="Transaction" />
             
-            <div className="py-8">
-                <div className="max-w-7xl mx-auto px-6">
+            <div className="py-4 max-[768px]:py-3 max-[425px]:py-2 max-[375px]:py-1.5 max-[320px]:py-1 pb-8 max-[768px]:pb-6 max-[425px]:pb-4 max-[375px]:pb-3 max-[320px]:pb-2">
+                <div className="max-w-7xl mx-auto px-6 max-[768px]:px-4 max-[425px]:px-3 max-[375px]:px-2 max-[320px]:px-1.5">
                     {/* Header */}
-                    <div className="mb-8">
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">Add Transaction</h1>
-                        <p className="text-gray-600">Record your income and expenses</p>
+                    <div className="mb-8 max-[768px]:mb-6 max-[425px]:mb-4 max-[375px]:mb-3 max-[320px]:mb-2">
+                        <h1 className="text-3xl max-[768px]:text-2xl max-[425px]:text-xl max-[375px]:text-lg max-[320px]:text-base font-bold text-gray-900 mb-2 max-[425px]:mb-1 max-[375px]:mb-0.5 max-[320px]:mb-0.5">Add Transaction</h1>
+                        <p className="text-gray-600 max-[768px]:text-sm max-[425px]:text-xs max-[375px]:text-xs max-[320px]:text-xs">Record your income and expenses</p>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-[768px]:gap-6 max-[425px]:gap-4 max-[375px]:gap-3 max-[320px]:gap-2 max-[768px]:grid-cols-1">
                         {/* New Transaction Form */}
-                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                            <h2 className="text-xl font-semibold mb-2">New Transaction</h2>
-                            <p className="text-gray-600 mb-6">Enter the details of your transaction</p>
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 max-[768px]:p-4 max-[425px]:p-3 max-[375px]:p-2.5 max-[320px]:p-2 max-[768px]:order-1">
+                            <h2 className="text-xl max-[768px]:text-lg max-[425px]:text-base max-[375px]:text-sm max-[320px]:text-sm font-semibold mb-2 max-[425px]:mb-1 max-[375px]:mb-1 max-[320px]:mb-0.5">New Transaction</h2>
+                            <p className="text-gray-600 max-[768px]:text-sm max-[425px]:text-xs max-[375px]:text-xs max-[320px]:text-xs mb-6 max-[768px]:mb-4 max-[425px]:mb-3 max-[375px]:mb-2 max-[320px]:mb-1.5">Enter the details of your transaction</p>
 
-                            <form onSubmit={handleSubmit} className="space-y-6">
+                            <form onSubmit={handleSubmit} className="space-y-6 max-[768px]:space-y-4 max-[425px]:space-y-3 max-[375px]:space-y-2.5 max-[320px]:space-y-2">
                                 {/* Income/Expense Buttons */}
-                                <div className="flex gap-4">
+                                <div className="flex gap-4 max-[768px]:gap-3 max-[425px]:gap-2 max-[375px]:gap-1.5 max-[320px]:gap-1">
                                     <button
                                         type="button"
                                         onClick={() => setTransactionType('income')}
-                                        className={`flex-1 py-3 px-6 rounded-lg text-sm font-medium transition-colors ${
+                                        className={`flex-1 py-3 max-[768px]:py-2 max-[425px]:py-2 max-[375px]:py-1.5 max-[320px]:py-1.5 px-6 max-[768px]:px-4 max-[425px]:px-3 max-[375px]:px-2 max-[320px]:px-1.5 rounded-lg text-sm max-[768px]:text-xs max-[425px]:text-xs max-[375px]:text-xs max-[320px]:text-xs font-medium transition-colors ${
                                             transactionType === 'income'
                                                 ? 'bg-[#058743] text-white'
                                                 : 'bg-[#D4EADF] text-[#058743] hover:bg-[#C0E0CB]'
@@ -87,7 +87,7 @@ export default function Transaction({ auth }) {
                                     <button
                                         type="button" 
                                         onClick={() => setTransactionType('expense')}
-                                        className={`flex-1 py-3 px-6 rounded-lg text-sm font-medium transition-colors ${
+                                        className={`flex-1 py-3 max-[768px]:py-2 max-[425px]:py-2 max-[375px]:py-1.5 max-[320px]:py-1.5 px-6 max-[768px]:px-4 max-[425px]:px-3 max-[375px]:px-2 max-[320px]:px-1.5 rounded-lg text-sm max-[768px]:text-xs max-[425px]:text-xs max-[375px]:text-xs max-[320px]:text-xs font-medium transition-colors ${
                                             transactionType === 'expense'
                                                 ? 'bg-[#DC3545] text-white'
                                                 : 'bg-[#F9E4E3] text-[#DC3545] hover:bg-[#F5D2D0]'
@@ -99,7 +99,7 @@ export default function Transaction({ auth }) {
 
                                 {/* Amount */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-sm max-[768px]:text-xs max-[425px]:text-xs max-[375px]:text-xs max-[320px]:text-xs font-medium text-gray-700 mb-2 max-[425px]:mb-1 max-[375px]:mb-0.5 max-[320px]:mb-0.5">
                                         Amount*
                                     </label>
                                     <input
@@ -108,20 +108,20 @@ export default function Transaction({ auth }) {
                                         placeholder="0.00"
                                         value={formData.amount}
                                         onChange={(e) => setFormData({...formData, amount: e.target.value})}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#058743] focus:border-transparent"
+                                        className="w-full px-4 max-[768px]:px-3 max-[425px]:px-3 max-[375px]:px-2.5 max-[320px]:px-2 py-3 max-[768px]:py-2 max-[425px]:py-2 max-[375px]:py-1.5 max-[320px]:py-1.5 border border-gray-300 rounded-lg text-sm max-[768px]:text-sm max-[425px]:text-sm max-[375px]:text-xs max-[320px]:text-xs focus:ring-2 focus:ring-[#058743] focus:border-transparent"
                                         required
                                     />
                                 </div>
 
                                 {/* Category */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-sm max-[768px]:text-xs max-[425px]:text-xs max-[375px]:text-xs max-[320px]:text-xs font-medium text-gray-700 mb-2 max-[425px]:mb-1 max-[375px]:mb-0.5 max-[320px]:mb-0.5">
                                         Category*
                                     </label>
                                     <select
                                         value={formData.category}
                                         onChange={(e) => setFormData({...formData, category: e.target.value})}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#058743] focus:border-transparent"
+                                        className="w-full px-4 max-[768px]:px-3 max-[425px]:px-3 max-[375px]:px-2.5 max-[320px]:px-2 py-3 max-[768px]:py-2 max-[425px]:py-2 max-[375px]:py-1.5 max-[320px]:py-1.5 border border-gray-300 rounded-lg text-sm max-[768px]:text-sm max-[425px]:text-sm max-[375px]:text-xs max-[320px]:text-xs focus:ring-2 focus:ring-[#058743] focus:border-transparent"
                                         required
                                     >
                                         <option value="">Select a category</option>
@@ -135,7 +135,7 @@ export default function Transaction({ auth }) {
 
                                 {/* Date */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-sm max-[768px]:text-xs max-[425px]:text-xs max-[375px]:text-xs max-[320px]:text-xs font-medium text-gray-700 mb-2 max-[425px]:mb-1 max-[375px]:mb-0.5 max-[320px]:mb-0.5">
                                         Date*
                                     </label>
                                     <div className="relative">
@@ -145,7 +145,7 @@ export default function Transaction({ auth }) {
                                             value={formatDateForDisplay(formData.date)}
                                             placeholder="DD/MM/YYYY"
                                             readOnly
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 cursor-pointer focus:ring-2 focus:ring-[#058743] focus:border-transparent"
+                                            className="w-full px-4 max-[768px]:px-3 max-[425px]:px-3 max-[375px]:px-2.5 max-[320px]:px-2 py-3 max-[768px]:py-2 max-[425px]:py-2 max-[375px]:py-1.5 max-[320px]:py-1.5 border border-gray-300 rounded-lg bg-gray-50 cursor-pointer text-sm max-[768px]:text-sm max-[425px]:text-sm max-[375px]:text-xs max-[320px]:text-xs focus:ring-2 focus:ring-[#058743] focus:border-transparent"
                                             onClick={() => document.getElementById('transaction-date-picker').showPicker()}
                                         />
                                         {/* Hidden date picker */}
@@ -171,7 +171,7 @@ export default function Transaction({ auth }) {
 
                                 {/* Description */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-sm max-[768px]:text-xs max-[425px]:text-xs max-[375px]:text-xs max-[320px]:text-xs font-medium text-gray-700 mb-2 max-[425px]:mb-1 max-[375px]:mb-0.5 max-[320px]:mb-0.5">
                                         Description
                                     </label>
                                     <textarea
@@ -179,14 +179,14 @@ export default function Transaction({ auth }) {
                                         value={formData.description}
                                         onChange={(e) => setFormData({...formData, description: e.target.value})}
                                         rows={4}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#058743] focus:border-transparent resize-none"
+                                        className="w-full px-4 max-[768px]:px-3 max-[425px]:px-3 max-[375px]:px-2.5 max-[320px]:px-2 py-3 max-[768px]:py-2 max-[425px]:py-2 max-[375px]:py-1.5 max-[320px]:py-1.5 border border-gray-300 rounded-lg text-sm max-[768px]:text-sm max-[425px]:text-sm max-[375px]:text-xs max-[320px]:text-xs focus:ring-2 focus:ring-[#058743] focus:border-transparent resize-none"
                                     />
                                 </div>
 
                                 {/* Submit Button */}
                                 <button
                                     type="submit"
-                                    className="w-full bg-black text-white py-3 px-6 rounded-lg font-medium hover:bg-gray-800 transition-colors"
+                                    className="w-full bg-black text-white py-3 max-[768px]:py-2 max-[425px]:py-2 max-[375px]:py-1.5 max-[320px]:py-1.5 px-6 max-[768px]:px-4 max-[425px]:px-3 max-[375px]:px-2 max-[320px]:px-1.5 rounded-lg font-medium text-sm max-[768px]:text-sm max-[425px]:text-sm max-[375px]:text-xs max-[320px]:text-xs hover:bg-gray-800 transition-colors"
                                 >
                                     Add Transaction
                                 </button>
@@ -194,41 +194,41 @@ export default function Transaction({ auth }) {
                         </div>
 
                         {/* Quick Stats */}
-                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                            <h2 className="text-xl font-semibold mb-2">Quick Stats</h2>
-                            <p className="text-gray-600 mb-6">This month's summary</p>
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 max-[768px]:p-4 max-[425px]:p-3 max-[375px]:p-2.5 max-[320px]:p-2 max-[768px]:order-2 w-full">
+                            <h2 className="text-xl max-[768px]:text-lg max-[425px]:text-base max-[375px]:text-sm max-[320px]:text-sm font-semibold mb-2 max-[425px]:mb-1 max-[375px]:mb-1 max-[320px]:mb-0.5">Quick Stats</h2>
+                            <p className="text-gray-600 max-[768px]:text-sm max-[425px]:text-xs max-[375px]:text-xs max-[320px]:text-xs mb-6 max-[768px]:mb-4 max-[425px]:mb-3 max-[375px]:mb-2 max-[320px]:mb-1.5">This month's summary</p>
 
-                            <div className="space-y-6">
+                            <div className="space-y-6 max-[768px]:space-y-4 max-[425px]:space-y-3 max-[375px]:space-y-2.5 max-[320px]:space-y-2 max-[768px]:min-h-0">
                                 {/* Total Income */}
-                                <div className="bg-[#D4EADF] rounded-lg p-6">
+                                <div className="bg-[#D4EADF] rounded-lg p-6 max-[768px]:p-4 max-[425px]:p-3 max-[375px]:p-2.5 max-[320px]:p-2 w-full">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-base text-[#058743] mb-2 font-medium">Total Income</p>
-                                            <p className="text-3xl font-bold text-[#058743]">Rp0</p>
+                                            <p className="text-base max-[768px]:text-sm max-[425px]:text-xs max-[375px]:text-xs max-[320px]:text-xs text-[#058743] mb-2 max-[425px]:mb-1 max-[375px]:mb-0.5 max-[320px]:mb-0.5 font-medium">Total Income</p>
+                                            <p className="text-3xl max-[768px]:text-2xl max-[425px]:text-xl max-[375px]:text-lg max-[320px]:text-base font-bold text-[#058743]">Rp0</p>
                                         </div>
-                                        <div className="text-[#058743] text-3xl">+</div>
+                                        <div className="text-[#058743] text-3xl max-[768px]:text-2xl max-[425px]:text-xl max-[375px]:text-lg max-[320px]:text-base">+</div>
                                     </div>
                                 </div>
 
                                 {/* Total Expenses */}
-                                <div className="bg-[#F9E4E3] rounded-lg p-6">
+                                <div className="bg-[#F9E4E3] rounded-lg p-6 max-[768px]:p-4 max-[425px]:p-3 max-[375px]:p-2.5 max-[320px]:p-2">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-base text-[#DC3545] mb-2 font-medium">Total Expenses</p>
-                                            <p className="text-3xl font-bold text-[#DC3545]">Rp0</p>
+                                            <p className="text-base max-[768px]:text-sm max-[425px]:text-xs max-[375px]:text-xs max-[320px]:text-xs text-[#DC3545] mb-2 max-[425px]:mb-1 max-[375px]:mb-0.5 max-[320px]:mb-0.5 font-medium">Total Expenses</p>
+                                            <p className="text-3xl max-[768px]:text-2xl max-[425px]:text-xl max-[375px]:text-lg max-[320px]:text-base font-bold text-[#DC3545]">Rp0</p>
                                         </div>
-                                        <div className="text-[#DC3545] text-3xl">-</div>
+                                        <div className="text-[#DC3545] text-3xl max-[768px]:text-2xl max-[425px]:text-xl max-[375px]:text-lg max-[320px]:text-base">-</div>
                                     </div>
                                 </div>
 
                                 {/* Net Balance */}
-                                <div className="bg-[#F2F8FE] rounded-lg p-6">
+                                <div className="bg-[#F2F8FE] rounded-lg p-6 max-[768px]:p-4 max-[425px]:p-3 max-[375px]:p-2.5 max-[320px]:p-2">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-base text-[#5877D0] mb-2 font-medium">Net Balance</p>
-                                            <p className="text-3xl font-bold text-[#5877D0]">Rp0</p>
+                                            <p className="text-base max-[768px]:text-sm max-[425px]:text-xs max-[375px]:text-xs max-[320px]:text-xs text-[#5877D0] mb-2 max-[425px]:mb-1 max-[375px]:mb-0.5 max-[320px]:mb-0.5 font-medium">Net Balance</p>
+                                            <p className="text-3xl max-[768px]:text-2xl max-[425px]:text-xl max-[375px]:text-lg max-[320px]:text-base font-bold text-[#5877D0]">Rp0</p>
                                         </div>
-                                        <div className="text-[#5877D0] text-3xl">$</div>
+                                        <div className="text-[#5877D0] text-3xl max-[768px]:text-2xl max-[425px]:text-xl max-[375px]:text-lg max-[320px]:text-base">$</div>
                                     </div>
                                 </div>
                             </div>

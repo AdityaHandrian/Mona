@@ -82,7 +82,7 @@ export default function FloatingChatbot() {
 
     return (
         <>
-            <style jsx="true">{`
+            <style>{`
                 @keyframes fadeIn {
                     from { opacity: 0; }
                     to { opacity: 1; }

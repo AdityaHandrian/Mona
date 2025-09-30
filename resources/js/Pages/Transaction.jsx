@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Head } from '@inertiajs/react';
+import axios from 'axios';
 
 export default function Transaction({ auth }) {
     const [transactionType, setTransactionType] = useState('income'); // 'income' or 'expense'
+    const [categories, setCategories] = useState([]);
+    const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         amount: '',
         category: '',
@@ -21,22 +24,27 @@ export default function Transaction({ auth }) {
         return `${day}/${month}/${year}`;
     };
 
-    const incomeCategories = [
-        'Salary',
-        'Freelance', 
-        'Business',
-        'Investment',
-        'Gift',
-        'Other'
-    ];
+    // Fetch categories from API based on transaction type
+    const fetchCategories = async (type) => {
+        try {
+            setLoading(true);
+            const response = await axios.get(`/api/categories?type=${type}`);
+            setCategories(response.data);
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+            // Fallback to empty array if API fails
+            setCategories([]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    const expenseCategories = [
-        'Food and Beverages',
-        'Shopping',
-        'Entertainment', 
-        'Bills and Utilities',
-        'Other'
-    ];
+    // Load categories when component mounts or transaction type changes
+    useEffect(() => {
+        fetchCategories(transactionType);
+        // Reset category selection when type changes
+        setFormData(prev => ({ ...prev, category: '' }));
+    }, [transactionType]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -46,8 +54,6 @@ export default function Transaction({ auth }) {
             ...formData
         });
     };
-
-    const currentCategories = transactionType === 'income' ? incomeCategories : expenseCategories;
 
     return (
         <AppLayout 
@@ -123,11 +129,14 @@ export default function Transaction({ auth }) {
                                         onChange={(e) => setFormData({...formData, category: e.target.value})}
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#058743] focus:border-transparent"
                                         required
+                                        disabled={loading}
                                     >
-                                        <option value="">Select a category</option>
-                                        {currentCategories.map((category) => (
-                                            <option key={category} value={category}>
-                                                {category}
+                                        <option value="">
+                                            {loading ? 'Loading categories...' : 'Select a category'}
+                                        </option>
+                                        {categories.map((category) => (
+                                            <option key={category.id} value={category.id}>
+                                                {category.category_name}
                                             </option>
                                         ))}
                                     </select>

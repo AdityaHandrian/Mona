@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\OcrController;
+use App\Http\Controllers\TransactionController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
@@ -70,5 +71,10 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+Route::middleware('auth:api') // ganti ke 'auth:sanctum' / 'jwt.auth' sesuai guard yang kamu pakai
+    ->group(function () {
+        Route::post('transactions', [TransactionController::class, 'store']);
+    });
 
 require __DIR__.'/auth.php';

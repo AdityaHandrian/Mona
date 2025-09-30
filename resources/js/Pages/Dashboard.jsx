@@ -70,7 +70,7 @@ export default function Dashboard({ auth }) {
         <AppLayout title="MONA - Dashboard" auth={auth}>
             <Head title="Dashboard" />
 
-            <div className="min-h-screen bg-[#F8F7F0]">
+            <div className="">
                 {/* Main Content */}
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Welcome Message */}

@@ -29,7 +29,7 @@ export default function Register() {
             <Head title="Create Your Account" />
             
             {/* Full Page Layout */}
-            <div className="min-h-screen bg-[#F8F7F0] flex flex-col">
+            <div className="flex flex-col">
                 {/* Main Content Container */}
                 <div className="flex-1 flex items-center justify-center px-4 max-[768px]:px-3 max-[375px]:px-2 py-8 max-[768px]:py-6 max-[425px]:py-4 max-[375px]:py-3 max-[320px]:py-2">
                     <div className="w-full max-w-lg max-[768px]:max-w-md max-[425px]:max-w-sm max-[375px]:max-w-[300px] max-[320px]:max-w-[280px]">

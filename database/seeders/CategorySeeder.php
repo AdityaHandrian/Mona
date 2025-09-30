@@ -19,25 +19,53 @@ class CategorySeeder extends Seeder
             "type"=> "income",
         ]);
         Category::create([
-            "category_name"=> "Bonus",
+            "category_name"=> "Bonus & THR",
+            "type"=> "income",
+        ]);
+        Category::create([
+            "category_name"=> "Pendapatan Usaha",
+            "type"=> "income",
+        ]);
+        Category::create([
+            "category_name"=> "Pekerjaan Lepas (Freelance)",
+            "type"=> "income",
+        ]);
+        Category::create([
+            "category_name"=> "Investasi",
+            "type"=> "income",
+        ]);
+        Category::create([
+            "category_name"=> "Hadiah / Pemberian",
+            "type"=> "income",
+        ]);
+        Category::create([
+            "category_name"=> "Pendapatan Lainnya (Other Income)",
             "type"=> "income",
         ]);
 
         // Expense Categories
         Category::create([
+            "category_name"=> "Kebutuhan Pokok",
+            "type"=> "expense",
+        ]);
+        Category::create([
             "category_name"=> "Transportasi",
             "type"=> "expense",
         ]);
         Category::create([
-            "category_name"=> "Makanan",
+            "category_name"=> "Kebutuhan Pribadi",
             "type"=> "expense",
         ]);
         Category::create([
-            "category_name"=> "Hiburan",
+            "category_name"=> "Gaya Hidup & Hiburan",
             "type"=> "expense",
         ]);
         Category::create([
-            "category_name"=> "Lainnya",
+            "category_name"=> "Keluarga & Sosial",
+            "type"=> "expense",
+        ]);
+        Category::create([
+            "category_name"=> "Lain-lain",
             "type"=> "expense",
         ]);
     }

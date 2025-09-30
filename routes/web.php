@@ -14,7 +14,7 @@ Route::get('/', function (Request $request) {
     }
     
     return Inertia::render('Landing', [
-        'canLogin' => Route::has('login'),
+        'canLogin'    => Route::has('login'),
         'canRegister' => Route::has('register'),
     ]);
 });
@@ -65,6 +65,7 @@ Route::get('/testing', function () {
 
 Route::post('/process-receipt', [OcrController::class, 'processReceipt']);
 
+// profile routes
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -72,9 +73,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::middleware('auth:api') // ganti ke 'auth:sanctum' / 'jwt.auth' sesuai guard yang kamu pakai
-    ->group(function () {
-        Route::post('transactions', [TransactionController::class, 'store']);
-    });
+// API transactions routes — pakai auth session bawaan
+Route::middleware('auth')->group(function () {
+    Route::post('/transactions', [TransactionController::class, 'store']);
+    Route::get('/transactions',  [TransactionController::class, 'index']);
+});
 
 require __DIR__.'/auth.php';

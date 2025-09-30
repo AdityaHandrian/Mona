@@ -22,7 +22,6 @@ class TransactionController extends Controller
                 'transaction_id'   => $transaction->id,
                 'user_id'          => $transaction->user_id,
                 'category_id'      => $transaction->category_id,
-                // supaya number di JSON, cast manual (karena decimal:2 -> string)
                 'amount'           => (float) $transaction->amount,
                 'description'      => $transaction->description,
                 'transaction_date' => $transaction->transaction_date?->toIso8601String(),

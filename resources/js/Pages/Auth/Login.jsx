@@ -28,7 +28,7 @@ export default function Login({ status, canResetPassword }) {
             <Head title="Log in" />
             
             {/* Full Page Layout */}
-            <div className="min-h-screen bg-[#F8F7F0] flex flex-col">
+            <div className="flex flex-col">
                 {/* Header dengan Logo */}
                 {/* <div className="w-full px-8 py-6 bg-white shadow-sm">
                     <div className="flex items-center">

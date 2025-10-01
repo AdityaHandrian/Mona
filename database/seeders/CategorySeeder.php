@@ -15,57 +15,53 @@ class CategorySeeder extends Seeder
     {
         // Income Categories
         Category::create([
-            "category_name"=> "Gaji",
+            "category_name"=> "Salary",
             "type"=> "income",
         ]);
         Category::create([
-            "category_name"=> "Bonus & THR",
+            "category_name"=> "Bonus",
             "type"=> "income",
         ]);
         Category::create([
-            "category_name"=> "Pendapatan Usaha",
+            "category_name"=> "Business Income",
             "type"=> "income",
         ]);
         Category::create([
-            "category_name"=> "Pekerjaan Lepas (Freelance)",
+            "category_name"=> "Investation",
             "type"=> "income",
         ]);
         Category::create([
-            "category_name"=> "Investasi",
+            "category_name"=> "Gift",
             "type"=> "income",
         ]);
         Category::create([
-            "category_name"=> "Hadiah / Pemberian",
-            "type"=> "income",
-        ]);
-        Category::create([
-            "category_name"=> "Pendapatan Lainnya (Other Income)",
+            "category_name"=> "Other Income",
             "type"=> "income",
         ]);
 
         // Expense Categories
         Category::create([
-            "category_name"=> "Kebutuhan Pokok",
+            "category_name"=> "Food and Beverages",
             "type"=> "expense",
         ]);
         Category::create([
-            "category_name"=> "Transportasi",
+            "category_name"=> "Transportation",
             "type"=> "expense",
         ]);
         Category::create([
-            "category_name"=> "Kebutuhan Pribadi",
+            "category_name"=> "Shopping",
             "type"=> "expense",
         ]);
         Category::create([
-            "category_name"=> "Gaya Hidup & Hiburan",
+            "category_name"=> "Entertainment",
             "type"=> "expense",
         ]);
         Category::create([
-            "category_name"=> "Keluarga & Sosial",
+            "category_name"=> "Bills and Utilities",
             "type"=> "expense",
         ]);
         Category::create([
-            "category_name"=> "Lain-lain",
+            "category_name"=> "Other Expense",
             "type"=> "expense",
         ]);
     }

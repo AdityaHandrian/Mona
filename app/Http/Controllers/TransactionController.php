@@ -16,7 +16,7 @@ class TransactionController extends Controller
         $payload = $request->validated();
         $payload['user_id'] = $request->user()->id;
 
-        $trx = \DB::transaction(fn () => \App\Models\Transaction::create($payload));
+        $trx = DB::transaction(fn () => \App\Models\Transaction::create($payload));
         
         return response()->json([
             'status' => 'success',
@@ -119,6 +119,53 @@ class TransactionController extends Controller
                 'last_page'    => $page->lastPage(),
             ],
         ]);
+    }
+    
+    // DELETE /api/transactions/{id}
+    public function destroy(Request $request, $id)
+    {
+        try {
+            $transaction = Transaction::findOrFail($id);
+            
+            // Check if the transaction belongs to the authenticated user
+            if ($transaction->user_id !== $request->user()->id) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Unauthorized. You can only delete your own transactions.'
+                ], 403);
+            }
+
+            // Store transaction data before deletion for response
+            $deletedTransactionData = [
+                'transaction_id'   => $transaction->id,
+                'user_id'          => $transaction->user_id,
+                'category_id'      => $transaction->category_id,
+                'amount'           => (float) $transaction->amount,
+                'description'      => $transaction->description,
+                'transaction_date' => $transaction->transaction_date?->toIso8601String(),
+            ];
+
+            // Delete the transaction
+            DB::transaction(fn() => $transaction->delete());
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Transaction deleted successfully.',
+                'data' => $deletedTransactionData
+            ], 200);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Transaction not found.'
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred while deleting the transaction.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }
 

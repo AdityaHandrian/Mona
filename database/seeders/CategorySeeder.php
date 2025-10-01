@@ -13,56 +13,26 @@ class CategorySeeder extends Seeder
      */
     public function run(): void
     {
-        // Income Categories
-        Category::create([
-            "category_name"=> "Salary",
-            "type"=> "income",
-        ]);
-        Category::create([
-            "category_name"=> "Bonus",
-            "type"=> "income",
-        ]);
-        Category::create([
-            "category_name"=> "Business Income",
-            "type"=> "income",
-        ]);
-        Category::create([
-            "category_name"=> "Investation",
-            "type"=> "income",
-        ]);
-        Category::create([
-            "category_name"=> "Gift",
-            "type"=> "income",
-        ]);
-        Category::create([
-            "category_name"=> "Other Income",
-            "type"=> "income",
-        ]);
+        $categories = [
+            // Income Categories
+            ['category_name' => 'Salary', 'type' => 'income'],
+            ['category_name' => 'Bonus', 'type' => 'income'],
+            ['category_name' => 'Business Income', 'type' => 'income'],
+            ['category_name' => 'Investment', 'type' => 'income'],
+            ['category_name' => 'Gift', 'type' => 'income'],
+            ['category_name' => 'Other Income', 'type' => 'income'],
+            
+            // Expense Categories
+            ['category_name' => 'Food and Beverages', 'type' => 'expense'],
+            ['category_name' => 'Transportation', 'type' => 'expense'],
+            ['category_name' => 'Shopping', 'type' => 'expense'],
+            ['category_name' => 'Entertainment', 'type' => 'expense'],
+            ['category_name' => 'Bills and Utilities', 'type' => 'expense'],
+            ['category_name' => 'Other Expense', 'type' => 'expense'],
+        ];
 
-        // Expense Categories
-        Category::create([
-            "category_name"=> "Food and Beverages",
-            "type"=> "expense",
-        ]);
-        Category::create([
-            "category_name"=> "Transportation",
-            "type"=> "expense",
-        ]);
-        Category::create([
-            "category_name"=> "Shopping",
-            "type"=> "expense",
-        ]);
-        Category::create([
-            "category_name"=> "Entertainment",
-            "type"=> "expense",
-        ]);
-        Category::create([
-            "category_name"=> "Bills and Utilities",
-            "type"=> "expense",
-        ]);
-        Category::create([
-            "category_name"=> "Other Expense",
-            "type"=> "expense",
-        ]);
+        foreach ($categories as $category) {
+            Category::firstOrCreate($category);
+        }
     }
 }

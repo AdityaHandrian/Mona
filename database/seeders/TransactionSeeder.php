@@ -16,13 +16,7 @@ class TransactionSeeder extends Seeder
     public function run(): void
     {
         $faker = Faker::create();
-
-        // Ensure there are users
         $users = User::all();
-        if ($users->isEmpty()) {
-            // create a few users if none exist
-            $users = User::factory()->count(3)->create();
-        }
 
         // Ensure there are categories
         $categories = Category::all();
@@ -33,8 +27,19 @@ class TransactionSeeder extends Seeder
             $categories = Category::all();
         }
 
+        // Get users who don't have transactions yet (bulk check)
+        $userIdsWithTransactions = Transaction::pluck('user_id')->unique()->toArray();
+        $usersWithoutTransactions = $users->whereNotIn('id', $userIdsWithTransactions);
+
+        if ($usersWithoutTransactions->isEmpty()) {
+            $this->command->info('All users already have transactions. Skipping transaction creation.');
+            return;
+        }
+
         // Create sample transactions per user
-        foreach ($users as $user) {
+        foreach ($usersWithoutTransactions as $user) {
+            $this->command->info("Creating transactions for user: {$user->name}");
+
             // create 8 transactions per user (mix of income/expense)
             for ($i = 0; $i < 8; $i++) {
                 Transaction::create([

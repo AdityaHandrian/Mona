@@ -74,9 +74,11 @@ Route::middleware('auth')->group(function () {
 });
 
 // API transactions routes — pakai auth session bawaan
-Route::middleware('auth')->group(function () {
-    Route::post('/transactions', [TransactionController::class, 'store']);
-    Route::get('/transactions',  [TransactionController::class, 'index']);
+Route::prefix('api')->middleware(['auth'])->group(function () {
+    Route::post('/transactions', [TransactionController::class, 'store'])
+        ->name('api.transactions.store');
+    Route::get('/transactions',  [TransactionController::class, 'index'])
+        ->name('api.transactions.index');
 });
 
 require __DIR__.'/auth.php';

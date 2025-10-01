@@ -11,23 +11,24 @@ class TransactionController extends Controller
 {
     //POST /api/transactions
      
-    public function store(StoreTransactionRequest $request)
+    public function store(\App\Http\Requests\StoreTransactionRequest $request)
     {
+        
         $payload = $request->validated();
         $payload['user_id'] = $request->user()->id;
 
-        $transaction = DB::transaction(fn() => Transaction::create($payload));
-
+        $trx = \DB::transaction(fn () => \App\Models\Transaction::create($payload));
+        
         return response()->json([
             'status' => 'success',
-            'data' => [
-                'transaction_id'   => $transaction->id,
-                'user_id'          => $transaction->user_id,
-                'category_id'      => $transaction->category_id,
-                'amount'           => (float) $transaction->amount,
-                'description'      => $transaction->description,
-                'transaction_date' => $transaction->transaction_date?->toIso8601String(),
-                'created_at'       => $transaction->created_at?->toIso8601String(),
+            'data'   => [
+                'transaction_id'   => (int) $trx->id,
+                'user_id'          => (int) $trx->user_id,
+                'category_id'      => (int) $trx->category_id,
+                'amount'           => (float) $trx->amount, // DECIMAL(15,2)
+                'description'      => $trx->description,
+                'transaction_date' => optional($trx->transaction_date)->toIso8601String(),
+                'created_at'       => optional($trx->created_at)->toIso8601String(),
             ],
         ], 201);
     }
@@ -90,7 +91,7 @@ class TransactionController extends Controller
                 'transaction_id'   => (int) $row->transaction_id,
                 'user_id'          => (int) $row->user_id,
                 'category_id'      => (int) $row->category_id,
-                'amount'           => (float) $row->amount,
+                'amount'           => (int) $row->amount,
                 'description'      => $row->description,
                 'transaction_date' => $isoDate,
                 'category_name'    => $row->category_name,

@@ -13,6 +13,9 @@ export default function Transaction({ auth }) {
         date: new Date().toISOString().split('T')[0], // Today's date
         description: ''
     });
+    // Notification state
+    const [notification, setNotification] = useState({ message: '', type: '' });
+    const [showNotification, setShowNotification] = useState(false);
 
     // Format date for display as DD/MM/YYYY
     const formatDateForDisplay = (dateString) => {
@@ -46,6 +49,16 @@ export default function Transaction({ auth }) {
         setFormData(prev => ({ ...prev, category: '' }));
     }, [transactionType]);
 
+    // Hide notification after 3 seconds
+    useEffect(() => {
+        if (notification.message) {
+            setShowNotification(true);
+            const timer = setTimeout(() => setShowNotification(false), 2700);
+            const timer2 = setTimeout(() => setNotification({ message: '', type: '' }), 3000);
+            return () => { clearTimeout(timer); clearTimeout(timer2); };
+        }
+    }, [notification]);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         console.log('HANDLE SUBMIT CALLED');
@@ -53,38 +66,39 @@ export default function Transaction({ auth }) {
 
         const rawAmount = Number(formData.amount);
         if (Number.isNaN(rawAmount)) {
-            console.error('Amount must be a number.');
+            setNotification({ message: 'Amount must be a number.', type: 'error' });
             return;
         }
 
         try {
             const res = await axios.post(
-            `${window.location.origin}/api/transactions`,
-            {
-                category_id: Number(formData.category),
-                amount: formData.amount,
-                description: formData.description || null,
-                transaction_date: formData.date,
-                _token: document.querySelector('meta[name="csrf-token"]')?.content, // aman utk JSON
-            },
-            {
-                headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                withCredentials: true,
-            }
+                `${window.location.origin}/api/transactions`,
+                {
+                    category_id: Number(formData.category),
+                    amount: formData.amount,
+                    description: formData.description || null,
+                    transaction_date: formData.date,
+                    _token: document.querySelector('meta[name="csrf-token"]')?.content, // aman utk JSON
+                },
+                {
+                    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    withCredentials: true,
+                }
             );
 
             console.log('Transaction created:', res.data);
-
+            setNotification({ message: 'Transaction successfully added!', type: 'success' });
             setFormData({
-            amount: '',
-            category: '',
-            date: new Date().toISOString().split('T')[0],
-            description: '',
+                amount: '',
+                category: '',
+                date: new Date().toISOString().split('T')[0],
+                description: '',
             });
         } catch (err) {
+            setNotification({ message: 'Failed to create transaction.', type: 'error' });
             console.error('Failed to create transaction:', err?.response?.data || err.message);
         }
-        };
+    };
 
     return (
         <AppLayout 
@@ -92,6 +106,23 @@ export default function Transaction({ auth }) {
             auth={auth}
         >
             <Head title="MONA - Transaction" />
+            {/* Floating Notification (bottom left, animated) */}
+            {notification.message && (
+                <div
+                    className={`fixed bottom-8 left-8 z-[9999] px-6 py-3 rounded-lg shadow-lg transition-all duration-300
+                        ${notification.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}
+                        ${showNotification ? 'animate-fade-in' : 'animate-fade-out'}`}
+                    style={{ pointerEvents: 'none' }}
+                >
+                    <style>{`
+                        @keyframes fadeInNotif { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+                        @keyframes fadeOutNotif { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(20px) scale(0.95); } }
+                        .animate-fade-in { animation: fadeInNotif 0.3s ease-out; }
+                        .animate-fade-out { animation: fadeOutNotif 0.3s ease-in; }
+                    `}</style>
+                    {notification.message}
+                </div>
+            )}
             
             <div className="overflow-x-hidden">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

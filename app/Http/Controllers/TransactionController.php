@@ -12,21 +12,22 @@ class TransactionController extends Controller
      
     public function store(StoreTransactionRequest $request)
     {
+        
         $payload = $request->validated();
         $payload['user_id'] = $request->user()->id;
 
-        $transaction = DB::transaction(fn() => Transaction::create($payload));
-
+        $trx = \DB::transaction(fn () => \App\Models\Transaction::create($payload));
+        
         return response()->json([
             'status' => 'success',
-            'data' => [
-                'transaction_id'   => $transaction->id,
-                'user_id'          => $transaction->user_id,
-                'category_id'      => $transaction->category_id,
-                'amount'           => (float) $transaction->amount,
-                'description'      => $transaction->description,
-                'transaction_date' => $transaction->transaction_date?->toIso8601String(),
-                'created_at'       => $transaction->created_at?->toIso8601String(),
+            'data'   => [
+                'transaction_id'   => (int) $trx->id,
+                'user_id'          => (int) $trx->user_id,
+                'category_id'      => (int) $trx->category_id,
+                'amount'           => (float) $trx->amount, // DECIMAL(15,2)
+                'description'      => $trx->description,
+                'transaction_date' => optional($trx->transaction_date)->toIso8601String(),
+                'created_at'       => optional($trx->created_at)->toIso8601String(),
             ],
         ], 201);
     }
@@ -120,3 +121,4 @@ class TransactionController extends Controller
         ]);
     }
 }
+

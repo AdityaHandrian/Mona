@@ -86,5 +86,4 @@ Route::middleware('auth')->prefix('api')->group(function () {
     Route::delete('/transactions/{id}', [TransactionController::class, 'destroy']);
 });
 
-
 require __DIR__.'/auth.php';

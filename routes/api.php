@@ -12,3 +12,9 @@ Route::middleware('auth')->group(function () {
     Route::get("/transactions", [TransactionController::class, "index"]);
 });
 
+
+
+// Protected transaction routes (require web authentication)  
+Route::middleware(['auth', 'throttle:60,1'])->group(function () {
+    Route::delete('/transactions/{id}', [TransactionController::class, 'destroy']);
+});

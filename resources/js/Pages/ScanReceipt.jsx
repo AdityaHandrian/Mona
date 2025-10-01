@@ -13,6 +13,7 @@ export default function ScanReceipt({ auth }) {
         date: '',
         description: ''
     });
+    const [isDragging, setIsDragging] = useState(false);
 
     const categories = [
         'Food and Beverages',
@@ -395,11 +396,71 @@ export default function ScanReceipt({ auth }) {
         }
     };
 
+    const handleCameraClick = () => {
+        // Force environment (back) camera by setting capture attribute dynamically
+        const cameraInput = document.getElementById('camera-input');
+        cameraInput.setAttribute('capture', 'environment');
+        cameraInput.click();
+    };
+
+    // Drag and drop handlers
+    const handleDragEnter = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // Only set dragging to false if we're leaving the drop zone entirely
+        if (!e.currentTarget.contains(e.relatedTarget)) {
+            setIsDragging(false);
+        }
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const handleDrop = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+
+        const files = Array.from(e.dataTransfer.files);
+        const imageFile = files.find(file => file.type.startsWith('image/'));
+        
+        if (imageFile) {
+            // Use the same file processing logic as handleFileChange
+            const needsCompression = imageFile.size > 1024 * 1024;
+            
+            if (needsCompression) {
+                try {
+                    console.log(`Compressing image: ${(imageFile.size / 1024 / 1024).toFixed(2)}MB`);
+                    const compressedFile = await compressImage(imageFile);
+                    console.log(`Compressed to: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+                    setSelectedFile(compressedFile);
+                } catch (error) {
+                    console.error('Compression failed, using original:', error);
+                    setSelectedFile(imageFile);
+                }
+            } else {
+                setSelectedFile(imageFile);
+            }
+            
+            // Reset results when new file is selected
+            setOcrResults(null);
+        } else {
+            alert('Please drop an image file (PNG, JPG, or JPEG)');
+        }
+    };
+
     return (
         <AppLayout 
             title="MONA - Scan Receipt" 
             auth={auth}
-            navigation={null}
         >
             {/* Page Content */}
             <div className="py-10">
@@ -419,7 +480,17 @@ export default function ScanReceipt({ auth }) {
 
                             {/* Upload Area */}
                             <div 
-                                className="border-2 border-dashed border-[#C8C0C0] rounded-lg p-4 text-center mb-6 min-h-[300px] flex flex-col justify-center"
+                                className={`border-2 border-dashed rounded-lg p-4 text-center mb-6 min-h-[300px] flex flex-col justify-center transition-colors duration-200 ${
+                                    isDragging 
+                                        ? 'border-[#058743] bg-[#058743] bg-opacity-5' 
+                                        : 'border-[#C8C0C0] hover:border-[#058743] hover:bg-gray-50'
+                                }`}
+                                onDragEnter={handleDragEnter}
+                                onDragLeave={handleDragLeave}
+                                onDragOver={handleDragOver}
+                                onDrop={handleDrop}
+                                onClick={() => document.getElementById('receipt-file').click()}
+                                style={{ cursor: 'pointer' }}
                             >
                                 {selectedFile ? (
                                     // Show selected file preview
@@ -443,10 +514,25 @@ export default function ScanReceipt({ auth }) {
                                     // Show upload prompt
                                     <div>
                                         <div className="mb-4">
-                                            <img src="/images/icons/upload-icon.svg" alt="Upload Icon" className="w-12 h-12 mx-auto"/>
+                                            <img 
+                                                src="/images/icons/upload-icon.svg" 
+                                                alt="Upload Icon" 
+                                                className={`w-12 h-12 mx-auto transition-opacity duration-200 ${
+                                                    isDragging ? 'opacity-70' : 'opacity-100'
+                                                }`}
+                                            />
                                         </div>
-                                        <h3 className="text-lg font-medium text-[#2C2C2C] mb-2">Upload Photo</h3>
-                                        <p className="text-[#757575] text-sm mb-3">PNG, JPG, or JPEG up to 10 MB</p>
+                                        <h3 className={`text-lg font-medium mb-2 transition-colors duration-200 ${
+                                            isDragging ? 'text-[#058743]' : 'text-[#2C2C2C]'
+                                        }`}>
+                                            {isDragging ? 'Drop your receipt here' : 'Upload Photo'}
+                                        </h3>
+                                        <p className="text-[#757575] text-sm mb-3">
+                                            {isDragging 
+                                                ? 'Release to upload your receipt' 
+                                                : 'Drag & drop or click to browse • PNG, JPG, or JPEG up to 10 MB'
+                                            }
+                                        </p>
                                     </div>
                                 )}
                             </div>
@@ -474,7 +560,7 @@ export default function ScanReceipt({ auth }) {
                                     
                                     <button 
                                         type="button"
-                                        onClick={() => document.getElementById('camera-input').click()}
+                                        onClick={handleCameraClick}
                                         className="flex-1 px-4 py-2 border border-[#058743] text-[#058743] rounded hover:bg-[#058743] hover:text-white transition-colors duration-200 flex items-center justify-center gap-2 group"
                                     >
                                         {/* Green camera icon (default) */}

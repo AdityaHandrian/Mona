@@ -13,6 +13,7 @@ export default function Show({ auth }) {
         ? `/storage/${user.profile_photo_path}` 
         : `https://ui-avatars.com/api/?name=${user.name}&size=256&background=EBF4FF&color=027A48`;
 
+
     return (
         <AuthenticatedLayout
             user={auth.user}
@@ -92,7 +93,6 @@ export default function Show({ auth }) {
                             </div>
                         </div>
                     </div>
-
                     {/* Tombol Edit Profile dikembalikan ke bawah */}
                     <div className="flex justify-end pt-4">
                         <Link 

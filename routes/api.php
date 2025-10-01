@@ -6,7 +6,9 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\TransactionController;
 
 Route::get("/categories", [CategoryController::class, "index"]);
-Route::middleware('auth:')->group(function () {
+// Use Sanctum for SPA stateful authentication
+Route::middleware('auth')->group(function () {
     Route::post("/transactions", [TransactionController::class, "store"]);
     Route::get("/transactions", [TransactionController::class, "index"]);
 });
+

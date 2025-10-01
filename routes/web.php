@@ -79,4 +79,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/transactions',  [TransactionController::class, 'index']);
 });
 
+Route::middleware('auth')->prefix('api')->group(function () {
+    Route::get('/transactions', [TransactionController::class, 'index']);
+    Route::post('/transactions', [TransactionController::class, 'store']);
+    Route::put('/transactions/{id}', [TransactionController::class, 'update']);
+    Route::delete('/transactions/{id}', [TransactionController::class, 'destroy']);
+});
+
+
 require __DIR__.'/auth.php';

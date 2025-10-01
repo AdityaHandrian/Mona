@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreTransactionRequest;
@@ -76,25 +75,35 @@ class TransactionController extends Controller
 
         $page = $query->paginate($perPage);
 
+        // Map DB rows to the frontend shape used in resources/js/Pages/History.jsx
+        // Frontend expects: { id, date, type, category, description, amount }
         $items = collect($page->items())->map(function ($row) {
-            $isoDate = null;
+            // Format date as D/M/YYYY to match the dummy data (e.g. '1/9/2025')
+            $date = null;
             if (!empty($row->transaction_date)) {
                 try {
-                    $isoDate = \Carbon\Carbon::parse($row->transaction_date)->toIso8601String();
+                    $date = \Carbon\Carbon::parse($row->transaction_date)->format('j/n/Y');
                 } catch (\Throwable $e) {
-                    $isoDate = $row->transaction_date;
+                    $date = $row->transaction_date;
                 }
             }
 
+            // type in DB is 'income' or 'expense' (lowercase). Frontend uses 'Income'/'Expense'
+            $typeLabel = isset($row->type) ? ucfirst($row->type) : null;
+
+            // Amount in DB is positive; make it negative for expense to match frontend dummy values
+            $amount = (float) $row->amount;
+            if (isset($row->type) && $row->type === 'expense') {
+                $amount = -1 * abs($amount);
+            }
+
             return [
-                'transaction_id'   => (int) $row->transaction_id,
-                'user_id'          => (int) $row->user_id,
-                'category_id'      => (int) $row->category_id,
-                'amount'           => (float) $row->amount,
-                'description'      => $row->description,
-                'transaction_date' => $isoDate,
-                'category_name'    => $row->category_name,
-                'type'             => $row->type,
+                'id' => (int) $row->transaction_id,
+                'date' => $date,
+                'type' => $typeLabel,
+                'category' => $row->category_name,
+                'description' => $row->description,
+                'amount' => $amount,
             ];
         });
 

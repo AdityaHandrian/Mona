@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Transaction extends Model
 {
+    protected $table = 'transactions';
+
     protected $fillable = [
         'user_id',
         'category_id',
@@ -15,17 +17,7 @@ class Transaction extends Model
     ];
 
     protected $casts = [
-        'amount' => 'decimal:2',      // simpan presisi uang sebagai string saat diambil (aman)
         'transaction_date' => 'datetime',
+        'amount'           => 'decimal:2',
     ];
-
-    public function user()
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
-
-    public function category()
-    {
-        return $this->belongsTo(Category::class, 'category_id');
-    }
 }

@@ -1,22 +1,12 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import axios from 'axios';
 
 // --- DATA DUMMY ---
-const transactionsData = [
-    { id: 1, date: '1/9/2025', type: 'Income', category: 'Salary', description: 'Monthly Salary - September', amount: 8500000 },
-    { id: 2, date: '3/9/2025', type: 'Expense', category: 'Entertainment', description: 'Concert tickets - WaveFest', amount: -750000 },
-    { id: 3, date: '4/9/2025', type: 'Expense', category: 'Food and Beverages', description: 'Lunch with team', amount: -125000 },
-    { id: 4, date: '5/9/2025', type: 'Expense', category: 'Bills and Utilities', description: 'Electricity bill', amount: -450000 },
-    { id: 5, date: '7/9/2025', type: 'Expense', category: 'Shopping', description: 'New shoes', amount: -650000 },
-    { id: 6, date: '10/9/2025', type: 'Expense', category: 'Entertainment', description: 'Movie tickets - Cinepolis', amount: -100000 },
-    { id: 7, date: '12/9/2025', type: 'Income', category: 'Freelance', description: 'Web design project', amount: 1500000 },
-    { id: 8, date: '15/9/2025', type: 'Expense', category: 'Shopping', description: 'New keyboard', amount: -899000 },
-    { id: 9, date: '18/9/2025', type: 'Expense', category: 'Food and Beverages', description: 'Weekly groceries', amount: -350000 },
-    { id: 10, date: '20/9/2025', type: 'Expense', category: 'Other', description: 'Book purchase', amount: -150000 },
-];
+const transactionsData = []; // akan diganti hasil API
 
-// Daftar Categoryyy
+// Daftar Category
 const incomeCategories = ['Salary', 'Freelance', 'Business', 'Investment', 'Gift', 'Other'];
 const expenseCategories = ['Food and Beverages', 'Shopping', 'Entertainment', 'Bills and Utilities', 'Transport', 'Other'];
 
@@ -31,12 +21,16 @@ const formatCurrency = (value) => {
 };
 
 export default function History({ auth }) {
-    // State untuk filter
+    // State filter
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('All');
     const [filterCategory, setFilterCategory] = useState('All');
+    const [transactions, setTransactions] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [meta, setMeta] = useState(null);
 
-    // Category di Dropdown
+    // Category dropdown
     let availableCategories = [];
     if (filterType === 'Income') {
         availableCategories = incomeCategories;
@@ -45,40 +39,103 @@ export default function History({ auth }) {
     } else {
         availableCategories = [...new Set([...incomeCategories, ...expenseCategories])];
     }
-    
-    // Filter
-    const filteredTransactions = transactionsData.filter(transaction => {
+
+    // ✅ Aman dari null values
+    const filteredTransactions = transactions.filter((transaction) => {
         const typeMatch = filterType === 'All' || transaction.type === filterType;
-        const categoryMatch = filterCategory === 'All' || transaction.category === filterCategory;
-        const searchMatch = !searchTerm || 
-                            transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            transaction.category.toLowerCase().includes(searchTerm.toLowerCase());
-        
+        const categoryMatch = filterCategory === 'All' || (transaction.category ?? '') === filterCategory;
+
+        const desc = (transaction.description ?? '').toLowerCase();
+        const cat = (transaction.category ?? '').toLowerCase();
+        const search = (searchTerm ?? '').toLowerCase();
+
+        const searchMatch =
+            !search || desc.includes(search) || cat.includes(search);
+
         return typeMatch && categoryMatch && searchMatch;
     });
 
-    // Fungsi untuk reset filter
+    const searchRef = useRef(null);
+
+    const fetchTransactions = async (page = 1) => {
+        setLoading(true);
+        setError(null);
+
+        const paramsObj = {};
+        if (filterType !== 'All') paramsObj.type = filterType.toLowerCase();
+        if (filterCategory !== 'All' && categoryNameToIdMap[filterCategory]) {
+            paramsObj.category_id = categoryNameToIdMap[filterCategory];
+        } else if (filterCategory !== 'All') {
+            paramsObj.search = filterCategory;
+        }
+        if (searchTerm) paramsObj.search = searchTerm;
+        paramsObj.per_page = '100';
+        paramsObj.page = String(page);
+
+        try {
+            await axios.get('/sanctum/csrf-cookie');
+            const res = await axios.get('/api/transactions', {
+                params: paramsObj,
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                withCredentials: true,
+            });
+            const body = res.data;
+            setTransactions(body.data ?? []);
+            setMeta(body.meta ?? null);
+        } catch (err) {
+            if (err?.response?.status === 401) {
+                setError('Unauthorized — please log in.');
+            } else {
+                setError('Failed to fetch transactions.');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const [categoryNameToIdMap, setCategoryNameToIdMap] = useState({});
+    const fetchCategories = async () => {
+        try {
+            const res = await axios.get('/api/categories', { headers: { 'Accept': 'application/json' }, withCredentials: true });
+            const list = res.data?.data ?? res.data ?? [];
+            const map = {};
+            list.forEach((c) => {
+                if (c && c.category_name) map[c.category_name] = c.id ?? c.category_id ?? null;
+            });
+            setCategoryNameToIdMap(map);
+        } catch (e) {
+            console.warn('Could not fetch categories', e?.message ?? e);
+        }
+    };
+
+    useEffect(() => {
+        fetchCategories();
+    }, []);
+
+    useEffect(() => {
+        clearTimeout(searchRef.current);
+        searchRef.current = setTimeout(() => fetchTransactions(1), 300);
+        return () => clearTimeout(searchRef.current);
+    }, [filterType, filterCategory, searchTerm]);
+
     const clearFilters = () => {
         setSearchTerm('');
         setFilterType('All');
         setFilterCategory('All');
     };
 
-    // Kalkulasi summary berdasarkan data yang sudah difilter
     const totalTransactions = filteredTransactions.length;
-    const totalIncome = filteredTransactions.filter(t => t.type === 'Income').reduce((sum, t) => sum + t.amount, 0);
-    const totalExpenses = filteredTransactions.filter(t => t.type === 'Expense').reduce((sum, t) => sum + t.amount, 0);
+    const totalIncome = filteredTransactions.filter(t => t.type === 'Income').reduce((sum, t) => sum + (t.amount ?? 0), 0);
+    const totalExpenses = filteredTransactions.filter(t => t.type === 'Expense').reduce((sum, t) => sum + (t.amount ?? 0), 0);
 
     return (
-        <AppLayout
-            title="MONA - History"
-            auth={auth}
-        >
+        <AppLayout title="MONA - History" auth={auth}>
             <Head title="History" />
-            
+
             <div className="py-12 px-4 sm:px-6 lg:px-8 bg-[F8F7F0]">
                 <div className="max-w-7xl mx-auto">
-                    
+
+                    {/* Summary */}
                     <div className="mb-8">
                         <h1 className="text-3xl font-bold text-gray-800">Transaction History</h1>
                         <p className="text-gray-500 mt-1">View and manage all your transactions</p>
@@ -99,33 +156,31 @@ export default function History({ auth }) {
                         </div>
                     </div>
 
-                    {/* Filter Section */}
+                    {/* Filters */}
                     <div className="bg-white p-4 rounded-lg shadow-md mb-8 flex flex-col sm:flex-row items-center gap-4">
-                        <input 
+                        <input
                             type="text"
                             placeholder="Search Transaction..."
                             className="w-full border-gray-300 rounded-md px-4 py-2 focus:ring-green-500 focus:border-green-500"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
-                        {/* Filter Tipe */}
                         <select
                             value={filterType}
-                            onChange={(e) => { setFilterType(e.target.value); setFilterCategory('All'); }} // Reset kategori saat tipe berubah
+                            onChange={(e) => { setFilterType(e.target.value); setFilterCategory('All'); }}
                             className="w-full sm:w-auto border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
                         >
                             <option value="All">All Types</option>
                             <option value="Income">Income</option>
                             <option value="Expense">Expense</option>
                         </select>
-                        {/* Filter Kategori */}
                         <select
                             value={filterCategory}
                             onChange={(e) => setFilterCategory(e.target.value)}
                             className="w-full sm:w-auto border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
                         >
                             <option value="All">All Categories</option>
-                            {availableCategories.map(category => (
+                            {availableCategories.map((category) => (
                                 <option key={category} value={category}>{category}</option>
                             ))}
                         </select>
@@ -140,32 +195,47 @@ export default function History({ auth }) {
                             <h3 className="text-lg font-semibold text-gray-800">Transactions</h3>
                             <p className="text-sm text-gray-500">Showing {filteredTransactions.length} transactions</p>
                         </div>
+                        {loading && (
+                            <div className="p-6 text-center text-gray-500">Loading...</div>
+                        )}
+                        {error && (
+                            <div className="p-6 text-center text-red-600">{error}</div>
+                        )}
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
-                                    {/* ... table headers ... */}
                                     <tr>
-                                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                   </tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {filteredTransactions.map((transaction) => (
                                         <tr key={transaction.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{transaction.date}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{transaction.date ?? '-'}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${transaction.type === 'Income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                                    {transaction.type}
+                                                <span
+                                                    className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                                        transaction.type === 'Income'
+                                                            ? 'bg-green-100 text-green-800'
+                                                            : 'bg-red-100 text-red-800'
+                                                    }`}
+                                                >
+                                                    {transaction.type ?? '-'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{transaction.category}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{transaction.description}</td>
-                                            <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                                {formatCurrency(transaction.amount)}
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{transaction.category ?? '-'}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{transaction.description ?? '-'}</td>
+                                            <td
+                                                className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                                                    (transaction.amount ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                                                }`}
+                                            >
+                                                {formatCurrency(transaction.amount ?? 0)}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                 <div className="flex items-center gap-4">

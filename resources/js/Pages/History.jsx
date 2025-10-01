@@ -29,6 +29,8 @@ export default function History({ auth }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [meta, setMeta] = useState(null);
+    const [deletingId, setDeletingId] = useState(null);
+    const [message, setMessage] = useState({ type: '', text: '' });
 
     // Category dropdown
     let availableCategories = [];
@@ -124,6 +126,46 @@ export default function History({ auth }) {
         setFilterCategory('All');
     };
 
+    const showMessage = (type, text) => {
+        setMessage({ type, text });
+        setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+    };
+
+    const handleDelete = async (transactionId) => {
+        if (!confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
+            return;
+        }
+
+        setDeletingId(transactionId);
+        try {
+            const response = await axios.delete(`/api/transactions/${transactionId}`, {
+                headers: { 
+                    'Accept': 'application/json', 
+                    'X-Requested-With': 'XMLHttpRequest' 
+                },
+                withCredentials: true,
+            });
+
+            if (response.data.status === 'success') {
+                showMessage('success', 'Transaction deleted successfully!');
+                // Refresh the transactions list
+                fetchTransactions(1);
+            }
+        } catch (error) {
+            console.error('Error deleting transaction:', error);
+            
+            if (error.response?.status === 404) {
+                showMessage('error', 'Transaction not found.');
+            } else if (error.response?.status === 403) {
+                showMessage('error', 'You are not authorized to delete this transaction.');
+            } else {
+                showMessage('error', 'Failed to delete transaction. Please try again.');
+            }
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
     const totalTransactions = filteredTransactions.length;
     const totalIncome = filteredTransactions.filter(t => t.type === 'Income').reduce((sum, t) => sum + (t.amount ?? 0), 0);
     const totalExpenses = filteredTransactions.filter(t => t.type === 'Expense').reduce((sum, t) => sum + (t.amount ?? 0), 0);
@@ -139,6 +181,17 @@ export default function History({ auth }) {
                     <div className="mb-8">
                         <h1 className="text-3xl font-bold text-gray-800">Transaction History</h1>
                         <p className="text-gray-500 mt-1">View and manage all your transactions</p>
+                        
+                        {/* Success/Error Message */}
+                        {message.text && (
+                            <div className={`mt-4 p-4 rounded-lg ${
+                                message.type === 'success' 
+                                    ? 'bg-green-50 text-green-800 border border-green-200' 
+                                    : 'bg-red-50 text-red-800 border border-red-200'
+                            }`}>
+                                {message.text}
+                            </div>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -239,8 +292,19 @@ export default function History({ auth }) {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                 <div className="flex items-center gap-4">
-                                                    <button className="text-blue-600 hover:text-blue-900 font-medium">Edit</button>
-                                                    <button className="text-red-600 hover:text-red-900 font-medium">Delete</button>
+                                                    <button 
+                                                        className="text-blue-600 hover:text-blue-900 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
+                                                        disabled={deletingId === transaction.id}
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleDelete(transaction.id)}
+                                                        disabled={deletingId === transaction.id}
+                                                        className="text-red-600 hover:text-red-900 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
+                                                    >
+                                                        {deletingId === transaction.id ? 'Deleting...' : 'Delete'}
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>

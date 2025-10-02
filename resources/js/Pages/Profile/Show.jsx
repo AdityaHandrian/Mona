@@ -1,6 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
-import { UserIcon, AdjustmentsHorizontalIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { UserIcon, AdjustmentsHorizontalIcon, PencilIcon } from '@heroicons/react/24/outline';
+import AppLayout from '@/Layouts/AppLayout';
 
 export default function Show({ auth }) {
     const user = auth.user;
@@ -13,32 +14,26 @@ export default function Show({ auth }) {
         ? `/storage/${user.profile_photo_path}` 
         : `https://ui-avatars.com/api/?name=${user.name}&size=256&background=EBF4FF&color=027A48`;
 
-
     return (
-        <AuthenticatedLayout
-            user={auth.user}
-            header={
-                <div className="flex justify-between items-center">
-                    <h2 className="font-semibold text-xl text-gray-800 leading-tight">
-                        Profile Settings
-                    </h2>
-                    <Link
-                        href={route('dashboard')}
-                        className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 transition ease-in-out duration-150"
-                    >
-                        <ArrowLeftIcon className="h-4 w-4 mr-2" />
-                        Back to Dashboard
-                    </Link>
-                </div>
-            }
+        <AppLayout
+            title="MONA - History"
+            auth={auth}
         >
             <Head title="Profile Settings" />
 
-            {/* Konten utama tidak lagi `min-h-screen` karena sudah ditangani layout */}
             <div className="py-12">
                 <div className="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-8">
                     
-                    <div className="p-8 bg-white shadow-md rounded-2xl">
+                    {/* Box Personal Information */}
+                    <div className="relative p-8 bg-white shadow-md rounded-2xl">
+                        <Link 
+                            href={route('profile.edit')}
+                            className="absolute top-6 right-6 p-2 rounded-full text-gray-400 hover:bg-green-100 hover:text-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-150"
+                            aria-label="Edit Profile"
+                        >
+                            <PencilIcon className="h-6 w-6" />
+                        </Link>
+                        
                         <div className="flex items-start space-x-4">
                             <UserIcon className="h-8 w-8 text-gray-500"/>
                             <div>
@@ -74,6 +69,7 @@ export default function Show({ auth }) {
                         </div>
                     </div>
 
+                    {/* Box Preferences */}
                     <div className="p-8 bg-white shadow-md rounded-2xl">
                         <div className="flex items-start space-x-4">
                             <AdjustmentsHorizontalIcon className="h-8 w-8 text-gray-500"/>
@@ -93,18 +89,20 @@ export default function Show({ auth }) {
                             </div>
                         </div>
                     </div>
-                    {/* Tombol Edit Profile dikembalikan ke bawah */}
-                    <div className="flex justify-end pt-4">
-                        <Link 
-                            href={route('profile.edit')} 
-                            className="inline-flex items-center px-8 py-3 bg-green-600 border border-transparent rounded-full font-bold text-sm text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-800 transition ease-in-out duration-150 shadow-md hover:shadow-lg"
+
+                    {/* 🔹 Tombol Logout align kanan bawah */}
+                    <div className="flex justify-end">
+                        <Link
+                            href={route('logout')}
+                            method="post"
+                            as="button"
+                            className="mt-4 px-5 py-2 bg-red-600 text-white font-medium rounded-lg shadow hover:bg-red-700 transition-colors"
                         >
-                            Edit Profile
+                            Logout
                         </Link>
                     </div>
-                    
                 </div>
             </div>
-        </AuthenticatedLayout>
+        </AppLayout>
     );
 }

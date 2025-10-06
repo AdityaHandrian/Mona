@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
+import axios from 'axios';
 
 export default function ScanReceipt({ auth }) {
     const [selectedFile, setSelectedFile] = useState(null);
@@ -14,14 +15,10 @@ export default function ScanReceipt({ auth }) {
         description: ''
     });
     const [isDragging, setIsDragging] = useState(false);
-
-    const categories = [
-        'Food and Beverages',
-        'Shopping',
-        'Entertainment', 
-        'Bills and Utilities',
-        'Other'
-    ];
+    const [categories, setCategories] = useState([]);
+    const [loadingCategories, setLoadingCategories] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [message, setMessage] = useState({ type: '', text: '' });
 
     // Handle window resize for responsive filename truncation
     useEffect(() => {
@@ -32,6 +29,37 @@ export default function ScanReceipt({ auth }) {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
+
+    // Fetch categories from API (expense categories since receipts are usually expenses)
+    const fetchCategories = async () => {
+        try {
+            setLoadingCategories(true);
+            const response = await axios.get('/api/categories?type=expense');
+            setCategories(response.data);
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+            // Fallback categories if API fails
+            setCategories([
+                { id: 1, category_name: 'Food and Beverages' },
+                { id: 2, category_name: 'Shopping' },
+                { id: 3, category_name: 'Entertainment' },
+                { id: 4, category_name: 'Bills and Utilities' },
+                { id: 5, category_name: 'Other' }
+            ]);
+        } finally {
+            setLoadingCategories(false);
+        }
+    };
+
+    // Load categories when component mounts
+    useEffect(() => {
+        fetchCategories();
+    }, []);
+
+    const showMessage = (type, text) => {
+        setMessage({ type, text });
+        setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+    };
 
     // Image compression function to speed up camera photos
     const compressImage = (file, maxWidth = 1024, quality = 0.8) => {
@@ -64,84 +92,60 @@ export default function ScanReceipt({ auth }) {
         });
     };
 
-    // Helper function to map OCR category to our predefined categories (multilingual)
+    // Helper function to map OCR category to our API categories (multilingual)
     const mapToValidCategory = (ocrCategory, description = '') => {
-        if (!ocrCategory && !description) return 'Other';
+        if (categories.length === 0) return null; // Return null if categories not loaded yet
         
         // Combine category and description for better matching
         const searchText = `${ocrCategory || ''} ${description || ''}`.toLowerCase();
         
+        // Find matching category by name
+        const findCategoryByKeywords = (keywords) => {
+            return categories.find(cat => 
+                keywords.some(keyword => 
+                    cat.category_name.toLowerCase().includes(keyword) ||
+                    searchText.includes(keyword)
+                )
+            );
+        };
+        
         // Food & Beverages mapping (English + Indonesian)
-        if (searchText.includes('food') || searchText.includes('restaurant') || 
-            searchText.includes('cafe') || searchText.includes('grocery') || 
-            searchText.includes('beverage') || searchText.includes('dining') ||
-            searchText.includes('makanan') || searchText.includes('minuman') ||
-            searchText.includes('restoran') || searchText.includes('warung') ||
-            searchText.includes('kafe') || searchText.includes('supermarket') || 
-            searchText.includes('pasar') || searchText.includes('indomaret') ||
-            searchText.includes('alfamart') || searchText.includes('hypermart') ||
-            searchText.includes('giant') || searchText.includes('carrefour') ||
-            searchText.includes('hero') || searchText.includes('lottemart') ||
-            searchText.includes('mcdonald') || searchText.includes('kfc') ||
-            searchText.includes('pizza') || searchText.includes('bakery') ||
-            searchText.includes('roti') || searchText.includes('bakso') ||
-            searchText.includes('gado') || searchText.includes('nasi') ||
-            searchText.includes('ayam') || searchText.includes('seafood') ||
-            searchText.includes('kedai') || searchText.includes('rumah makan')) {
-            return 'Food and Beverages';
-        }
+        const foodCategory = findCategoryByKeywords([
+            'food', 'beverage', 'restaurant', 'cafe', 'grocery', 'dining',
+            'makanan', 'minuman', 'restoran', 'warung', 'kafe', 'supermarket',
+            'pasar', 'indomaret', 'alfamart', 'hypermart', 'giant', 'carrefour',
+            'hero', 'lottemart', 'mcdonald', 'kfc', 'pizza', 'bakery',
+            'roti', 'bakso', 'gado', 'nasi', 'ayam', 'seafood', 'kedai'
+        ]);
+        if (foodCategory) return foodCategory.id;
         
         // Shopping mapping (English + Indonesian + Electronics)
-        if (searchText.includes('shop') || searchText.includes('retail') || 
-            searchText.includes('store') || searchText.includes('clothing') || 
-            searchText.includes('fashion') || searchText.includes('belanja') ||
-            searchText.includes('mall') || searchText.includes('butik') ||
-            searchText.includes('pakaian') || searchText.includes('sepatu') ||
-            searchText.includes('tas') || searchText.includes('elektronik') ||
-            searchText.includes('electronic') || searchText.includes('gadget') ||
-            searchText.includes('handphone') || searchText.includes('laptop') ||
-            searchText.includes('computer') || searchText.includes('hp') ||
-            searchText.includes('smartphone') || searchText.includes('tablet') ||
-            searchText.includes('accessories') || searchText.includes('aksesoris') ||
-            searchText.includes('surya elektronik') || searchText.includes('erafone') ||
-            searchText.includes('ibox') || searchText.includes('digimap') ||
-            searchText.includes('best denki') || searchText.includes('electronic city') ||
-            searchText.includes('ace hardware') || searchText.includes('informa') ||
-            searchText.includes('ikea') || searchText.includes('courts')) {
-            return 'Shopping';
-        }
+        const shoppingCategory = findCategoryByKeywords([
+            'shop', 'retail', 'store', 'clothing', 'fashion', 'belanja',
+            'mall', 'butik', 'pakaian', 'sepatu', 'tas', 'elektronik',
+            'electronic', 'gadget', 'handphone', 'laptop', 'computer', 'hp',
+            'smartphone', 'tablet', 'accessories', 'aksesoris'
+        ]);
+        if (shoppingCategory) return shoppingCategory.id;
         
         // Entertainment mapping (English + Indonesian)
-        if (searchText.includes('entertainment') || searchText.includes('movie') || 
-            searchText.includes('game') || searchText.includes('cinema') || 
-            searchText.includes('sports') || searchText.includes('hiburan') ||
-            searchText.includes('bioskop') || searchText.includes('film') ||
-            searchText.includes('olahraga') || searchText.includes('permainan') ||
-            searchText.includes('karaoke') || searchText.includes('wisata') ||
-            searchText.includes('cgv') || searchText.includes('xxi') ||
-            searchText.includes('cineplex') || searchText.includes('fitness') ||
-            searchText.includes('gym') || searchText.includes('spa') ||
-            searchText.includes('salon') || searchText.includes('massage')) {
-            return 'Entertainment';
-        }
+        const entertainmentCategory = findCategoryByKeywords([
+            'entertainment', 'movie', 'game', 'cinema', 'sports', 'hiburan',
+            'bioskop', 'film', 'olahraga', 'permainan', 'karaoke', 'wisata',
+            'cgv', 'xxi', 'cineplex', 'fitness', 'gym', 'spa', 'salon'
+        ]);
+        if (entertainmentCategory) return entertainmentCategory.id;
         
         // Bills & Utilities mapping (English + Indonesian)
-        if (searchText.includes('utility') || searchText.includes('electric') || 
-            searchText.includes('water') || searchText.includes('gas') || 
-            searchText.includes('internet') || searchText.includes('phone') ||
-            searchText.includes('listrik') || searchText.includes('air') ||
-            searchText.includes('telepon') || searchText.includes('tagihan') ||
-            searchText.includes('pln') || searchText.includes('pdam') ||
-            searchText.includes('wifi') || searchText.includes('pulsa') ||
-            searchText.includes('telkom') || searchText.includes('indihome') ||
-            searchText.includes('byru') || searchText.includes('axis') ||
-            searchText.includes('smartfren') || searchText.includes('three') ||
-            searchText.includes('xl') || searchText.includes('indosat')) {
-            return 'Bills and Utilities';
-        }
+        const billsCategory = findCategoryByKeywords([
+            'utility', 'electric', 'water', 'gas', 'internet', 'phone', 'bill',
+            'listrik', 'air', 'telepon', 'tagihan', 'pln', 'pdam',
+            'wifi', 'pulsa', 'telkom', 'indihome'
+        ]);
+        if (billsCategory) return billsCategory.id;
         
-        // Default to Other if no match found
-        return 'Other';
+        // Default to first category (usually "Other") if no match found
+        return categories.length > 0 ? categories[categories.length - 1].id : null;
     };
 
     const handleFileChange = async (event) => {
@@ -253,9 +257,10 @@ export default function ScanReceipt({ auth }) {
             };
             
             // Process the OCR results from your Gemini AI service
+            const mappedCategoryId = mapToValidCategory(ocrData.category, ocrData.description);
             const processedResults = {
                 amount: ocrData.amount || '',
-                category: mapToValidCategory(ocrData.category, ocrData.description), // Smart mapping with description
+                category: mappedCategoryId || (categories.length > 0 ? categories[0].id : ''), // Smart mapping with fallback
                 date: parseReceiptDate(ocrData.date), // Better date parsing
                 description: ocrData.description || 'Receipt transaction'
             };
@@ -373,9 +378,58 @@ export default function ScanReceipt({ auth }) {
         return nameWithoutExt.substring(0, availableSpace) + '...' + extension;
     };
 
-    const handleAddTransaction = () => {
-        console.log('Adding transaction:', formData);
-        // Add transaction logic here
+    const handleAddTransaction = async () => {
+        if (!formData.amount || !formData.category || !formData.date) {
+            showMessage('error', 'Please fill in all required fields (Amount, Category, Date)');
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            // Prepare data for API (same format as Transaction page)
+            const transactionData = {
+                category_id: parseInt(formData.category),
+                amount: parseFloat(formData.amount),
+                description: formData.description || 'Receipt transaction',
+                transaction_date: formData.date
+            };
+
+            const response = await axios.post('/api/transactions', transactionData);
+
+            if (response.data.status === 'success') {
+                showMessage('success', 'Transaction added successfully from receipt!');
+                
+                // Reset form and clear selected file
+                setFormData({
+                    amount: '',
+                    category: categories.length > 0 ? categories[0].id : '',
+                    date: '',
+                    description: ''
+                });
+                setOcrResults(null);
+                setSelectedFile(null);
+                
+                // Clear file input
+                const fileInput = document.getElementById('receipt-file');
+                const cameraInput = document.getElementById('camera-input');
+                if (fileInput) fileInput.value = '';
+                if (cameraInput) cameraInput.value = '';
+            }
+        } catch (error) {
+            console.error('Error adding transaction:', error);
+            
+            if (error.response?.data?.errors) {
+                // Handle validation errors
+                const errors = Object.values(error.response.data.errors).flat();
+                showMessage('error', errors.join(', '));
+            } else if (error.response?.data?.message) {
+                showMessage('error', error.response.data.message);
+            } else {
+                showMessage('error', 'Failed to add transaction. Please try again.');
+            }
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const openCameraOrFile = () => {
@@ -469,6 +523,17 @@ export default function ScanReceipt({ auth }) {
                     <div className="mb-8">
                         <h1 className="text-3xl font-bold text-[#2C2C2C] mb-2">Scan Receipt</h1>
                         <p className="text-[#757575]">Scan receipts and automatically extract transaction data</p>
+                        
+                        {/* Success/Error Message */}
+                        {message.text && (
+                            <div className={`mt-4 p-4 rounded-lg ${
+                                message.type === 'success' 
+                                    ? 'bg-green-50 text-green-800 border border-green-200' 
+                                    : 'bg-red-50 text-red-800 border border-red-200'
+                            }`}>
+                                {message.text}
+                            </div>
+                        )}
                     </div>
 
                     {/* Main Content Grid */}
@@ -660,6 +725,7 @@ export default function ScanReceipt({ auth }) {
                                                 onFocus={() => setIsDropdownOpen(true)}
                                                 onBlur={() => setIsDropdownOpen(false)}
                                                 className="w-full px-3 py-2 border border-[#C8C0C0] rounded text-[#2C2C2C] bg-gray-100 cursor-pointer pr-10"
+                                                disabled={loadingCategories}
                                                 style={{ 
                                                     WebkitAppearance: 'none', 
                                                     MozAppearance: 'none',
@@ -667,9 +733,12 @@ export default function ScanReceipt({ auth }) {
                                                     backgroundImage: 'none'
                                                 }}
                                             >
+                                                <option value="">
+                                                    {loadingCategories ? 'Loading categories...' : 'Select a category'}
+                                                </option>
                                                 {categories.map((category) => (
-                                                    <option key={category} value={category}>
-                                                        {category}
+                                                    <option key={category.id} value={category.id}>
+                                                        {category.category_name}
                                                     </option>
                                                 ))}
                                             </select>
@@ -739,9 +808,21 @@ export default function ScanReceipt({ auth }) {
                                     <button
                                         type="button"
                                         onClick={handleAddTransaction}
-                                        className="w-full bg-black text-white px-6 py-3 rounded hover:bg-gray-800 transition-colors duration-200 font-medium"
+                                        disabled={submitting || loadingCategories}
+                                        className={`w-full px-6 py-3 rounded transition-colors duration-200 font-medium flex items-center justify-center gap-2 ${
+                                            submitting || loadingCategories
+                                                ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                                                : 'bg-black text-white hover:bg-gray-800'
+                                        }`}
                                     >
-                                        Add Transaction
+                                        {submitting ? (
+                                            <>
+                                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                                Adding Transaction...
+                                            </>
+                                        ) : (
+                                            'Add Transaction'
+                                        )}
                                     </button>
                                 </div>
                             ) : (

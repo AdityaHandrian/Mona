@@ -121,6 +121,58 @@ class TransactionController extends Controller
         ]);
     }
     
+    // PUT /api/transactions/{id}
+    public function update(StoreTransactionRequest $request, $id)
+    {
+        try {
+            $transaction = Transaction::findOrFail($id);
+            
+            // Check if the transaction belongs to the authenticated user
+            if ($transaction->user_id !== $request->user()->id) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Unauthorized. You can only update your own transactions.'
+                ], 403);
+            }
+
+            $payload = $request->validated();
+            
+            // Update the transaction
+            DB::transaction(function () use ($transaction, $payload) {
+                $transaction->update($payload);
+            });
+
+            // Refresh the model to get updated data
+            $transaction->refresh();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Transaction updated successfully.',
+                'data' => [
+                    'transaction_id'   => (int) $transaction->id,
+                    'user_id'          => (int) $transaction->user_id,
+                    'category_id'      => (int) $transaction->category_id,
+                    'amount'           => (float) $transaction->amount,
+                    'description'      => $transaction->description,
+                    'transaction_date' => optional($transaction->transaction_date)->toIso8601String(),
+                    'updated_at'       => optional($transaction->updated_at)->toIso8601String(),
+                ],
+            ], 200);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Transaction not found.'
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred while updating the transaction.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
     // DELETE /api/transactions/{id}
     public function destroy(Request $request, $id)
     {

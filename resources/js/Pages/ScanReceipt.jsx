@@ -521,8 +521,8 @@ export default function ScanReceipt({ auth }) {
                 <div className="max-w-[1500px] mx-auto px-6">
                     {/* Page Header */}
                     <div className="mb-8">
-                        <h1 className="text-3xl font-bold text-[#2C2C2C] mb-2">Scan Receipt</h1>
-                        <p className="text-[#757575]">Scan receipts and automatically extract transaction data</p>
+                        <h1 className="text-3xl font-bold text-charcoal mb-2">Scan Receipt</h1>
+                        <p className="text-medium-gray">Scan receipts and automatically extract transaction data</p>
                         
                         {/* Success/Error Message */}
                         {message.text && (
@@ -539,16 +539,16 @@ export default function ScanReceipt({ auth }) {
                     {/* Main Content Grid */}
                     <div className="grid lg:grid-cols-2 gap-8 mb-12">
                         {/* Upload Receipt Section */}
-                        <div className="bg-white rounded-lg border border-[#E0E0E0] p-6">
-                            <h2 className="text-xl font-semibold text-[#2C2C2C] mb-2">Upload Receipt</h2>
-                            <p className="text-[#757575] mb-6">Take a photo or upload an image of your receipt</p>
+                        <div className="bg-white rounded-lg border border-light-gray p-6">
+                            <h2 className="text-xl font-semibold text-charcoal mb-2">Upload Receipt</h2>
+                            <p className="text-medium-gray mb-6">Take a photo or upload an image of your receipt</p>
 
                             {/* Upload Area */}
                             <div 
                                 className={`border-2 border-dashed rounded-lg p-4 text-center mb-6 min-h-[300px] flex flex-col justify-center transition-colors duration-200 ${
                                     isDragging 
                                         ? 'border-[#058743] bg-[#058743] bg-opacity-5' 
-                                        : 'border-[#C8C0C0] hover:border-[#058743] hover:bg-gray-50'
+                                        : 'border-light-gray hover:border-[#058743] hover:bg-gray-50'
                                 }`}
                                 onDragEnter={handleDragEnter}
                                 onDragLeave={handleDragLeave}
@@ -564,14 +564,14 @@ export default function ScanReceipt({ auth }) {
                                             <img 
                                                 src={URL.createObjectURL(selectedFile)} 
                                                 alt="Receipt Preview" 
-                                                className="max-w-full max-h-[200px] mx-auto rounded border border-[#E0E0E0] shadow-sm"
+                                                className="max-w-full max-h-[200px] mx-auto rounded border border-light-gray shadow-sm"
                                             />
                                         </div>
                                         <h3 className="text-lg font-medium text-[#058743] mb-1">File Selected</h3>
-                                        <p className="text-[#2C2C2C] font-medium mb-1 break-words" title={selectedFile.name}>
+                                        <p className="text-charcoal font-medium mb-1 break-words" title={selectedFile.name}>
                                             {truncateFilename(selectedFile.name)}
                                         </p>
-                                        <p className="text-[#757575] text-sm">
+                                        <p className="text-medium-gray text-sm">
                                             {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                                         </p>
                                     </div>
@@ -588,11 +588,11 @@ export default function ScanReceipt({ auth }) {
                                             />
                                         </div>
                                         <h3 className={`text-lg font-medium mb-2 transition-colors duration-200 ${
-                                            isDragging ? 'text-[#058743]' : 'text-[#2C2C2C]'
+                                            isDragging ? 'text-[#058743]' : 'text-charcoal'
                                         }`}>
                                             {isDragging ? 'Drop your receipt here' : 'Upload Photo'}
                                         </h3>
-                                        <p className="text-[#757575] text-sm mb-3">
+                                        <p className="text-medium-gray text-sm mb-3">
                                             {isDragging 
                                                 ? 'Release to upload your receipt' 
                                                 : 'Drag & drop or click to browse • PNG, JPG, or JPEG up to 10 MB'
@@ -646,7 +646,7 @@ export default function ScanReceipt({ auth }) {
                                     <button 
                                         type="button"
                                         onClick={() => document.getElementById('receipt-file').click()}
-                                        className="flex-1 px-4 py-2 border border-[#757575] text-[#757575] rounded hover:bg-[#757575] hover:text-white transition-colors duration-200 flex items-center justify-center gap-2"
+                                        className="flex-1 px-4 py-2 border border-medium-gray text-medium-gray rounded hover:bg-medium-gray hover:text-white transition-colors duration-200 flex items-center justify-center gap-2"
                                     >
                                         Browse
                                     </button>
@@ -683,9 +683,9 @@ export default function ScanReceipt({ auth }) {
                         </div>
 
                         {/* Extracted Data Section */}
-                        <div className="bg-white rounded-lg border border-[#E0E0E0] p-6">
-                            <h2 className="text-xl font-semibold text-[#2C2C2C] mb-2">Extracted Data</h2>
-                            <p className="text-[#757575] mb-6">Review the Scanned Information</p>
+                        <div className="bg-white rounded-lg border border-light-gray p-6">
+                            <h2 className="text-xl font-semibold text-charcoal mb-2">Extracted Data</h2>
+                            <p className="text-medium-gray mb-6">Review the Scanned Information</p>
 
                             {isScanning ? (
                                 /* Loading State */
@@ -693,29 +693,29 @@ export default function ScanReceipt({ auth }) {
                                     <div className="mb-4">
                                         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#058743] mx-auto"></div>
                                     </div>
-                                    <p className="text-[#757575] mb-2">Processing receipt...</p>
-                                    <p className="text-[#757575] text-sm">Please wait while we extract the data</p>
+                                    <p className="text-medium-gray mb-2">Processing receipt...</p>
+                                    <p className="text-medium-gray text-sm">Please wait while we extract the data</p>
                                 </div>
                             ) : ocrResults ? (
                                 /* OCR Results Form */
                                 <div className="space-y-4">
                                     {/* Amount Field */}
                                     <div>
-                                        <label className="block text-[#2C2C2C] font-medium mb-2">
+                                        <label className="block text-charcoal font-medium mb-2">
                                             Amount<span className="text-red-500">*</span>
                                         </label>
                                         <input
                                             type="text"
                                             value={formData.amount}
                                             onChange={(e) => handleInputChange('amount', e.target.value)}
-                                            className="w-full px-3 py-2 border border-[#C8C0C0] rounded text-[#2C2C2C] bg-gray-100"
+                                            className="w-full px-3 py-2 border border-light-gray rounded text-charcoal bg-gray-100"
                                             placeholder="255.255.255"
                                         />
                                     </div>
 
                                     {/* Category Field */}
                                     <div>
-                                        <label className="block text-[#2C2C2C] font-medium mb-2">
+                                        <label className="block text-charcoal font-medium mb-2">
                                             Category<span className="text-red-500">*</span>
                                         </label>
                                         <div className="relative">
@@ -724,7 +724,7 @@ export default function ScanReceipt({ auth }) {
                                                 onChange={(e) => handleInputChange('category', e.target.value)}
                                                 onFocus={() => setIsDropdownOpen(true)}
                                                 onBlur={() => setIsDropdownOpen(false)}
-                                                className="w-full px-3 py-2 border border-[#C8C0C0] rounded text-[#2C2C2C] bg-gray-100 cursor-pointer pr-10"
+                                                className="w-full px-3 py-2 border border-light-gray rounded text-charcoal bg-gray-100 cursor-pointer pr-10"
                                                 disabled={loadingCategories}
                                                 style={{ 
                                                     WebkitAppearance: 'none', 
@@ -757,7 +757,7 @@ export default function ScanReceipt({ auth }) {
 
                                     {/* Date Field */}
                                     <div>
-                                        <label className="block text-[#2C2C2C] font-medium mb-2">
+                                        <label className="block text-charcoal font-medium mb-2">
                                             Date<span className="text-red-500">*</span>
                                         </label>
                                         <div className="date-input-container relative">
@@ -767,7 +767,7 @@ export default function ScanReceipt({ auth }) {
                                                 value={formatDateForDisplay(formData.date)}
                                                 placeholder="DD/MM/YYYY"
                                                 readOnly
-                                                className="w-full px-3 py-2 border border-[#C8C0C0] rounded text-[#2C2C2C] bg-gray-100 cursor-pointer"
+                                                className="w-full px-3 py-2 border border-light-gray rounded text-charcoal bg-gray-100 cursor-pointer"
                                                 onClick={() => document.getElementById('hidden-date-picker').showPicker()}
                                             />
                                             {/* Hidden date picker */}
@@ -792,15 +792,14 @@ export default function ScanReceipt({ auth }) {
 
                                     {/* Description Field */}
                                     <div>
-                                        <label className="block text-[#2C2C2C] font-medium mb-2">
+                                        <label className="block text-charcoal font-medium mb-2">
                                             Description
                                         </label>
-                                        <textarea
+                                        <input
+                                            type="text"
                                             value={formData.description}
                                             onChange={(e) => handleInputChange('description', e.target.value)}
-                                            className="w-full px-3 py-2 border border-[#C8C0C0] rounded text-[#2C2C2C] bg-gray-100 resize-none"
-                                            rows="3"
-                                            placeholder="Optional description..."
+                                            className="w-full px-3 py-2 border border-light-gray rounded text-charcoal bg-gray-100"
                                         />
                                     </div>
 
@@ -831,15 +830,15 @@ export default function ScanReceipt({ auth }) {
                                     <div className="mb-4">
                                         <img src="/images/icons/document-scan-icon.svg" alt="Document Icon" className="w-16 h-16 mx-auto"/>
                                     </div>
-                                    <p className="text-[#757575]">Upload or scan a receipt to see the results</p>
+                                    <p className="text-medium-gray">Upload or scan a receipt to see the results</p>
                                 </div>
                             )}
                         </div>
                     </div>
 
                     {/* How OCR Works Section */}
-                    <div className="bg-white rounded-lg border border-[#E0E0E0] p-8">
-                        <h2 className="text-2xl font-semibold text-[#2C2C2C] mb-8 text-center">How OCR Works</h2>
+                    <div className="bg-white rounded-lg border border-light-gray p-8">
+                        <h2 className="text-2xl font-semibold text-charcoal mb-8 text-center">How OCR Works</h2>
                         
                         <div className="grid md:grid-cols-3 gap-8">
                             {/* Step 1: Upload */}
@@ -847,8 +846,8 @@ export default function ScanReceipt({ auth }) {
                                 <div className="mb-4">
                                     <img src="/images/icons/upload-icon.svg" alt="Upload Icon" className="w-16 h-16 mx-auto"/>
                                 </div>
-                                <h3 className="text-lg font-semibold text-[#2C2C2C] mb-2">1. Upload</h3>
-                                <p className="text-[#757575] text-sm">Take a photo or upload an image of your receipt</p>
+                                <h3 className="text-lg font-semibold text-charcoal mb-2">1. Upload</h3>
+                                <p className="text-medium-gray text-sm">Take a photo or upload an image of your receipt</p>
                             </div>
 
                             {/* Step 2: Scan */}
@@ -856,8 +855,8 @@ export default function ScanReceipt({ auth }) {
                                 <div className="mb-4">
                                     <img src="/images/icons/scan-gold-icon.svg" alt="Scan Icon" className="w-16 h-16 mx-auto"/>
                                 </div>
-                                <h3 className="text-lg font-semibold text-[#2C2C2C] mb-2">2. Scan</h3>
-                                <p className="text-[#757575] text-sm">AI extracts text and identifies key information</p>
+                                <h3 className="text-lg font-semibold text-charcoal mb-2">2. Scan</h3>
+                                <p className="text-medium-gray text-sm">AI extracts text and identifies key information</p>
                             </div>
 
                             {/* Step 3: Save */}
@@ -865,8 +864,8 @@ export default function ScanReceipt({ auth }) {
                                 <div className="mb-4">
                                     <img src="/images/icons/checkmark-save-icon.svg" alt="Save Icon" className="w-16 h-16 mx-auto"/>
                                 </div>
-                                <h3 className="text-lg font-semibold text-[#2C2C2C] mb-2">3. Save</h3>
-                                <p className="text-[#757575] text-sm">Review and automatically add to your transactions</p>
+                                <h3 className="text-lg font-semibold text-charcoal mb-2">3. Save</h3>
+                                <p className="text-medium-gray text-sm">Review and automatically add to your transactions</p>
                             </div>
                         </div>
                     </div>

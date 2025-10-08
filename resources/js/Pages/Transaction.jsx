@@ -146,8 +146,8 @@ export default function Transaction({ auth }) {
                                 onClick={() => setTransactionType('income')}
                                 className={`flex-1 py-3 px-6 rounded-lg text-sm font-medium transition-colors ${
                                     transactionType === 'income'
-                                    ? 'bg-[#058743] text-white'
-                                    : 'bg-[#D4EADF] text-[#058743] hover:bg-[#C0E0CB]'
+                                    ? 'bg-growth-green-500 text-white'
+                                    : 'bg-[#D4EADF] text-growth-green-500 hover:bg-[#C0E0CB]'
                                 }`}
                                 >
                                 + Income
@@ -157,8 +157,8 @@ export default function Transaction({ auth }) {
                                 onClick={() => setTransactionType('expense')}
                                 className={`flex-1 py-3 px-6 rounded-lg text-sm font-medium transition-colors ${
                                     transactionType === 'expense'
-                                    ? 'bg-[#DC3545] text-white'
-                                    : 'bg-[#F9E4E3] text-[#DC3545] hover:bg-[#F5D2D0]'
+                                    ? 'bg-expense-red-500 text-white'
+                                    : 'bg-[#F9E4E3] text-expense-red-500 hover:bg-[#F5D2D0]'
                                 }`}
                                 >
                                 - Expense
@@ -176,7 +176,7 @@ export default function Transaction({ auth }) {
                                 placeholder="0.00"
                                 value={formData.amount}
                                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#058743] focus:border-transparent"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-growth-green-500 focus:border-transparent"
                                 // required  <-- sudah di-bypass dengan noValidate pada <form>
                                 />
                             </div>

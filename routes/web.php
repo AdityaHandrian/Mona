@@ -82,6 +82,7 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware('auth')->prefix('api')->group(function () {
     Route::get('/transactions', [TransactionController::class, 'index']);
+    Route::get('/transactions/monthly-stats', [TransactionController::class, 'monthlyStats']);
     Route::post('/transactions', [TransactionController::class, 'store']);
     Route::put('/transactions/{id}', [TransactionController::class, 'update']);
     Route::delete('/transactions/{id}', [TransactionController::class, 'destroy']);

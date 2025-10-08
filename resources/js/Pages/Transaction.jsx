@@ -17,6 +17,15 @@ const parseFormattedNumber = (formattedValue) => {
     return formattedValue.replace(/\./g, '');
 };
 
+// Helper function to format currency
+const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        maximumFractionDigits: 0
+    }).format(amount);
+};
+
 export default function Transaction({ auth }) {
     const [transactionType, setTransactionType] = useState('income'); // 'income' or 'expense'
     const [categories, setCategories] = useState([]);
@@ -30,6 +39,14 @@ export default function Transaction({ auth }) {
     // Notification state
     const [notification, setNotification] = useState({ message: '', type: '' });
     const [showNotification, setShowNotification] = useState(false);
+    
+    // Quick Stats state
+    const [stats, setStats] = useState({
+        totalIncome: 0,
+        totalExpenses: 0,
+        netBalance: 0,
+        loading: true
+    });
 
     // Format date for display as DD/MM/YYYY
     const formatDateForDisplay = (dateString) => {
@@ -56,12 +73,53 @@ export default function Transaction({ auth }) {
         }
     };
 
+    // Fetch monthly statistics
+    const fetchMonthlyStats = async () => {
+        try {
+            setStats(prev => ({ ...prev, loading: true }));
+            
+            // Get current month and year
+            const now = new Date();
+            const currentMonth = now.getMonth() + 1; // getMonth() returns 0-11
+            const currentYear = now.getFullYear();
+            
+            const response = await axios.get(`/api/transactions/monthly-stats`, {
+                params: {
+                    month: currentMonth,
+                    year: currentYear
+                }
+            });
+            
+            const responseData = response.data.data; // API returns data in data property
+            setStats({
+                totalIncome: responseData.total_income || 0,
+                totalExpenses: Math.abs(responseData.total_expenses || 0), // Make sure it's positive
+                netBalance: responseData.net_balance || 0, // Use the calculated net_balance from API
+                loading: false
+            });
+        } catch (error) {
+            console.error('Error fetching monthly stats:', error);
+            // Set default values on error
+            setStats({
+                totalIncome: 0,
+                totalExpenses: 0,
+                netBalance: 0,
+                loading: false
+            });
+        }
+    };
+
     // Load categories when component mounts or transaction type changes
     useEffect(() => {
         fetchCategories(transactionType);
         // Reset category selection when type changes
         setFormData(prev => ({ ...prev, category: '' }));
     }, [transactionType]);
+
+    // Load monthly statistics when component mounts
+    useEffect(() => {
+        fetchMonthlyStats();
+    }, []);
 
     // Hide notification after 3 seconds
     useEffect(() => {
@@ -108,6 +166,9 @@ export default function Transaction({ auth }) {
                 date: new Date().toISOString().split('T')[0],
                 description: '',
             });
+            
+            // Refresh monthly statistics after adding transaction
+            fetchMonthlyStats();
         } catch (err) {
             setNotification({ message: 'Failed to create transaction.', type: 'error' });
             console.error('Failed to create transaction:', err?.response?.data || err.message);
@@ -304,7 +365,9 @@ export default function Transaction({ auth }) {
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <p className="text-base text-[#058743] mb-2 font-medium">Total Income</p>
-                                            <p className="text-3xl font-bold text-[#058743]">Rp0</p>
+                                            <p className="text-3xl font-bold text-[#058743]">
+                                                {stats.loading ? 'Loading...' : formatCurrency(stats.totalIncome)}
+                                            </p>
                                         </div>
                                         <div className="text-[#058743] text-3xl">+</div>
                                     </div>
@@ -315,7 +378,9 @@ export default function Transaction({ auth }) {
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <p className="text-base text-[#DC3545] mb-2 font-medium">Total Expenses</p>
-                                            <p className="text-3xl font-bold text-[#DC3545]">Rp0</p>
+                                            <p className="text-3xl font-bold text-[#DC3545]">
+                                                {stats.loading ? 'Loading...' : formatCurrency(stats.totalExpenses)}
+                                            </p>
                                         </div>
                                         <div className="text-[#DC3545] text-3xl">-</div>
                                     </div>
@@ -326,7 +391,11 @@ export default function Transaction({ auth }) {
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <p className="text-base text-[#5877D0] mb-2 font-medium">Net Balance</p>
-                                            <p className="text-3xl font-bold text-[#5877D0]">Rp0</p>
+                                            <p className={`text-3xl font-bold ${
+                                                stats.netBalance >= 0 ? 'text-[#058743]' : 'text-[#DC3545]'
+                                            }`}>
+                                                {stats.loading ? 'Loading...' : formatCurrency(stats.netBalance)}
+                                            </p>
                                         </div>
                                         <div className="text-[#5877D0] text-3xl">$</div>
                                     </div>

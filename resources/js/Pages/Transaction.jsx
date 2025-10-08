@@ -3,6 +3,20 @@ import AppLayout from '@/Layouts/AppLayout';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
 
+// Helper functions for number formatting
+const formatNumberWithDots = (value) => {
+    // Remove all non-digits
+    const digits = value.replace(/\D/g, '');
+    
+    // Add dots every 3 digits from right to left
+    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+};
+
+const parseFormattedNumber = (formattedValue) => {
+    // Remove dots to get raw number
+    return formattedValue.replace(/\./g, '');
+};
+
 export default function Transaction({ auth }) {
     const [transactionType, setTransactionType] = useState('income'); // 'income' or 'expense'
     const [categories, setCategories] = useState([]);
@@ -171,11 +185,13 @@ export default function Transaction({ auth }) {
                                 Amount*
                                 </label>
                                 <input
-                                type="number"
-                                step="0.01"
-                                placeholder="0.00"
-                                value={formData.amount}
-                                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                                type="text"
+                                placeholder="0"
+                                value={formatNumberWithDots(formData.amount)}
+                                onChange={(e) => {
+                                    const rawValue = parseFormattedNumber(e.target.value);
+                                    setFormData({ ...formData, amount: rawValue });
+                                }}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-growth-green-500 focus:border-transparent"
                                 // required  <-- sudah di-bypass dengan noValidate pada <form>
                                 />

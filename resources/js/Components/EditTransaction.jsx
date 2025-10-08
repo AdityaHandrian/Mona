@@ -1,6 +1,22 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
+// Helper functions for number formatting
+const formatNumberWithDots = (value) => {
+    // Handle empty or undefined values
+    if (!value) return '';
+    // Remove all non-digits
+    const digits = String(value).replace(/\D/g, '');
+    
+    // Add dots every 3 digits from right to left
+    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+};
+
+const parseFormattedNumber = (formattedValue) => {
+    // Remove dots to get raw number
+    return formattedValue.replace(/\./g, '');
+};
+
 export default function EditTransaction({ transaction, onClose, onUpdate }) {
     const [transactionType, setTransactionType] = useState('expense'); // Default to expense since most transactions are expenses
     const [categories, setCategories] = useState([]);
@@ -215,11 +231,13 @@ export default function EditTransaction({ transaction, onClose, onUpdate }) {
                                 Amount*
                             </label>
                             <input
-                                type="number"
-                                step="0.01"
-                                placeholder="0.00"
-                                value={formData.amount}
-                                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                                type="text"
+                                placeholder="0"
+                                value={formatNumberWithDots(formData.amount)}
+                                onChange={(e) => {
+                                    const rawValue = parseFormattedNumber(e.target.value);
+                                    setFormData({ ...formData, amount: rawValue });
+                                }}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#058743] focus:border-transparent"
                                 required
                             />

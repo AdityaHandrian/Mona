@@ -407,4 +407,4 @@ export default function Transaction({ auth }) {
             </div>
         </AppLayout>
     );
-}
+} 

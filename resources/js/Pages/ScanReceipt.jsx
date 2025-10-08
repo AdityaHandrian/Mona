@@ -517,8 +517,7 @@ export default function ScanReceipt({ auth }) {
             auth={auth}
         >
             {/* Page Content */}
-            <div className="py-10">
-                <div className="max-w-[1500px] mx-auto px-6">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Page Header */}
                     <div className="mb-8">
                         <h1 className="text-3xl font-bold text-charcoal mb-2">Scan Receipt</h1>
@@ -869,7 +868,6 @@ export default function ScanReceipt({ auth }) {
                             </div>
                         </div>
                     </div>
-                </div>
             </div>
         </AppLayout>
     );

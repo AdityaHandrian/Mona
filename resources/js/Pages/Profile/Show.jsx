@@ -21,8 +21,8 @@ export default function Show({ auth }) {
         >
             <Head title="Profile Settings" />
 
-            <div className="py-12">
-                <div className="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-8">
+            <div className="py-8">
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
                     
                     {/* Box Personal Information */}
                     <div className="relative p-8 bg-white shadow-md rounded-2xl">
@@ -34,14 +34,14 @@ export default function Show({ auth }) {
                             <PencilIcon className="h-6 w-6" />
                         </Link>
                         
-                        <div className="flex items-start space-x-4">
+                        <div className="flex items-start space-x-4 mb-6">
                             <UserIcon className="h-8 w-8 text-gray-500"/>
                             <div>
-                                <h2 className="text-xl font-semibold text-gray-900">Personal Information</h2>
-                                <p className="mt-1 text-sm text-gray-600">Your personal details and contact information.</p>
+                                <h2 className="text-lg md:text-xl font-semibold text-gray-900">Personal Information</h2>
+                                <p className="mt-1 text-xs md:text-sm text-gray-600">Your personal details and contact information.</p>
                             </div>
                         </div>
-                        <div className="mt-8 flex flex-col md:flex-row items-center space-y-6 md:space-y-0 md:space-x-12">
+                        <div className="mt-8 flex flex-col md:flex-row md:items-start space-y-6 md:space-y-0 md:space-x-12">
                             {user.profile_photo_path ? (
                                 <img className="h-32 w-32 rounded-full object-cover ring-4 ring-white" src={avatarUrl} alt={user.name} />
                             ) : (
@@ -80,8 +80,8 @@ export default function Show({ auth }) {
                         <div className="flex items-start space-x-4">
                             <AdjustmentsHorizontalIcon className="h-8 w-8 text-gray-500"/>
                             <div>
-                                <h2 className="text-xl font-semibold text-gray-900">Preferences</h2>
-                                <p className="mt-1 text-sm text-gray-600">Customize your app experience.</p>
+                                <h2 className="text-lg md:text-xl font-semibold text-gray-900">Preferences</h2>
+                                <p className="mt-1 text-xs md:text-sm text-gray-600">Customize your app experience.</p>
                             </div>
                         </div>
                         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8 text-base">

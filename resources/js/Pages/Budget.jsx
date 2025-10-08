@@ -166,24 +166,22 @@ export default function Budget({ auth }) {
     <AppLayout title="MONA - Budget" auth={auth}>
       <Head title="Budget" />
 
-      <div className="py-8">
-        <div className="max-w-7xl mx-auto px-6">
-          {/* Header */}
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Budget Manager</h1>
-              <p className="text-gray-600">Set and track your spending limits</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-warm-ivory rounded-md">
+            {/* Header */}
+            <div className="flex justify-between items-start mb-8">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Budget Manager</h1>
+                <p className="text-gray-600">Set and track your spending limits</p>
+              </div>
+              <button
+                onClick={openNew}
+                className="inline-flex items-center gap-2 bg-black text-white rounded-full px-5 py-2 font-medium shadow-md transform transition-transform duration-200 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-black"
+              >
+                <Icon.Plus className="w-4 h-4" />
+                New Budget
+              </button>
             </div>
-            <button
-              onClick={openNew}
-              className="inline-flex items-center gap-2 bg-black text-white rounded-full px-5 py-2 font-medium shadow-md transform transition-transform duration-200 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-black"
-            >
-              <Icon.Plus className="w-4 h-4" />
-              New Budget
-            </button>
-          </div>
-
-          <div className="bg-warm-ivory p-10 rounded-md">
 
             {/* top metrics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -207,7 +205,7 @@ export default function Budget({ auth }) {
             </div>
 
             {/* budget cards grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-10">
               {budgets.map((b) => {
                 const pct = percent(b.spent, b.budget);
                 const isOver = b.spent > b.budget;
@@ -227,10 +225,16 @@ export default function Budget({ auth }) {
 
                       <div className="flex items-center gap-3 text-gray-600">
                         <div
-                          className={`p-1 rounded-full border transition-colors duration-200 ${isOver ? 'border-red-200 text-red-600 bg-red-50' : 'border-green-200 text-green-600 bg-green-50'}`}
-                          title={isOver ? 'Over budget' : 'Healthy'}
+                          className={`p-1 rounded-full border transition-colors duration-200 ${
+                            isOver 
+                              ? 'border-red-200 text-red-600 bg-red-50' 
+                              : pct >= 80 
+                                ? 'border-orange-200 text-orange-500 bg-orange-50' 
+                                : 'border-green-200 text-green-600 bg-green-50'
+                          }`}
+                          title={isOver ? 'Over budget' : pct >= 80 ? 'Warning' : 'Healthy'}
                         >
-                          {isOver ? <Icon.Warning /> : <Icon.Check />}
+                          {isOver ? <Icon.Warning /> : pct >= 80 ? <Icon.Warning /> : <Icon.Check />}
                         </div>
 
                         {/* action buttons: fade/slide-in on card hover */}
@@ -265,7 +269,11 @@ export default function Budget({ auth }) {
                           className="h-2 rounded-full transition-all duration-700 ease-out"
                           style={{
                             width: `${Math.min(pct, 200)}%`,
-                            background: isOver ? 'linear-gradient(90deg,#DC2626,#991B1B)' : 'linear-gradient(90deg,#10B981,#047857)',
+                            background: isOver 
+                              ? 'linear-gradient(90deg,#DC2626,#991B1B)' 
+                              : pct >= 80 
+                                ? 'linear-gradient(90deg,#F59E0B,#D97706)' 
+                                : 'linear-gradient(90deg,#10B981,#047857)',
                           }}
                         />
                       </div>
@@ -397,7 +405,6 @@ export default function Budget({ auth }) {
                 </div>
               </div>
             )}
-          </div>
         </div>
       </div>
     </AppLayout>

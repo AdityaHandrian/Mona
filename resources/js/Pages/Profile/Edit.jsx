@@ -32,11 +32,13 @@ export default function Edit({ mustVerifyEmail, status }) {
     });
     const [completedCrop, setCompletedCrop] = useState(null);
     const [croppedImageUrl, setCroppedImageUrl] = useState(null);
+    const [showMobileOptions, setShowMobileOptions] = useState(false);
     const imgRef = useRef(null);
 
     // Form profile
     const { data: profileData, setData: setProfileData, patch: patchProfile, errors: profileErrors, processing: profileProcessing } = useForm({
-        name: user.name,
+        first_name: user.name?.split(' ')[0] || '',
+        last_name: user.name?.split(' ').slice(1).join(' ') || '',
         email: user.email,
         phone: user.phone || '',
         date_of_birth: user.date_of_birth || '',
@@ -46,9 +48,12 @@ export default function Edit({ mustVerifyEmail, status }) {
     const submitProfile = (e) => {
         e.preventDefault();
         
+        // Combine first and last name
+        const fullName = `${profileData.first_name} ${profileData.last_name}`.trim();
+        
         // Prepare form data ensuring all required fields are present
         const formData = {
-            name: profileData.name,
+            name: fullName,
             email: profileData.email,
             phone: profileData.phone || '',
             date_of_birth: profileData.date_of_birth || '',
@@ -107,7 +112,9 @@ export default function Edit({ mustVerifyEmail, status }) {
             };
             reader.readAsDataURL(file);
         }
-    };    const getCroppedImg = useCallback((image, crop) => {
+    };
+
+    const getCroppedImg = useCallback((image, crop) => {
         const canvas = document.createElement('canvas');
         const scaleX = image.naturalWidth / image.width;
         const scaleY = image.naturalHeight / image.height;
@@ -198,66 +205,57 @@ export default function Edit({ mustVerifyEmail, status }) {
         >
             <Head title="Edit Profile" />
 
-            <div className="py-12">
-                <div className="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-8">
+            <div className="py-8">
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
 
                     {/* Box Profile Information */}
                     <div className="p-8 bg-white shadow-md rounded-2xl relative">
                         <div className="flex items-start space-x-4 mb-6">
                             <UserIcon className="h-8 w-8 text-gray-500"/>
                             <div>
-                                <h2 className="text-xl font-semibold text-gray-900">Profile Information</h2>
-                                <p className="mt-1 text-sm text-gray-600">Update your personal details and contact information.</p>
+                                <h2 className="text-lg md:text-xl font-semibold text-gray-900">Profile Information</h2>
+                                <p className="mt-1 text-xs md:text-sm text-gray-600">Update your personal details and contact information.</p>
                             </div>
                         </div>
 
                         <form onSubmit={submitProfile} className="space-y-6">
                             {/* Avatar Upload */}
-                            <div className="relative w-24 h-24 group">
+                            <div 
+                                className="relative w-32 h-32 group"
+                                onClick={(e) => {
+                                    // Click outside overlay area hides mobile options
+                                    if (showMobileOptions && e.target === e.currentTarget) {
+                                        setShowMobileOptions(false);
+                                    }
+                                }}
+                            >
                                 {(croppedImageUrl || profileData.profile_photo || user.profile_photo_path) ? (
                                     <img
                                         src={croppedImageUrl || (profileData.profile_photo ? URL.createObjectURL(profileData.profile_photo) : avatarUrl)}
                                         alt="Profile Avatar"
-                                        className="h-24 w-24 rounded-full object-cover shadow transition-all duration-300 group-hover:brightness-75"
+                                        className="h-32 w-32 rounded-full object-cover shadow transition-all duration-300 group-hover:brightness-75"
                                     />
                                 ) : (
-                                    <div className="h-24 w-24 rounded-full bg-[#058743] flex items-center justify-center text-white font-bold text-lg shadow transition-all duration-300 group-hover:brightness-75">
+                                    <div className="h-32 w-32 rounded-full bg-[#058743] flex items-center justify-center text-white font-bold text-4xl shadow transition-all duration-300 group-hover:brightness-75">
                                         {user.name ? user.name.split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2) : 'U'}
                                     </div>
                                 )}
                                 
-                                {/* Hover Overlay - Different based on whether user has profile photo */}
-                                {(user.profile_photo_path || croppedImageUrl) ? (
-                                    /* Split overlay for users with profile photo */
-                                    <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
-                                        {/* Edit Picture - Top half (Growth Green) */}
-                                        <div 
-                                            className="absolute top-0 left-0 right-0 bg-growth-green-500 bg-opacity-50 flex items-center justify-center cursor-pointer hover:bg-opacity-70 transition-all duration-200"
-                                            style={{ height: 'calc(50% - 0.5px)' }}
-                                            onClick={() => document.querySelector('input[type="file"]').click()}
-                                        >
-                                            <span className="text-white text-xs font-medium text-center px-1">Edit</span>
-                                        </div>
-                                        
-                                        {/* Small gap between sections */}
-                                        <div className="absolute left-0 right-0 h-px bg-white bg-opacity-30" style={{ top: 'calc(50% - 0.5px)' }}></div>
-                                        
-                                        {/* Delete Picture - Bottom half (Expense Red) */}
-                                        <div 
-                                            className="absolute bottom-0 left-0 right-0 bg-expense-red-500 bg-opacity-50 flex items-center justify-center cursor-pointer hover:bg-opacity-70 transition-all duration-200"
-                                            style={{ height: 'calc(50% - 0.5px)' }}
-                                            onClick={handleRemovePhoto}
-                                        >
-                                            <span className="text-white text-xs font-medium text-center px-1">Delete</span>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    /* Single overlay for users without profile photo */
-                                    <div className="absolute inset-0 bg-growth-green-500 bg-opacity-60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer"
-                                         onClick={() => document.querySelector('input[type="file"]').click()}>
-                                        <span className="text-white text-xs font-medium text-center px-2">Edit Picture</span>
-                                    </div>
-                                )}
+                                {/* Hover Hint - Desktop only */}
+                                <div className="hidden md:block absolute inset-0 rounded-full bg-black bg-opacity-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
+                                     onClick={(e) => {
+                                         e.stopPropagation();
+                                         setShowMobileOptions(true);
+                                     }}
+                                />
+                                
+                                {/* Click Trigger - Mobile */}
+                                <div className="md:hidden absolute inset-0 cursor-pointer"
+                                     onClick={(e) => {
+                                         e.stopPropagation();
+                                         setShowMobileOptions(true);
+                                     }}
+                                />
 
                                 {/* Hidden file input */}
                                 <input
@@ -271,15 +269,26 @@ export default function Edit({ mustVerifyEmail, status }) {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <InputLabel htmlFor="name" value="Full Name" />
+                                    <InputLabel htmlFor="first_name" value="First Name" />
                                     <TextInput
-                                        id="name"
+                                        id="first_name"
                                         className="mt-1 block w-full"
-                                        value={profileData.name}
-                                        onChange={(e) => setProfileData('name', e.target.value)}
+                                        value={profileData.first_name}
+                                        onChange={(e) => setProfileData('first_name', e.target.value)}
                                         required
                                     />
-                                    <InputError className="mt-2" message={profileErrors.name} />
+                                    <InputError className="mt-2" message={profileErrors.first_name} />
+                                </div>
+
+                                <div>
+                                    <InputLabel htmlFor="last_name" value="Last Name" />
+                                    <TextInput
+                                        id="last_name"
+                                        className="mt-1 block w-full"
+                                        value={profileData.last_name}
+                                        onChange={(e) => setProfileData('last_name', e.target.value)}
+                                    />
+                                    <InputError className="mt-2" message={profileErrors.last_name} />
                                 </div>
 
                                 <div>
@@ -337,13 +346,70 @@ export default function Edit({ mustVerifyEmail, status }) {
                         </form>
                     </div>
 
+                    {/* Overlay Menu - Outside of avatar container */}
+                    {showMobileOptions && (
+                        <div 
+                            className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+                            onClick={(e) => {
+                                if (e.target === e.currentTarget) {
+                                    setShowMobileOptions(false);
+                                }
+                            }}
+                        >
+                            {/* Background overlay */}
+                            <div 
+                                className="fixed inset-0 bg-black bg-opacity-50" 
+                                onClick={() => setShowMobileOptions(false)}
+                            />
+                            
+                            {/* Menu popup */}
+                            <div className="relative bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
+                                <div className="space-y-4">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            document.querySelector('input[type="file"]').click();
+                                            setShowMobileOptions(false);
+                                        }}
+                                        className="w-full py-3 px-4 text-left text-growth-green-600 hover:bg-growth-green-50 rounded-lg transition-colors font-medium"
+                                    >
+                                        Edit your Picture
+                                    </button>
+                                    
+                                    {(user.profile_photo_path || croppedImageUrl) && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleRemovePhoto();
+                                                setShowMobileOptions(false);
+                                            }}
+                                            className="w-full py-3 px-4 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
+                                        >
+                                            Remove your Picture
+                                        </button>
+                                    )}
+                                    
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowMobileOptions(false);
+                                        }}
+                                        className="w-full py-3 px-4 text-left text-gray-600 hover:bg-gray-50 rounded-lg transition-colors font-medium"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Box Update Password */}
                     <div className="p-8 bg-white shadow-md rounded-2xl">
                         <div className="flex items-start space-x-4 mb-6">
                             <KeyIcon className="h-8 w-8 text-gray-500"/>
                             <div>
-                                <h2 className="text-xl font-semibold text-gray-900">Update Password</h2>
-                                <p className="mt-1 text-sm text-gray-600">Ensure your account is using a strong, unique password.</p>
+                                <h2 className="text-lg md:text-xl font-semibold text-gray-900">Update Password</h2>
+                                <p className="mt-1 text-xs md:text-sm text-gray-600">Ensure your account is using a strong, unique password.</p>
                             </div>
                         </div>
 

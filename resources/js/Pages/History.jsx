@@ -213,12 +213,11 @@ export default function History({ auth }) {
         <AppLayout title="MONA - History" auth={auth}>
             <Head title="History" />
 
-            <div className="py-12 px-4 sm:px-6 lg:px-8 bg-[F8F7F0]">
-                <div className="max-w-7xl mx-auto">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-[F8F7F0]">
 
                     {/* Summary */}
                     <div className="mb-8">
-                        <h1 className="text-3xl font-bold text-gray-800">Transaction History</h1>
+                        <h1 className="text-3xl font-bold text-gray-800 mb-2">Transaction History</h1>
                         <p className="text-gray-500 mt-1">View and manage all your transactions</p>
                         
                         {/* Success/Error Message */}
@@ -354,7 +353,6 @@ export default function History({ auth }) {
                         </div>
                     </div>
                 </div>
-            </div>
 
             {/* Edit Transaction Modal */}
             {showEditModal && editingTransaction && (

@@ -217,8 +217,8 @@ export default function History({ auth }) {
 
                     {/* Summary */}
                     <div className="mb-8">
-                        <h1 className="text-3xl font-bold text-gray-800 mb-2">Transaction History</h1>
-                        <p className="text-gray-500 mt-1">View and manage all your transactions</p>
+                        <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl font-bold text-charcoal mb-2">Transaction History</h1>
+                        <p className="text-sm sm:text-base md:text-base lg:text-base xl:text-lg text-medium-gray">View and manage all your transactions</p>
                         
                         {/* Success/Error Message */}
                         {message.text && (
@@ -235,15 +235,15 @@ export default function History({ auth }) {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                         <div className="bg-white p-6 rounded-lg shadow-md">
                             <h3 className="text-gray-500">Total Transactions</h3>
-                            <p className="text-2xl font-bold text-gray-800">{totalTransactions}</p>
+                            <p className="text-xl sm:text-xl md:text-xl lg:text-xl xl:text-2xl font-bold text-gray-800">{totalTransactions}</p>
                         </div>
                         <div className="bg-white p-6 rounded-lg shadow-md">
                             <h3 className="text-gray-500">Total Income</h3>
-                            <p className="text-2xl font-bold text-green-600">{formatCurrency(totalIncome)}</p>
+                            <p className="text-xl sm:text-xl md:text-xl lg:text-xl xl:text-2xl font-bold text-green-600">{formatCurrency(totalIncome)}</p>
                         </div>
                         <div className="bg-white p-6 rounded-lg shadow-md">
                             <h3 className="text-gray-500">Total Expenses</h3>
-                            <p className="text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</p>
+                            <p className="text-xl sm:text-xl md:text-xl lg:text-xl xl:text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</p>
                         </div>
                     </div>
 

@@ -53,16 +53,16 @@ const Icon = {
 
 // ---------- Component ----------
 export default function Budget({ auth }) {
-  const [budgets, setBudgets] = useState([
-    { id: 1, title: 'Food & Dining', category: 'Food & Dining', budget: 14200000, spent: 11700000, period: 'monthly' },
-    { id: 2, title: 'Transportation', category: 'Transportation', budget: 5000000, spent: 7000000, period: 'monthly' },
-    { id: 3, title: 'Entertainment', category: 'Entertainment', budget: 3300000, spent: 2000000, period: 'weekly' },
-    { id: 4, title: 'Shopping', category: 'Shopping', budget: 8250000, spent: 6250000, period: 'monthly' },
-  ]);
+  const currentDate = new Date();
+  const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+  const currentYear = currentDate.getFullYear();
+
+  // Start with no mock data: initialize budgets empty so real data can be fetched or created
+  const [budgets, setBudgets] = useState([]);
 
   const [isModalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ category: '', budget: '', spent: '', period: 'monthly' });
+  const [form, setForm] = useState({ category: '', budget: '', spent: '', month: '', year: '' });
 
   // Expense categories
   const expenseCategories = [
@@ -79,6 +79,38 @@ export default function Budget({ auth }) {
     'Other'
   ];
 
+  // Generate months and years for dropdowns
+  const months = [
+    { value: '01', label: 'January' },
+    { value: '02', label: 'February' },
+    { value: '03', label: 'March' },
+    { value: '04', label: 'April' },
+    { value: '05', label: 'May' },
+    { value: '06', label: 'June' },
+    { value: '07', label: 'July' },
+    { value: '08', label: 'August' },
+    { value: '09', label: 'September' },
+    { value: '10', label: 'October' },
+    { value: '11', label: 'November' },
+    { value: '12', label: 'December' }
+  ];
+
+  const years = Array.from({ length: 10 }, (_, i) => currentYear + i);
+
+  // Validation function for date
+  const isDateValid = (month, year) => {
+    const selectedYear = parseInt(year);
+    const selectedMonth = parseInt(month);
+    const currentMonthNum = parseInt(currentMonth);
+    
+    if (!month || !year) return true; // Don't show error if incomplete
+    
+    if (selectedYear < currentYear) return false;
+    if (selectedYear === currentYear && selectedMonth < currentMonthNum) return false;
+    
+    return true;
+  };
+
   const totals = useMemo(() => {
     const totalBudget = budgets.reduce((s, b) => s + b.budget, 0);
     const totalSpent = budgets.reduce((s, b) => s + b.spent, 0);
@@ -88,7 +120,7 @@ export default function Budget({ auth }) {
 
   function openNew() {
     setEditing(null);
-    setForm({ category: '', budget: '', spent: '', period: 'monthly' });
+    setForm({ category: '', budget: '', spent: '', month: '', year: '' });
     setModalOpen(true);
   }
 
@@ -98,7 +130,8 @@ export default function Budget({ auth }) {
       category: item.category || '', 
       budget: item.budget, 
       spent: item.spent,
-      period: item.period || 'monthly'
+      month: item.month || '',
+      year: item.year || ''
     });
     setModalOpen(true);
   }
@@ -109,7 +142,8 @@ export default function Budget({ auth }) {
       category: form.category,
       budget: Number(form.budget || 0), 
       spent: Number(form.spent || 0),
-      period: form.period
+      month: form.month,
+      year: form.year
     };
     if (editing) {
       setBudgets((prev) => prev.map((p) => (p.id === editing.id ? { ...p, ...parsed } : p)));
@@ -183,7 +217,7 @@ export default function Budget({ auth }) {
                       <div>
                         <h3 className="text-xl font-semibold">{b.category || b.title}</h3>
                         <div className="text-gray-400 text-sm">
-                          {(b.period || 'monthly').charAt(0).toUpperCase() + (b.period || 'monthly').slice(1)} Budget
+                          {b.month && b.year ? `Ends in: ${months.find(m => m.value === b.month)?.label || 'Month'} ${b.year}` : 'Budget Period'}
                         </div>
                       </div>
 
@@ -271,30 +305,49 @@ export default function Budget({ auth }) {
                       </select>
                     </div>
 
-                    {/* Period */}
+                    {/* Budget Period */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Budget Period*</label>
-                      <div className="grid grid-cols-3 gap-3">
-                        {['weekly', 'monthly', 'yearly'].map((period) => (
-                          <button
-                            key={period}
-                            type="button"
-                            onClick={() => setForm((s) => ({ ...s, period }))}
-                            className={`py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-                              form.period === period
-                                ? 'bg-black text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                          >
-                            {period.charAt(0).toUpperCase() + period.slice(1)}
-                          </button>
-                        ))}
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Month Selector */}
+                        <select
+                          value={form.month}
+                          onChange={(e) => setForm((s) => ({ ...s, month: e.target.value }))}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                          required
+                        >
+                          <option value="">Select a Month</option>
+                          {months.map((month) => (
+                            <option key={month.value} value={month.value}>
+                              {month.label}
+                            </option>
+                          ))}
+                        </select>
+
+                        {/* Year Input */}
+                        <input
+                          type="number"
+                          value={form.year}
+                          onChange={(e) => setForm((s) => ({ ...s, year: e.target.value }))}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                          placeholder="Enter year"
+                          min={currentYear}
+                          required
+                        />
                       </div>
+                      
+                      {/* Date validation error */}
+                      {form.month && form.year && !isDateValid(form.month, form.year) && (
+                        <div className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                          <Icon.Warning className="w-4 h-4" />
+                          Date invalid - Cannot select a past date
+                        </div>
+                      )}
                     </div>
 
                     {/* Budget Amount */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Budget Amount (IDR)*</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Budget Amount*</label>
                       <input 
                         value={form.budget} 
                         onChange={(e) => setForm((s) => ({ ...s, budget: e.target.value }))} 
@@ -309,7 +362,7 @@ export default function Budget({ auth }) {
                     {/* Current Spent (only show when editing) */}
                     {editing && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Current Spent (IDR)</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Current Spent</label>
                         <input 
                           value={form.spent} 
                           onChange={(e) => setForm((s) => ({ ...s, spent: e.target.value }))} 
@@ -330,8 +383,8 @@ export default function Budget({ auth }) {
                       </button>
                       <button 
                         onClick={save} 
-                        className="px-6 py-2 rounded-lg bg-black text-white hover:bg-gray-800 font-medium"
-                        disabled={!form.category || !form.budget}
+                        className="px-6 py-2 rounded-lg bg-black text-white hover:bg-gray-800 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        disabled={!form.category || !form.budget || !form.month || !form.year || !isDateValid(form.month, form.year)}
                       >
                         {editing ? 'Update Budget' : 'Create Budget'}
                       </button>

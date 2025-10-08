@@ -91,7 +91,7 @@ export default function AppLayout({ children, title, auth, navigation }) {
                                             />
                                         ) : (
                                             <div className="w-10 h-10 rounded-full bg-[#058743] flex items-center justify-center text-white font-semibold transition-all duration-200 group-hover:ring-2 group-hover:ring-[#6FB386] group-hover:ring-offset-1">
-                                                {auth.user.name?.charAt(0)?.toUpperCase() || 'U'}
+                                                {auth.user.name ? auth.user.name.split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2) : 'U'}
                                             </div>
                                         )}
                                     </Link>
@@ -121,7 +121,7 @@ export default function AppLayout({ children, title, auth, navigation }) {
                                         />
                                     ) : (
                                         <div className="w-12 h-12 max-[425px]:w-10 max-[425px]:h-10 rounded-full bg-[#058743] flex items-center justify-center text-white font-semibold max-[425px]:text-sm">
-                                            {auth.user.name?.charAt(0)?.toUpperCase() || 'U'}
+                                            {auth.user.name ? auth.user.name.split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2) : 'U'}
                                         </div>
                                     )}
                                     <div className="flex-1">

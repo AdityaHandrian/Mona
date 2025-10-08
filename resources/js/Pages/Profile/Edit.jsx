@@ -17,7 +17,7 @@ export default function Edit({ mustVerifyEmail, status }) {
 
     const avatarUrl = user.profile_photo_path
         ? `/storage/${user.profile_photo_path}`
-        : `https://ui-avatars.com/api/?name=${user.name}&size=256&background=EBF4FF&color=027A48`;
+        : null; // We'll use a custom div instead of ui-avatars
 
     // Crop modal state
     const [isCropModalOpen, setIsCropModalOpen] = useState(false);
@@ -145,6 +145,12 @@ export default function Edit({ mustVerifyEmail, status }) {
             const url = URL.createObjectURL(croppedBlob);
             setCroppedImageUrl(url);
             setIsCropModalOpen(false);
+            
+            // Reset the file input so user can select a new file again
+            const fileInput = document.querySelector('input[type="file"]');
+            if (fileInput) {
+                fileInput.value = '';
+            }
         }
     };
 
@@ -160,6 +166,11 @@ export default function Edit({ mustVerifyEmail, status }) {
             aspect: 1
         });
         setCompletedCrop(null);
+        // Reset the file input so user can select the same file again
+        const fileInput = document.querySelector('input[type="file"]');
+        if (fileInput) {
+            fileInput.value = '';
+        }
     };
 
     const handleRemovePhoto = () => {
@@ -203,11 +214,17 @@ export default function Edit({ mustVerifyEmail, status }) {
                         <form onSubmit={submitProfile} className="space-y-6">
                             {/* Avatar Upload */}
                             <div className="relative w-24 h-24 group">
-                                <img
-                                    src={croppedImageUrl || (profileData.profile_photo ? URL.createObjectURL(profileData.profile_photo) : avatarUrl)}
-                                    alt="Profile Avatar"
-                                    className="h-24 w-24 rounded-full object-cover shadow transition-all duration-300 group-hover:brightness-75"
-                                />
+                                {(croppedImageUrl || profileData.profile_photo || user.profile_photo_path) ? (
+                                    <img
+                                        src={croppedImageUrl || (profileData.profile_photo ? URL.createObjectURL(profileData.profile_photo) : avatarUrl)}
+                                        alt="Profile Avatar"
+                                        className="h-24 w-24 rounded-full object-cover shadow transition-all duration-300 group-hover:brightness-75"
+                                    />
+                                ) : (
+                                    <div className="h-24 w-24 rounded-full bg-[#058743] flex items-center justify-center text-white font-bold text-lg shadow transition-all duration-300 group-hover:brightness-75">
+                                        {user.name ? user.name.split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2) : 'U'}
+                                    </div>
+                                )}
                                 
                                 {/* Hover Overlay - Different based on whether user has profile photo */}
                                 {(user.profile_photo_path || croppedImageUrl) ? (
@@ -386,9 +403,9 @@ export default function Edit({ mustVerifyEmail, status }) {
 
             {/* Image Crop Modal */}
             {isCropModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black bg-opacity-50" onClick={handleCropCancel} />
-                    <div className="relative bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+                    <div className="relative bg-white rounded-lg p-6 max-w-2xl w-full shadow-xl max-h-[90vh] overflow-auto">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-semibold text-gray-900">Crop Profile Image</h3>
                             <button
@@ -399,44 +416,55 @@ export default function Edit({ mustVerifyEmail, status }) {
                             </button>
                         </div>
 
-                        <div className="mb-6">
+                        <div className="mb-6 flex justify-center">
                             {selectedImage && (
-                                <ReactCrop
-                                    crop={crop}
-                                    onChange={(newCrop) => setCrop(newCrop)}
-                                    onComplete={(c) => setCompletedCrop(c)}
-                                    aspect={1}
-                                    circularCrop
-                                    className="max-w-full"
-                                    minWidth={100}
-                                    minHeight={100}
-                                    keepSelection
-                                    onImageLoaded={(img) => {
-                                        // Auto-set crop to fill smaller dimension when image loads
-                                        const { naturalWidth, naturalHeight } = img;
-                                        const size = Math.min(naturalWidth, naturalHeight);
-                                        const centerX = (naturalWidth - size) / 2;
-                                        const centerY = (naturalHeight - size) / 2;
-                                        
-                                        const newCrop = {
-                                            unit: 'px',
-                                            width: size,
-                                            height: size,
-                                            x: centerX,
-                                            y: centerY,
-                                            aspect: 1
-                                        };
-                                        setCrop(newCrop);
-                                        setCompletedCrop(newCrop);
-                                    }}
-                                >
-                                    <img
-                                        ref={imgRef}
-                                        src={selectedImage}
-                                        alt="Crop preview"
-                                        className="max-w-full h-auto"
-                                    />
-                                </ReactCrop>
+                                <div className="w-full max-w-lg">
+                                    <ReactCrop
+                                        crop={crop}
+                                        onChange={(newCrop) => setCrop(newCrop)}
+                                        onComplete={(c) => setCompletedCrop(c)}
+                                        aspect={1}
+                                        circularCrop
+                                        minWidth={100}
+                                        minHeight={100}
+                                        keepSelection
+                                        onImageLoaded={(img) => {
+                                            imgRef.current = img;
+                                            // Wait for next tick to ensure image is properly rendered
+                                            setTimeout(() => {
+                                                const { offsetWidth, offsetHeight } = img;
+                                                const size = Math.min(offsetWidth, offsetHeight) * 0.7; // 70% of smaller displayed dimension
+                                                const centerX = (offsetWidth - size) / 2;
+                                                const centerY = (offsetHeight - size) / 2;
+                                                
+                                                const newCrop = {
+                                                    unit: 'px',
+                                                    width: size,
+                                                    height: size,
+                                                    x: centerX,
+                                                    y: centerY,
+                                                    aspect: 1
+                                                };
+                                                setCrop(newCrop);
+                                                setCompletedCrop(newCrop);
+                                            }, 100);
+                                        }}
+                                    >
+                                        <img
+                                            ref={imgRef}
+                                            src={selectedImage}
+                                            alt="Crop preview"
+                                            style={{ 
+                                                maxWidth: '100%', 
+                                                maxHeight: '400px',
+                                                display: 'block'
+                                            }}
+                                        />
+                                    </ReactCrop>
+                                    <p className="text-sm text-gray-500 mt-2 text-center">
+                                        Drag to adjust the circular crop area for your profile picture
+                                    </p>
+                                </div>
                             )}
                         </div>
 

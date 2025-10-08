@@ -12,7 +12,7 @@ export default function Show({ auth }) {
     
     const avatarUrl = user.profile_photo_path 
         ? `/storage/${user.profile_photo_path}` 
-        : `https://ui-avatars.com/api/?name=${user.name}&size=256&background=EBF4FF&color=027A48`;
+        : null; // We'll use a custom div instead of ui-avatars
 
     return (
         <AppLayout
@@ -42,7 +42,13 @@ export default function Show({ auth }) {
                             </div>
                         </div>
                         <div className="mt-8 flex flex-col md:flex-row items-center space-y-6 md:space-y-0 md:space-x-12">
-                            <img className="h-32 w-32 rounded-full object-cover ring-4 ring-white" src={avatarUrl} alt={user.name} />
+                            {user.profile_photo_path ? (
+                                <img className="h-32 w-32 rounded-full object-cover ring-4 ring-white" src={avatarUrl} alt={user.name} />
+                            ) : (
+                                <div className="h-32 w-32 rounded-full bg-[#058743] flex items-center justify-center text-white font-bold text-4xl ring-4 ring-white">
+                                    {user.name ? user.name.split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2) : 'U'}
+                                </div>
+                            )}
                             
                             <div className="grow grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8 text-base">
                                 <div>

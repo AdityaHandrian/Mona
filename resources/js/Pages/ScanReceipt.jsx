@@ -545,8 +545,8 @@ export default function ScanReceipt({ auth }) {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Page Header */}
                     <div className="mb-8">
-                        <h1 className="text-3xl font-bold text-charcoal mb-2">Scan Receipt</h1>
-                        <p className="text-medium-gray">Scan receipts and automatically extract transaction data</p>
+                        <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl font-bold text-charcoal mb-2">Scan Receipt</h1>
+                        <p className="text-sm sm:text-base md:text-base lg:text-base xl:text-lg text-medium-gray">Scan receipts and automatically extract transaction data</p>
                         
                         {/* Success/Error Message */}
                         {message.text && (

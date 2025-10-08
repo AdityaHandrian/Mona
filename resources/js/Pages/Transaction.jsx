@@ -203,8 +203,8 @@ export default function Transaction({ auth }) {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Header */}
                     <div className="mb-8">
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">Add Transaction</h1>
-                        <p className="text-gray-600">Record your income and expenses</p>
+                        <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl font-bold text-charcoal mb-2">Add Transaction</h1>
+                        <p className="text-sm sm:text-base md:text-base lg:text-base xl:text-lg text-medium-gray">Record your income and expenses</p>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -364,12 +364,12 @@ export default function Transaction({ auth }) {
                                 <div className="bg-[#D4EADF] rounded-lg p-6">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-base text-[#058743] mb-2 font-medium">Total Income</p>
-                                            <p className="text-3xl font-bold text-[#058743]">
+                                            <p className="text-base sm:text-lg md:text-xl lg:text-xl xl:text-xl text-[#058743] mb-2 font-medium">Total Income</p>
+                                            <p className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-bold text-[#058743]">
                                                 {stats.loading ? 'Loading...' : formatCurrency(stats.totalIncome)}
                                             </p>
                                         </div>
-                                        <div className="text-[#058743] text-3xl">+</div>
+                                        <div className="text-[#058743] text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl">+</div>
                                     </div>
                                 </div>
 
@@ -377,12 +377,12 @@ export default function Transaction({ auth }) {
                                 <div className="bg-[#F9E4E3] rounded-lg p-6">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-base text-[#DC3545] mb-2 font-medium">Total Expenses</p>
-                                            <p className="text-3xl font-bold text-[#DC3545]">
+                                            <p className="text-base sm:text-lg md:text-xl lg:text-xl xl:text-xl text-[#DC3545] mb-2 font-medium">Total Expenses</p>
+                                            <p className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-bold text-[#DC3545]">
                                                 {stats.loading ? 'Loading...' : formatCurrency(stats.totalExpenses)}
                                             </p>
                                         </div>
-                                        <div className="text-[#DC3545] text-3xl">-</div>
+                                        <div className="text-[#DC3545] text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl">-</div>
                                     </div>
                                 </div>
 
@@ -390,14 +390,14 @@ export default function Transaction({ auth }) {
                                 <div className="bg-[#F2F8FE] rounded-lg p-6">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-base text-[#5877D0] mb-2 font-medium">Net Balance</p>
-                                            <p className={`text-3xl font-bold ${
+                                            <p className="text-base sm:text-lg md:text-xl lg:text-xl xl:text-xl text-[#5877D0] mb-2 font-medium">Net Balance</p>
+                                            <p className={`text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-bold ${
                                                 stats.netBalance >= 0 ? 'text-[#058743]' : 'text-[#DC3545]'
                                             }`}>
                                                 {stats.loading ? 'Loading...' : formatCurrency(stats.netBalance)}
                                             </p>
                                         </div>
-                                        <div className="text-[#5877D0] text-3xl">$</div>
+                                        <div className="text-[#5877D0] text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl">$</div>
                                     </div>
                                 </div>
                             </div>

@@ -187,16 +187,23 @@ export default function Budget({ auth }) {
             {/* Header */}
             <div className="flex justify-between items-start mb-8">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Budget Manager</h1>
-                <p className="text-gray-600">Set and track your spending limits</p>
+                <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl font-bold text-charcoal mb-2">Budget Manager</h1>
+                <p className="text-sm sm:text-base md:text-base lg:text-base xl:text-lg text-medium-gray">Set and track your spending limits</p>
               </div>
               <button
                 onClick={openNew}
-                className="inline-flex items-center gap-2 bg-black text-white rounded-full px-5 py-2 font-medium shadow-md transform transition-transform duration-200 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-black"
+                className="inline-flex items-center gap-1 md:gap-2 bg-black text-white rounded-full px-3 md:px-5 py-1.5 md:py-2 lg:py-2.5 font-medium shadow-md transform transition-transform duration-200 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-black"
               >
                 <Icon.Plus className="w-4 h-4" />
-                New Budget
+                <span className="text-base md:text-lg">New Budget</span>
               </button>
+              {/* <button
+                onClick={openNew}
+                className="inline-flex items-center gap-1 md:gap-2 bg-black text-white rounded-full px-3 md:px-5 py-1.5 md:py-2 text-sm md:text-base font-medium shadow-md transform transition-transform duration-200 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-black"
+              >
+                <Icon.Plus className="w-3 h-3 md:w-4 md:h-4" />
+                <span className="text-xs md:text-sm">New Budget</span>
+              </button> */}
             </div>
 
             {/* top metrics */}

@@ -2,6 +2,22 @@ import { useState, useEffect } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import axios from 'axios';
 
+// Helper functions for number formatting
+const formatNumberWithDots = (value) => {
+    // Handle empty or undefined values
+    if (!value) return '';
+    // Remove all non-digits
+    const digits = String(value).replace(/\D/g, '');
+    
+    // Add dots every 3 digits from right to left
+    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+};
+
+const parseFormattedNumber = (formattedValue) => {
+    // Remove dots to get raw number
+    return formattedValue.replace(/\./g, '');
+};
+
 export default function ScanReceipt({ auth }) {
     const [selectedFile, setSelectedFile] = useState(null);
     const [isScanning, setIsScanning] = useState(false);
@@ -296,10 +312,19 @@ export default function ScanReceipt({ auth }) {
     };
 
     const handleInputChange = (field, value) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: value
-        }));
+        if (field === 'amount') {
+            // Handle amount formatting
+            const rawValue = parseFormattedNumber(value);
+            setFormData(prev => ({
+                ...prev,
+                [field]: rawValue
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                [field]: value
+            }));
+        }
     };
 
     // Helper function to format date as DD/MM/YYYY for display
@@ -705,10 +730,10 @@ export default function ScanReceipt({ auth }) {
                                         </label>
                                         <input
                                             type="text"
-                                            value={formData.amount}
+                                            value={formatNumberWithDots(formData.amount)}
                                             onChange={(e) => handleInputChange('amount', e.target.value)}
                                             className="w-full px-3 py-2 border border-light-gray rounded text-charcoal bg-gray-100"
-                                            placeholder="255.255.255"
+                                            placeholder="0"
                                         />
                                     </div>
 

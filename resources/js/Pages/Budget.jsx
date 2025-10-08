@@ -13,6 +13,22 @@ const percent = (value, total) => {
   return Math.round((value / total) * 100);
 };
 
+// Helper functions for number formatting
+const formatNumberWithDots = (value) => {
+  // Handle empty or undefined values
+  if (!value) return '';
+  // Remove all non-digits
+  const digits = String(value).replace(/\D/g, '');
+  
+  // Add dots every 3 digits from right to left
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+};
+
+const parseFormattedNumber = (formattedValue) => {
+  // Remove dots to get raw number
+  return formattedValue.replace(/\./g, '');
+};
+
 // ---------- Icon set (improved SVGs) ----------
 const Icon = {
   Plus: ({ className = 'w-4 h-4' }) => (
@@ -361,12 +377,14 @@ export default function Budget({ auth }) {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Budget Amount*</label>
                       <input 
-                        value={form.budget} 
-                        onChange={(e) => setForm((s) => ({ ...s, budget: e.target.value }))} 
-                        type="number" 
+                        value={formatNumberWithDots(form.budget)} 
+                        onChange={(e) => {
+                          const rawValue = parseFormattedNumber(e.target.value);
+                          setForm((s) => ({ ...s, budget: rawValue }));
+                        }} 
+                        type="text" 
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
                         placeholder="0"
-                        min="0"
                         required
                       />
                     </div>
@@ -376,12 +394,14 @@ export default function Budget({ auth }) {
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Current Spent</label>
                         <input 
-                          value={form.spent} 
-                          onChange={(e) => setForm((s) => ({ ...s, spent: e.target.value }))} 
-                          type="number" 
+                          value={formatNumberWithDots(form.spent)} 
+                          onChange={(e) => {
+                            const rawValue = parseFormattedNumber(e.target.value);
+                            setForm((s) => ({ ...s, spent: rawValue }));
+                          }} 
+                          type="text" 
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
                           placeholder="0"
-                          min="0"
                         />
                       </div>
                     )}

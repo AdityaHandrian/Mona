@@ -10,4 +10,6 @@ Route::get("/categories", [CategoryController::class, "index"]);
 Route::middleware('auth')->group(function () {
     Route::post("/transactions", [TransactionController::class, "store"]);
     Route::get("/transactions", [TransactionController::class, "index"]);
+    Route::put("/transactions/{id}", [TransactionController::class, "update"]);
+    Route::delete("/transactions/{id}", [TransactionController::class, "destroy"]);
 });

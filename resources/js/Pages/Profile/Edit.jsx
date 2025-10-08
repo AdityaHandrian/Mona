@@ -1,5 +1,5 @@
-import { Head, useForm, usePage, Link } from '@inertiajs/react';
-import { UserIcon, KeyIcon } from '@heroicons/react/24/outline';
+import { Head, useForm, usePage, Link, router } from '@inertiajs/react';
+import { UserIcon, KeyIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { PencilIcon } from '@heroicons/react/24/solid';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
@@ -7,6 +7,9 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { Transition } from '@headlessui/react';
 import AppLayout from '@/Layouts/AppLayout';
+import ReactCrop from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
+import { useState, useRef, useCallback } from 'react';
 
 export default function Edit({ mustVerifyEmail, status }) {
     const { auth } = usePage().props;
@@ -15,6 +18,21 @@ export default function Edit({ mustVerifyEmail, status }) {
     const avatarUrl = user.profile_photo_path
         ? `/storage/${user.profile_photo_path}`
         : `https://ui-avatars.com/api/?name=${user.name}&size=256&background=EBF4FF&color=027A48`;
+
+    // Crop modal state
+    const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+    const [selectedImage, setSelectedImage] = useState(null);
+    const [crop, setCrop] = useState({
+        unit: '%',
+        width: 50,
+        height: 50,
+        x: 25,
+        y: 25,
+        aspect: 1
+    });
+    const [completedCrop, setCompletedCrop] = useState(null);
+    const [croppedImageUrl, setCroppedImageUrl] = useState(null);
+    const imgRef = useRef(null);
 
     // Form profile
     const { data: profileData, setData: setProfileData, patch: patchProfile, errors: profileErrors, processing: profileProcessing } = useForm({
@@ -27,10 +45,28 @@ export default function Edit({ mustVerifyEmail, status }) {
 
     const submitProfile = (e) => {
         e.preventDefault();
-        patchProfile(route('profile.update'), {
+        
+        // Prepare form data ensuring all required fields are present
+        const formData = {
+            name: profileData.name,
+            email: profileData.email,
+            phone: profileData.phone || '',
+            date_of_birth: profileData.date_of_birth || '',
+            _method: 'PATCH'
+        };
+        
+        // Only add profile_photo if it exists
+        if (profileData.profile_photo) {
+            formData.profile_photo = profileData.profile_photo;
+        }
+        
+        // Use router.post for file uploads with multipart data
+        router.post(route('profile.update'), formData, {
             onSuccess: () => {
-                // setelah update, balik ke halaman profile
                 window.location.href = route('profile.show');
+            },
+            onError: (errors) => {
+                console.log('Form errors:', errors);
             }
         });
     };
@@ -48,6 +84,100 @@ export default function Edit({ mustVerifyEmail, status }) {
             preserveScroll: true,
             onSuccess: () => resetPassword(),
         });
+    };
+
+    // Image cropping functions
+    const handleImageSelect = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = () => {
+                setSelectedImage(reader.result);
+                // Reset crop to default when selecting new image
+                setCrop({
+                    unit: '%',
+                    width: 80,
+                    height: 80,
+                    x: 10,
+                    y: 10,
+                    aspect: 1
+                });
+                setCompletedCrop(null);
+                setIsCropModalOpen(true);
+            };
+            reader.readAsDataURL(file);
+        }
+    };    const getCroppedImg = useCallback((image, crop) => {
+        const canvas = document.createElement('canvas');
+        const scaleX = image.naturalWidth / image.width;
+        const scaleY = image.naturalHeight / image.height;
+        canvas.width = crop.width;
+        canvas.height = crop.height;
+        const ctx = canvas.getContext('2d');
+
+        ctx.drawImage(
+            image,
+            crop.x * scaleX,
+            crop.y * scaleY,
+            crop.width * scaleX,
+            crop.height * scaleY,
+            0,
+            0,
+            crop.width,
+            crop.height,
+        );
+
+        return new Promise((resolve) => {
+            canvas.toBlob(resolve, 'image/jpeg', 1);
+        });
+    }, []);
+
+    const handleCropComplete = async () => {
+        if (completedCrop && imgRef.current) {
+            const croppedBlob = await getCroppedImg(imgRef.current, completedCrop);
+            const croppedFile = new File([croppedBlob], 'cropped-avatar.jpg', { type: 'image/jpeg' });
+            
+            // Preserve existing form data when setting new profile photo
+            setProfileData((prev) => ({
+                ...prev,
+                profile_photo: croppedFile
+            }));
+            const url = URL.createObjectURL(croppedBlob);
+            setCroppedImageUrl(url);
+            setIsCropModalOpen(false);
+        }
+    };
+
+    const handleCropCancel = () => {
+        setIsCropModalOpen(false);
+        setSelectedImage(null);
+        setCrop({
+            unit: '%',
+            width: 50,
+            height: 50,
+            x: 25,
+            y: 25,
+            aspect: 1
+        });
+        setCompletedCrop(null);
+    };
+
+    const handleRemovePhoto = () => {
+        if (confirm('Are you sure you want to remove your profile picture?')) {
+            setProfileData('profile_photo', null);
+            setCroppedImageUrl(null);
+            
+            // If user has existing photo, send request to remove it
+            if (user.profile_photo_path) {
+                router.post(route('profile.remove-photo'), {
+                    _method: 'DELETE'
+                }, {
+                    onSuccess: () => {
+                        window.location.reload();
+                    }
+                });
+            }
+        }
     };
 
     return (
@@ -72,21 +202,53 @@ export default function Edit({ mustVerifyEmail, status }) {
 
                         <form onSubmit={submitProfile} className="space-y-6">
                             {/* Avatar Upload */}
-                            <div className="relative w-24 h-24">
+                            <div className="relative w-24 h-24 group">
                                 <img
-                                    src={profileData.profile_photo ? URL.createObjectURL(profileData.profile_photo) : avatarUrl}
+                                    src={croppedImageUrl || (profileData.profile_photo ? URL.createObjectURL(profileData.profile_photo) : avatarUrl)}
                                     alt="Profile Avatar"
-                                    className="h-24 w-24 rounded-full object-cover ring-4 ring-white shadow"
+                                    className="h-24 w-24 rounded-full object-cover shadow transition-all duration-300 group-hover:brightness-75"
                                 />
-                                <label className="absolute bottom-0 right-0 bg-green-600 p-1 rounded-full cursor-pointer hover:bg-green-700 transition">
-                                    <PencilIcon className="h-4 w-4 text-white"/>
-                                    <input
-                                        type="file"
-                                        className="hidden"
-                                        accept="image/*"
-                                        onChange={(e) => setProfileData('profile_photo', e.target.files[0])}
-                                    />
-                                </label>
+                                
+                                {/* Hover Overlay - Different based on whether user has profile photo */}
+                                {(user.profile_photo_path || croppedImageUrl) ? (
+                                    /* Split overlay for users with profile photo */
+                                    <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
+                                        {/* Edit Picture - Top half (Growth Green) */}
+                                        <div 
+                                            className="absolute top-0 left-0 right-0 bg-growth-green-500 bg-opacity-50 flex items-center justify-center cursor-pointer hover:bg-opacity-70 transition-all duration-200"
+                                            style={{ height: 'calc(50% - 0.5px)' }}
+                                            onClick={() => document.querySelector('input[type="file"]').click()}
+                                        >
+                                            <span className="text-white text-xs font-medium text-center px-1">Edit</span>
+                                        </div>
+                                        
+                                        {/* Small gap between sections */}
+                                        <div className="absolute left-0 right-0 h-px bg-white bg-opacity-30" style={{ top: 'calc(50% - 0.5px)' }}></div>
+                                        
+                                        {/* Delete Picture - Bottom half (Expense Red) */}
+                                        <div 
+                                            className="absolute bottom-0 left-0 right-0 bg-expense-red-500 bg-opacity-50 flex items-center justify-center cursor-pointer hover:bg-opacity-70 transition-all duration-200"
+                                            style={{ height: 'calc(50% - 0.5px)' }}
+                                            onClick={handleRemovePhoto}
+                                        >
+                                            <span className="text-white text-xs font-medium text-center px-1">Delete</span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    /* Single overlay for users without profile photo */
+                                    <div className="absolute inset-0 bg-growth-green-500 bg-opacity-60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer"
+                                         onClick={() => document.querySelector('input[type="file"]').click()}>
+                                        <span className="text-white text-xs font-medium text-center px-2">Edit Picture</span>
+                                    </div>
+                                )}
+
+                                {/* Hidden file input */}
+                                <input
+                                    type="file"
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={handleImageSelect}
+                                />
                                 <InputError className="mt-2" message={profileErrors.profile_photo} />
                             </div>
 
@@ -150,7 +312,7 @@ export default function Edit({ mustVerifyEmail, status }) {
                                 <button
                                     type="submit"
                                     disabled={profileProcessing}
-                                    className="px-5 py-2 bg-green-600 text-white font-medium rounded-lg shadow hover:bg-green-700 transition-colors disabled:opacity-50"
+                                    className="px-5 py-2 bg-growth-green-500 text-white font-medium rounded-lg shadow hover:bg-growth-green-600 transition-colors disabled:opacity-50"
                                 >
                                     Save
                                 </button>
@@ -212,7 +374,7 @@ export default function Edit({ mustVerifyEmail, status }) {
                                 <button
                                     type="submit"
                                     disabled={passwordProcessing}
-                                    className="px-5 py-2 bg-green-600 text-white font-medium rounded-lg shadow hover:bg-green-700 transition-colors disabled:opacity-50"
+                                    className="px-5 py-2 bg-growth-green-500 text-white font-medium rounded-lg shadow hover:bg-growth-green-600 transition-colors disabled:opacity-50"
                                 >
                                     Save
                                 </button>
@@ -221,6 +383,81 @@ export default function Edit({ mustVerifyEmail, status }) {
                     </div>
                 </div>
             </div>
+
+            {/* Image Crop Modal */}
+            {isCropModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black bg-opacity-50" onClick={handleCropCancel} />
+                    <div className="relative bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-gray-900">Crop Profile Image</h3>
+                            <button
+                                onClick={handleCropCancel}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <XMarkIcon className="h-6 w-6" />
+                            </button>
+                        </div>
+
+                        <div className="mb-6">
+                            {selectedImage && (
+                                <ReactCrop
+                                    crop={crop}
+                                    onChange={(newCrop) => setCrop(newCrop)}
+                                    onComplete={(c) => setCompletedCrop(c)}
+                                    aspect={1}
+                                    circularCrop
+                                    className="max-w-full"
+                                    minWidth={100}
+                                    minHeight={100}
+                                    keepSelection
+                                    onImageLoaded={(img) => {
+                                        // Auto-set crop to fill smaller dimension when image loads
+                                        const { naturalWidth, naturalHeight } = img;
+                                        const size = Math.min(naturalWidth, naturalHeight);
+                                        const centerX = (naturalWidth - size) / 2;
+                                        const centerY = (naturalHeight - size) / 2;
+                                        
+                                        const newCrop = {
+                                            unit: 'px',
+                                            width: size,
+                                            height: size,
+                                            x: centerX,
+                                            y: centerY,
+                                            aspect: 1
+                                        };
+                                        setCrop(newCrop);
+                                        setCompletedCrop(newCrop);
+                                    }}
+                                >
+                                    <img
+                                        ref={imgRef}
+                                        src={selectedImage}
+                                        alt="Crop preview"
+                                        className="max-w-full h-auto"
+                                    />
+                                </ReactCrop>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={handleCropCancel}
+                                className="px-4 py-2 bg-gray-200 text-gray-800 font-medium rounded-lg hover:bg-gray-300 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleCropComplete}
+                                className="px-4 py-2 bg-growth-green-500 text-white font-medium rounded-lg hover:bg-growth-green-600 transition-colors"
+                                disabled={!completedCrop}
+                            >
+                                Apply Crop
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </AppLayout>
     );
 }

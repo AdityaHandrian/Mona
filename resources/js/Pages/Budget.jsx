@@ -57,8 +57,12 @@ export default function Budget({ auth }) {
   const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
   const currentYear = currentDate.getFullYear();
 
-  // Start with no mock data: initialize budgets empty so real data can be fetched or created
-  const [budgets, setBudgets] = useState([]);
+  const [budgets, setBudgets] = useState([
+    { id: 1, title: 'Food & Dining', category: 'Food & Dining', budget: 14200000, spent: 11700000, month: currentMonth, year: currentYear },
+    { id: 2, title: 'Transportation', category: 'Transportation', budget: 5000000, spent: 7000000, month: currentMonth, year: currentYear },
+    { id: 3, title: 'Entertainment', category: 'Entertainment', budget: 3300000, spent: 2000000, month: currentMonth, year: currentYear },
+    { id: 4, title: 'Shopping', category: 'Shopping', budget: 8250000, spent: 6250000, month: currentMonth, year: currentYear },
+  ]);
 
   const [isModalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -179,7 +183,7 @@ export default function Budget({ auth }) {
             </button>
           </div>
 
-          <div className="bg-[rgb(248,247,240)] p-10 rounded-md">
+          <div className="bg-warm-ivory p-10 rounded-md">
 
             {/* top metrics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

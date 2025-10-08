@@ -48,11 +48,11 @@ export default function Login({ status, canResetPassword }) {
                 <div className="flex-1 flex items-center justify-center px-4 max-[768px]:px-3 max-[375px]:px-2 py-8 max-[768px]:py-6 max-[425px]:py-4 max-[375px]:py-3 max-[320px]:py-2">
                     <div className="w-full max-w-md max-[768px]:max-w-sm max-[425px]:max-w-xs max-[375px]:max-w-[280px] max-[320px]:max-w-[260px]">
                         {/* Login Card */}
-                        <div className="bg-white rounded-2xl max-[768px]:rounded-xl shadow-xl px-8 max-[768px]:px-6 max-[425px]:px-4 max-[375px]:px-3 max-[320px]:px-2 py-10 max-[768px]:py-8 max-[425px]:py-6 max-[375px]:py-4 max-[320px]:py-3 border border-[#E0E0E0]">
+                        <div className="bg-white rounded-2xl max-[768px]:rounded-xl shadow-xl px-8 max-[768px]:px-6 max-[425px]:px-4 max-[375px]:px-3 max-[320px]:px-2 py-10 max-[768px]:py-8 max-[425px]:py-6 max-[375px]:py-4 max-[320px]:py-3 border border-light-gray">
                             {/* Welcome Section */}
                             <div className="text-center mb-8 max-[768px]:mb-6 max-[425px]:mb-4 max-[375px]:mb-3 max-[320px]:mb-2">
-                                <h1 className="text-3xl max-[768px]:text-2xl max-[425px]:text-xl max-[375px]:text-lg max-[320px]:text-base font-bold text-[#2C2C2C] mb-3 max-[768px]:mb-2 max-[425px]:mb-1.5 max-[375px]:mb-1 max-[320px]:mb-1">Welcome Back!</h1>
-                                <p className="text-[#757575] text-base max-[768px]:text-sm max-[425px]:text-xs max-[375px]:text-xs max-[320px]:text-xs font-medium">Log in to your account</p>
+                                <h1 className="text-3xl max-[768px]:text-2xl max-[425px]:text-xl max-[375px]:text-lg max-[320px]:text-base font-bold text-charcoal mb-3 max-[768px]:mb-2 max-[425px]:mb-1.5 max-[375px]:mb-1 max-[320px]:mb-1">Welcome Back!</h1>
+                                <p className="text-medium-gray text-base max-[768px]:text-sm max-[425px]:text-xs max-[375px]:text-xs max-[320px]:text-xs font-medium">Log in to your account</p>
                             </div>
 
                             {/* Status Message */}
@@ -70,7 +70,7 @@ export default function Login({ status, canResetPassword }) {
                                 <div>
                                     <label 
                                         htmlFor="email" 
-                                        className="block text-sm max-[768px]:text-xs max-[375px]:text-xs max-[320px]:text-xs font-semibold text-[#2C2C2C] mb-3 max-[768px]:mb-2 max-[425px]:mb-1.5 max-[375px]:mb-1 max-[320px]:mb-1"
+                                        className="block text-sm max-[768px]:text-xs max-[375px]:text-xs max-[320px]:text-xs font-semibold text-charcoal mb-3 max-[768px]:mb-2 max-[425px]:mb-1.5 max-[375px]:mb-1 max-[320px]:mb-1"
                                     >
                                         Email Address
                                     </label>
@@ -79,7 +79,7 @@ export default function Login({ status, canResetPassword }) {
                                         type="email"
                                         name="email"
                                         value={data.email}
-                                        className="w-full px-4 max-[768px]:px-3 max-[425px]:px-2.5 max-[375px]:px-2 max-[320px]:px-1.5 py-4 max-[768px]:py-3 max-[425px]:py-2.5 max-[375px]:py-2 max-[320px]:py-1.5 text-sm max-[768px]:text-xs max-[375px]:text-xs max-[320px]:text-xs text-[#2C2C2C] bg-[#FFF] border border-[#E0E0E0] rounded-xl max-[768px]:rounded-lg focus:outline-none focus:ring-2 focus:ring-[#058743] focus:border-transparent transition duration-200 ease-in-out placeholder-[#757575]"
+                                        className="w-full px-4 max-[768px]:px-3 max-[425px]:px-2.5 max-[375px]:px-2 max-[320px]:px-1.5 py-4 max-[768px]:py-3 max-[425px]:py-2.5 max-[375px]:py-2 max-[320px]:py-1.5 text-sm max-[768px]:text-xs max-[375px]:text-xs max-[320px]:text-xs text-charcoal bg-white border border-light-gray rounded-xl max-[768px]:rounded-lg focus:outline-none focus:ring-2 focus:ring-[#058743] focus:border-transparent transition duration-200 ease-in-out placeholder-medium-gray"
                                         autoComplete="username"
                                         autoFocus={true}
                                         onChange={(e) => setData('email', e.target.value)}
@@ -96,7 +96,7 @@ export default function Login({ status, canResetPassword }) {
                                 <div>
                                     <label 
                                         htmlFor="password" 
-                                        className="block text-sm max-[768px]:text-xs max-[375px]:text-xs max-[320px]:text-xs font-semibold text-[#2C2C2C] mb-3 max-[768px]:mb-2 max-[425px]:mb-1.5 max-[375px]:mb-1 max-[320px]:mb-1"
+                                        className="block text-sm max-[768px]:text-xs max-[375px]:text-xs max-[320px]:text-xs font-semibold text-charcoal mb-3 max-[768px]:mb-2 max-[425px]:mb-1.5 max-[375px]:mb-1 max-[320px]:mb-1"
                                     >
                                         Password
                                     </label>
@@ -106,14 +106,14 @@ export default function Login({ status, canResetPassword }) {
                                             type={showPassword ? "text" : "password"}
                                             name="password"
                                             value={data.password}
-                                            className="w-full px-4 max-[768px]:px-3 max-[425px]:px-2.5 max-[375px]:px-2 max-[320px]:px-1.5 py-4 max-[768px]:py-3 max-[425px]:py-2.5 max-[375px]:py-2 max-[320px]:py-1.5 pr-12 max-[768px]:pr-10 max-[425px]:pr-9 max-[375px]:pr-8 max-[320px]:pr-7 text-sm max-[768px]:text-xs max-[375px]:text-xs max-[320px]:text-xs text-[#2C2C2C] bg-[#FFF] border border-[#E0E0E0] rounded-xl max-[768px]:rounded-lg focus:outline-none focus:ring-2 focus:ring-[#058743] focus:border-transparent transition duration-200 ease-in-out placeholder-[#757575]"
+                                            className="w-full px-4 max-[768px]:px-3 max-[425px]:px-2.5 max-[375px]:px-2 max-[320px]:px-1.5 py-4 max-[768px]:py-3 max-[425px]:py-2.5 max-[375px]:py-2 max-[320px]:py-1.5 pr-12 max-[768px]:pr-10 max-[425px]:pr-9 max-[375px]:pr-8 max-[320px]:pr-7 text-sm max-[768px]:text-xs max-[375px]:text-xs max-[320px]:text-xs text-charcoal bg-white border border-light-gray rounded-xl max-[768px]:rounded-lg focus:outline-none focus:ring-2 focus:ring-[#058743] focus:border-transparent transition duration-200 ease-in-out placeholder-medium-gray"
                                             autoComplete="current-password"
                                             onChange={(e) => setData('password', e.target.value)}
                                             placeholder="Password"
                                         />
                                         <button
                                             type="button"
-                                            className="absolute inset-y-0 right-0 flex items-center px-4 max-[768px]:px-3 max-[425px]:px-2.5 max-[375px]:px-2 max-[320px]:px-1.5 text-[#757575] hover:text-[#2C2C2C] transition-colors duration-200"
+                                            className="absolute inset-y-0 right-0 flex items-center px-4 max-[768px]:px-3 max-[425px]:px-2.5 max-[375px]:px-2 max-[320px]:px-1.5 text-medium-gray hover:text-charcoal transition-colors duration-200"
                                             onClick={() => setShowPassword(!showPassword)}
                                         >
                                             {showPassword ? (
@@ -144,9 +144,9 @@ export default function Login({ status, canResetPassword }) {
                                             type="checkbox"
                                             checked={data.remember}
                                             onChange={(e) => setData('remember', e.target.checked)}
-                                            className="h-4 w-4 max-[768px]:h-3.5 max-[768px]:w-3.5 max-[425px]:h-3 max-[425px]:w-3 max-[375px]:h-2.5 max-[375px]:w-2.5 max-[320px]:h-2 max-[320px]:w-2 text-[#058743] focus:ring-[#058743] border-[#E0E0E0] rounded transition duration-200"
+                                            className="h-4 w-4 max-[768px]:h-3.5 max-[768px]:w-3.5 max-[425px]:h-3 max-[425px]:w-3 max-[375px]:h-2.5 max-[375px]:w-2.5 max-[320px]:h-2 max-[320px]:w-2 text-[#058743] focus:ring-[#058743] border-light-gray rounded transition duration-200"
                                         />
-                                        <label htmlFor="remember" className="ml-3 max-[768px]:ml-2 max-[425px]:ml-1.5 max-[375px]:ml-1 max-[320px]:ml-1 text-sm max-[768px]:text-xs max-[425px]:text-xs max-[375px]:text-xs max-[320px]:text-xs text-[#757575] font-medium cursor-pointer">
+                                        <label htmlFor="remember" className="ml-3 max-[768px]:ml-2 max-[425px]:ml-1.5 max-[375px]:ml-1 max-[320px]:ml-1 text-sm max-[768px]:text-xs max-[425px]:text-xs max-[375px]:text-xs max-[320px]:text-xs text-medium-gray font-medium cursor-pointer">
                                             Remember me
                                         </label>
                                     </div>
@@ -188,7 +188,7 @@ export default function Login({ status, canResetPassword }) {
                                     )}
                                     
                                     {/* Sign Up Link */}
-                                    <div className="text-sm max-[768px]:text-xs max-[425px]:text-xs max-[375px]:text-xs max-[320px]:text-xs text-[#757575]">
+                                    <div className="text-sm max-[768px]:text-xs max-[425px]:text-xs max-[375px]:text-xs max-[320px]:text-xs text-medium-gray">
                                         Don't have an account? 
                                         <Link
                                             href={route('register')}
@@ -203,7 +203,7 @@ export default function Login({ status, canResetPassword }) {
 
                         {/* Optional: Additional Footer */}
                         <div className="text-center mt-8 max-[768px]:mt-6 max-[425px]:mt-4 max-[375px]:mt-3 max-[320px]:mt-2">
-                            <p className="text-xs max-[425px]:text-xs max-[375px]:text-xs max-[320px]:text-xs text-[#757575]">
+                            <p className="text-xs max-[425px]:text-xs max-[375px]:text-xs max-[320px]:text-xs text-medium-gray">
                                 © 2025 MONA. All rights reserved.
                             </p>
                         </div>

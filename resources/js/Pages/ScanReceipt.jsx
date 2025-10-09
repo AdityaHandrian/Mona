@@ -5,6 +5,7 @@ export default function ScanReceipt({ auth }) {
     const [selectedFile, setSelectedFile] = useState(null);
     const [isScanning, setIsScanning] = useState(false);
     const [ocrResults, setOcrResults] = useState(null);
+    const [processingTime, setProcessingTime] = useState(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
     const [formData, setFormData] = useState({
@@ -167,6 +168,7 @@ export default function ScanReceipt({ auth }) {
         
         // Reset results when new file is selected
         setOcrResults(null);
+        setProcessingTime(null);
     };
 
     const handleScanReceipt = async () => {
@@ -179,8 +181,8 @@ export default function ScanReceipt({ auth }) {
             const formData = new FormData();
             formData.append('image', selectedFile); // Using 'image' to match your existing endpoint
             
-            // Send to your existing Laravel OCR endpoint
-            const response = await fetch('/process-receipt', {
+            // Send to your new Laravel Document AI endpoint
+            const response = await fetch('/process-receipt-ai', {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
@@ -199,10 +201,23 @@ export default function ScanReceipt({ auth }) {
             if (ocrData.error) {
                 throw new Error(ocrData.error);
             }
+
+            // Store processing time if available
+            if (ocrData.processing_stats?.processing_time_ms) {
+                setProcessingTime(ocrData.processing_stats.processing_time_ms);
+            }
+            
+            // Use the extracted data from Document AI
+            const extractedData = ocrData.extracted || {};
             
             // Helper function to parse and validate date
             const parseReceiptDate = (dateString) => {
                 if (!dateString) return new Date().toISOString().split('T')[0];
+                
+                // If date is already in YYYY-MM-DD format, return as is
+                if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    return dateString;
+                }
                 
                 // Try multiple date formats commonly found on Indonesian receipts
                 const dateFormats = [
@@ -252,12 +267,12 @@ export default function ScanReceipt({ auth }) {
                 return new Date().toISOString().split('T')[0];
             };
             
-            // Process the OCR results from your Gemini AI service
+            // Process the OCR results from Document AI service
             const processedResults = {
-                amount: ocrData.amount || '',
-                category: mapToValidCategory(ocrData.category, ocrData.description), // Smart mapping with description
-                date: parseReceiptDate(ocrData.date), // Better date parsing
-                description: ocrData.description || 'Receipt transaction'
+                amount: extractedData.amount || '',
+                category: mapToValidCategory(extractedData.category, extractedData.description), // Smart mapping with description
+                date: parseReceiptDate(extractedData.date), // Better date parsing
+                description: extractedData.description || 'Receipt transaction'
             };
             
             setOcrResults(processedResults);
@@ -617,12 +632,17 @@ export default function ScanReceipt({ auth }) {
                             </div>
                         </div>
 
-                        {/* Extracted Data Section */}
-                        <div className="bg-white rounded-lg border border-[#E0E0E0] p-6">
-                            <h2 className="text-xl font-semibold text-[#2C2C2C] mb-2">Extracted Data</h2>
-                            <p className="text-[#757575] mb-6">Review the Scanned Information</p>
-
-                            {isScanning ? (
+        {/* Extracted Data Section */}
+        <div className="bg-white rounded-lg border border-[#E0E0E0] p-6">
+            <div className="flex justify-between items-start mb-2">
+                <h2 className="text-xl font-semibold text-[#2C2C2C]">Extracted Data</h2>
+                {processingTime && (
+                    <span className="text-sm text-[#757575] bg-gray-100 px-2 py-1 rounded">
+                        Processed in {processingTime}ms
+                    </span>
+                )}
+            </div>
+            <p className="text-[#757575] mb-6">Review the Scanned Information</p>                            {isScanning ? (
                                 /* Loading State */
                                 <div className="text-center py-12">
                                     <div className="mb-4">

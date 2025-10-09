@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\OcrController;
+use App\Http\Controllers\DocumentAIController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -64,6 +65,7 @@ Route::get('/testing', function () {
 })->name('testing');
 
 Route::post('/process-receipt', [OcrController::class, 'processReceipt']);
+Route::post('/process-receipt-ai', [DocumentAIController::class, 'processReceipt']);
 
 // profile routes
 Route::middleware('auth')->group(function () {

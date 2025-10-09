@@ -1,5 +1,22 @@
 import { useState, useEffect } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
+import axios from 'axios';
+
+// Helper functions for number formatting
+const formatNumberWithDots = (value) => {
+    // Handle empty or undefined values
+    if (!value) return '';
+    // Remove all non-digits
+    const digits = String(value).replace(/\D/g, '');
+    
+    // Add dots every 3 digits from right to left
+    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+};
+
+const parseFormattedNumber = (formattedValue) => {
+    // Remove dots to get raw number
+    return formattedValue.replace(/\./g, '');
+};
 
 export default function ScanReceipt({ auth }) {
     const [selectedFile, setSelectedFile] = useState(null);
@@ -15,14 +32,10 @@ export default function ScanReceipt({ auth }) {
         description: ''
     });
     const [isDragging, setIsDragging] = useState(false);
-
-    const categories = [
-        'Food and Beverages',
-        'Shopping',
-        'Entertainment', 
-        'Bills and Utilities',
-        'Other'
-    ];
+    const [categories, setCategories] = useState([]);
+    const [loadingCategories, setLoadingCategories] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [message, setMessage] = useState({ type: '', text: '' });
 
     // Handle window resize for responsive filename truncation
     useEffect(() => {
@@ -33,6 +46,37 @@ export default function ScanReceipt({ auth }) {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
+
+    // Fetch categories from API (expense categories since receipts are usually expenses)
+    const fetchCategories = async () => {
+        try {
+            setLoadingCategories(true);
+            const response = await axios.get('/api/categories?type=expense');
+            setCategories(response.data);
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+            // Fallback categories if API fails
+            setCategories([
+                { id: 1, category_name: 'Food and Beverages' },
+                { id: 2, category_name: 'Shopping' },
+                { id: 3, category_name: 'Entertainment' },
+                { id: 4, category_name: 'Bills and Utilities' },
+                { id: 5, category_name: 'Other' }
+            ]);
+        } finally {
+            setLoadingCategories(false);
+        }
+    };
+
+    // Load categories when component mounts
+    useEffect(() => {
+        fetchCategories();
+    }, []);
+
+    const showMessage = (type, text) => {
+        setMessage({ type, text });
+        setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+    };
 
     // Image compression function to speed up camera photos
     const compressImage = (file, maxWidth = 1024, quality = 0.8) => {
@@ -65,84 +109,60 @@ export default function ScanReceipt({ auth }) {
         });
     };
 
-    // Helper function to map OCR category to our predefined categories (multilingual)
+    // Helper function to map OCR category to our API categories (multilingual)
     const mapToValidCategory = (ocrCategory, description = '') => {
-        if (!ocrCategory && !description) return 'Other';
+        if (categories.length === 0) return null; // Return null if categories not loaded yet
         
         // Combine category and description for better matching
         const searchText = `${ocrCategory || ''} ${description || ''}`.toLowerCase();
         
+        // Find matching category by name
+        const findCategoryByKeywords = (keywords) => {
+            return categories.find(cat => 
+                keywords.some(keyword => 
+                    cat.category_name.toLowerCase().includes(keyword) ||
+                    searchText.includes(keyword)
+                )
+            );
+        };
+        
         // Food & Beverages mapping (English + Indonesian)
-        if (searchText.includes('food') || searchText.includes('restaurant') || 
-            searchText.includes('cafe') || searchText.includes('grocery') || 
-            searchText.includes('beverage') || searchText.includes('dining') ||
-            searchText.includes('makanan') || searchText.includes('minuman') ||
-            searchText.includes('restoran') || searchText.includes('warung') ||
-            searchText.includes('kafe') || searchText.includes('supermarket') || 
-            searchText.includes('pasar') || searchText.includes('indomaret') ||
-            searchText.includes('alfamart') || searchText.includes('hypermart') ||
-            searchText.includes('giant') || searchText.includes('carrefour') ||
-            searchText.includes('hero') || searchText.includes('lottemart') ||
-            searchText.includes('mcdonald') || searchText.includes('kfc') ||
-            searchText.includes('pizza') || searchText.includes('bakery') ||
-            searchText.includes('roti') || searchText.includes('bakso') ||
-            searchText.includes('gado') || searchText.includes('nasi') ||
-            searchText.includes('ayam') || searchText.includes('seafood') ||
-            searchText.includes('kedai') || searchText.includes('rumah makan')) {
-            return 'Food and Beverages';
-        }
+        const foodCategory = findCategoryByKeywords([
+            'food', 'beverage', 'restaurant', 'cafe', 'grocery', 'dining',
+            'makanan', 'minuman', 'restoran', 'warung', 'kafe', 'supermarket',
+            'pasar', 'indomaret', 'alfamart', 'hypermart', 'giant', 'carrefour',
+            'hero', 'lottemart', 'mcdonald', 'kfc', 'pizza', 'bakery',
+            'roti', 'bakso', 'gado', 'nasi', 'ayam', 'seafood', 'kedai'
+        ]);
+        if (foodCategory) return foodCategory.id;
         
         // Shopping mapping (English + Indonesian + Electronics)
-        if (searchText.includes('shop') || searchText.includes('retail') || 
-            searchText.includes('store') || searchText.includes('clothing') || 
-            searchText.includes('fashion') || searchText.includes('belanja') ||
-            searchText.includes('mall') || searchText.includes('butik') ||
-            searchText.includes('pakaian') || searchText.includes('sepatu') ||
-            searchText.includes('tas') || searchText.includes('elektronik') ||
-            searchText.includes('electronic') || searchText.includes('gadget') ||
-            searchText.includes('handphone') || searchText.includes('laptop') ||
-            searchText.includes('computer') || searchText.includes('hp') ||
-            searchText.includes('smartphone') || searchText.includes('tablet') ||
-            searchText.includes('accessories') || searchText.includes('aksesoris') ||
-            searchText.includes('surya elektronik') || searchText.includes('erafone') ||
-            searchText.includes('ibox') || searchText.includes('digimap') ||
-            searchText.includes('best denki') || searchText.includes('electronic city') ||
-            searchText.includes('ace hardware') || searchText.includes('informa') ||
-            searchText.includes('ikea') || searchText.includes('courts')) {
-            return 'Shopping';
-        }
+        const shoppingCategory = findCategoryByKeywords([
+            'shop', 'retail', 'store', 'clothing', 'fashion', 'belanja',
+            'mall', 'butik', 'pakaian', 'sepatu', 'tas', 'elektronik',
+            'electronic', 'gadget', 'handphone', 'laptop', 'computer', 'hp',
+            'smartphone', 'tablet', 'accessories', 'aksesoris'
+        ]);
+        if (shoppingCategory) return shoppingCategory.id;
         
         // Entertainment mapping (English + Indonesian)
-        if (searchText.includes('entertainment') || searchText.includes('movie') || 
-            searchText.includes('game') || searchText.includes('cinema') || 
-            searchText.includes('sports') || searchText.includes('hiburan') ||
-            searchText.includes('bioskop') || searchText.includes('film') ||
-            searchText.includes('olahraga') || searchText.includes('permainan') ||
-            searchText.includes('karaoke') || searchText.includes('wisata') ||
-            searchText.includes('cgv') || searchText.includes('xxi') ||
-            searchText.includes('cineplex') || searchText.includes('fitness') ||
-            searchText.includes('gym') || searchText.includes('spa') ||
-            searchText.includes('salon') || searchText.includes('massage')) {
-            return 'Entertainment';
-        }
+        const entertainmentCategory = findCategoryByKeywords([
+            'entertainment', 'movie', 'game', 'cinema', 'sports', 'hiburan',
+            'bioskop', 'film', 'olahraga', 'permainan', 'karaoke', 'wisata',
+            'cgv', 'xxi', 'cineplex', 'fitness', 'gym', 'spa', 'salon'
+        ]);
+        if (entertainmentCategory) return entertainmentCategory.id;
         
         // Bills & Utilities mapping (English + Indonesian)
-        if (searchText.includes('utility') || searchText.includes('electric') || 
-            searchText.includes('water') || searchText.includes('gas') || 
-            searchText.includes('internet') || searchText.includes('phone') ||
-            searchText.includes('listrik') || searchText.includes('air') ||
-            searchText.includes('telepon') || searchText.includes('tagihan') ||
-            searchText.includes('pln') || searchText.includes('pdam') ||
-            searchText.includes('wifi') || searchText.includes('pulsa') ||
-            searchText.includes('telkom') || searchText.includes('indihome') ||
-            searchText.includes('byru') || searchText.includes('axis') ||
-            searchText.includes('smartfren') || searchText.includes('three') ||
-            searchText.includes('xl') || searchText.includes('indosat')) {
-            return 'Bills and Utilities';
-        }
+        const billsCategory = findCategoryByKeywords([
+            'utility', 'electric', 'water', 'gas', 'internet', 'phone', 'bill',
+            'listrik', 'air', 'telepon', 'tagihan', 'pln', 'pdam',
+            'wifi', 'pulsa', 'telkom', 'indihome'
+        ]);
+        if (billsCategory) return billsCategory.id;
         
-        // Default to Other if no match found
-        return 'Other';
+        // Default to first category (usually "Other") if no match found
+        return categories.length > 0 ? categories[categories.length - 1].id : null;
     };
 
     const handleFileChange = async (event) => {
@@ -306,10 +326,19 @@ export default function ScanReceipt({ auth }) {
     };
 
     const handleInputChange = (field, value) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: value
-        }));
+        if (field === 'amount') {
+            // Handle amount formatting
+            const rawValue = parseFormattedNumber(value);
+            setFormData(prev => ({
+                ...prev,
+                [field]: rawValue
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                [field]: value
+            }));
+        }
     };
 
     // Helper function to format date as DD/MM/YYYY for display
@@ -388,9 +417,58 @@ export default function ScanReceipt({ auth }) {
         return nameWithoutExt.substring(0, availableSpace) + '...' + extension;
     };
 
-    const handleAddTransaction = () => {
-        console.log('Adding transaction:', formData);
-        // Add transaction logic here
+    const handleAddTransaction = async () => {
+        if (!formData.amount || !formData.category || !formData.date) {
+            showMessage('error', 'Please fill in all required fields (Amount, Category, Date)');
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            // Prepare data for API (same format as Transaction page)
+            const transactionData = {
+                category_id: parseInt(formData.category),
+                amount: parseFloat(formData.amount),
+                description: formData.description || 'Receipt transaction',
+                transaction_date: formData.date
+            };
+
+            const response = await axios.post('/api/transactions', transactionData);
+
+            if (response.data.status === 'success') {
+                showMessage('success', 'Transaction added successfully from receipt!');
+                
+                // Reset form and clear selected file
+                setFormData({
+                    amount: '',
+                    category: categories.length > 0 ? categories[0].id : '',
+                    date: '',
+                    description: ''
+                });
+                setOcrResults(null);
+                setSelectedFile(null);
+                
+                // Clear file input
+                const fileInput = document.getElementById('receipt-file');
+                const cameraInput = document.getElementById('camera-input');
+                if (fileInput) fileInput.value = '';
+                if (cameraInput) cameraInput.value = '';
+            }
+        } catch (error) {
+            console.error('Error adding transaction:', error);
+            
+            if (error.response?.data?.errors) {
+                // Handle validation errors
+                const errors = Object.values(error.response.data.errors).flat();
+                showMessage('error', errors.join(', '));
+            } else if (error.response?.data?.message) {
+                showMessage('error', error.response.data.message);
+            } else {
+                showMessage('error', 'Failed to add transaction. Please try again.');
+            }
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const openCameraOrFile = () => {
@@ -478,27 +556,37 @@ export default function ScanReceipt({ auth }) {
             auth={auth}
         >
             {/* Page Content */}
-            <div className="py-10">
-                <div className="max-w-[1500px] mx-auto px-6">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Page Header */}
                     <div className="mb-8">
-                        <h1 className="text-3xl font-bold text-[#2C2C2C] mb-2">Scan Receipt</h1>
-                        <p className="text-[#757575]">Scan receipts and automatically extract transaction data</p>
+                        <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl font-bold text-charcoal mb-2">Scan Receipt</h1>
+                        <p className="text-sm sm:text-base md:text-base lg:text-base xl:text-lg text-medium-gray">Scan receipts and automatically extract transaction data</p>
+                        
+                        {/* Success/Error Message */}
+                        {message.text && (
+                            <div className={`mt-4 p-4 rounded-lg ${
+                                message.type === 'success' 
+                                    ? 'bg-green-50 text-green-800 border border-green-200' 
+                                    : 'bg-red-50 text-red-800 border border-red-200'
+                            }`}>
+                                {message.text}
+                            </div>
+                        )}
                     </div>
 
                     {/* Main Content Grid */}
                     <div className="grid lg:grid-cols-2 gap-8 mb-12">
                         {/* Upload Receipt Section */}
-                        <div className="bg-white rounded-lg border border-[#E0E0E0] p-6">
-                            <h2 className="text-xl font-semibold text-[#2C2C2C] mb-2">Upload Receipt</h2>
-                            <p className="text-[#757575] mb-6">Take a photo or upload an image of your receipt</p>
+                        <div className="bg-white rounded-lg border border-light-gray p-6">
+                            <h2 className="text-xl font-semibold text-charcoal mb-2">Upload Receipt</h2>
+                            <p className="text-medium-gray mb-6">Take a photo or upload an image of your receipt</p>
 
                             {/* Upload Area */}
                             <div 
                                 className={`border-2 border-dashed rounded-lg p-4 text-center mb-6 min-h-[300px] flex flex-col justify-center transition-colors duration-200 ${
                                     isDragging 
                                         ? 'border-[#058743] bg-[#058743] bg-opacity-5' 
-                                        : 'border-[#C8C0C0] hover:border-[#058743] hover:bg-gray-50'
+                                        : 'border-light-gray hover:border-[#058743] hover:bg-gray-50'
                                 }`}
                                 onDragEnter={handleDragEnter}
                                 onDragLeave={handleDragLeave}
@@ -514,14 +602,14 @@ export default function ScanReceipt({ auth }) {
                                             <img 
                                                 src={URL.createObjectURL(selectedFile)} 
                                                 alt="Receipt Preview" 
-                                                className="max-w-full max-h-[200px] mx-auto rounded border border-[#E0E0E0] shadow-sm"
+                                                className="max-w-full max-h-[200px] mx-auto rounded border border-light-gray shadow-sm"
                                             />
                                         </div>
                                         <h3 className="text-lg font-medium text-[#058743] mb-1">File Selected</h3>
-                                        <p className="text-[#2C2C2C] font-medium mb-1 break-words" title={selectedFile.name}>
+                                        <p className="text-charcoal font-medium mb-1 break-words" title={selectedFile.name}>
                                             {truncateFilename(selectedFile.name)}
                                         </p>
-                                        <p className="text-[#757575] text-sm">
+                                        <p className="text-medium-gray text-sm">
                                             {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                                         </p>
                                     </div>
@@ -538,11 +626,11 @@ export default function ScanReceipt({ auth }) {
                                             />
                                         </div>
                                         <h3 className={`text-lg font-medium mb-2 transition-colors duration-200 ${
-                                            isDragging ? 'text-[#058743]' : 'text-[#2C2C2C]'
+                                            isDragging ? 'text-[#058743]' : 'text-charcoal'
                                         }`}>
                                             {isDragging ? 'Drop your receipt here' : 'Upload Photo'}
                                         </h3>
-                                        <p className="text-[#757575] text-sm mb-3">
+                                        <p className="text-medium-gray text-sm mb-3">
                                             {isDragging 
                                                 ? 'Release to upload your receipt' 
                                                 : 'Drag & drop or click to browse • PNG, JPG, or JPEG up to 10 MB'
@@ -596,7 +684,7 @@ export default function ScanReceipt({ auth }) {
                                     <button 
                                         type="button"
                                         onClick={() => document.getElementById('receipt-file').click()}
-                                        className="flex-1 px-4 py-2 border border-[#757575] text-[#757575] rounded hover:bg-[#757575] hover:text-white transition-colors duration-200 flex items-center justify-center gap-2"
+                                        className="flex-1 px-4 py-2 border border-medium-gray text-medium-gray rounded hover:bg-medium-gray hover:text-white transition-colors duration-200 flex items-center justify-center gap-2"
                                     >
                                         Browse
                                     </button>
@@ -648,29 +736,29 @@ export default function ScanReceipt({ auth }) {
                                     <div className="mb-4">
                                         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#058743] mx-auto"></div>
                                     </div>
-                                    <p className="text-[#757575] mb-2">Processing receipt...</p>
-                                    <p className="text-[#757575] text-sm">Please wait while we extract the data</p>
+                                    <p className="text-medium-gray mb-2">Processing receipt...</p>
+                                    <p className="text-medium-gray text-sm">Please wait while we extract the data</p>
                                 </div>
                             ) : ocrResults ? (
                                 /* OCR Results Form */
                                 <div className="space-y-4">
                                     {/* Amount Field */}
                                     <div>
-                                        <label className="block text-[#2C2C2C] font-medium mb-2">
+                                        <label className="block text-charcoal font-medium mb-2">
                                             Amount<span className="text-red-500">*</span>
                                         </label>
                                         <input
                                             type="text"
-                                            value={formData.amount}
+                                            value={formatNumberWithDots(formData.amount)}
                                             onChange={(e) => handleInputChange('amount', e.target.value)}
-                                            className="w-full px-3 py-2 border border-[#C8C0C0] rounded text-[#2C2C2C] bg-gray-100"
-                                            placeholder="255.255.255"
+                                            className="w-full px-3 py-2 border border-light-gray rounded text-charcoal bg-gray-100"
+                                            placeholder="0"
                                         />
                                     </div>
 
                                     {/* Category Field */}
                                     <div>
-                                        <label className="block text-[#2C2C2C] font-medium mb-2">
+                                        <label className="block text-charcoal font-medium mb-2">
                                             Category<span className="text-red-500">*</span>
                                         </label>
                                         <div className="relative">
@@ -679,7 +767,8 @@ export default function ScanReceipt({ auth }) {
                                                 onChange={(e) => handleInputChange('category', e.target.value)}
                                                 onFocus={() => setIsDropdownOpen(true)}
                                                 onBlur={() => setIsDropdownOpen(false)}
-                                                className="w-full px-3 py-2 border border-[#C8C0C0] rounded text-[#2C2C2C] bg-gray-100 cursor-pointer pr-10"
+                                                className="w-full px-3 py-2 border border-light-gray rounded text-charcoal bg-gray-100 cursor-pointer pr-10"
+                                                disabled={loadingCategories}
                                                 style={{ 
                                                     WebkitAppearance: 'none', 
                                                     MozAppearance: 'none',
@@ -687,9 +776,12 @@ export default function ScanReceipt({ auth }) {
                                                     backgroundImage: 'none'
                                                 }}
                                             >
+                                                <option value="">
+                                                    {loadingCategories ? 'Loading categories...' : 'Select a category'}
+                                                </option>
                                                 {categories.map((category) => (
-                                                    <option key={category} value={category}>
-                                                        {category}
+                                                    <option key={category.id} value={category.id}>
+                                                        {category.category_name}
                                                     </option>
                                                 ))}
                                             </select>
@@ -708,7 +800,7 @@ export default function ScanReceipt({ auth }) {
 
                                     {/* Date Field */}
                                     <div>
-                                        <label className="block text-[#2C2C2C] font-medium mb-2">
+                                        <label className="block text-charcoal font-medium mb-2">
                                             Date<span className="text-red-500">*</span>
                                         </label>
                                         <div className="date-input-container relative">
@@ -718,7 +810,7 @@ export default function ScanReceipt({ auth }) {
                                                 value={formatDateForDisplay(formData.date)}
                                                 placeholder="DD/MM/YYYY"
                                                 readOnly
-                                                className="w-full px-3 py-2 border border-[#C8C0C0] rounded text-[#2C2C2C] bg-gray-100 cursor-pointer"
+                                                className="w-full px-3 py-2 border border-light-gray rounded text-charcoal bg-gray-100 cursor-pointer"
                                                 onClick={() => document.getElementById('hidden-date-picker').showPicker()}
                                             />
                                             {/* Hidden date picker */}
@@ -743,15 +835,14 @@ export default function ScanReceipt({ auth }) {
 
                                     {/* Description Field */}
                                     <div>
-                                        <label className="block text-[#2C2C2C] font-medium mb-2">
+                                        <label className="block text-charcoal font-medium mb-2">
                                             Description
                                         </label>
-                                        <textarea
+                                        <input
+                                            type="text"
                                             value={formData.description}
                                             onChange={(e) => handleInputChange('description', e.target.value)}
-                                            className="w-full px-3 py-2 border border-[#C8C0C0] rounded text-[#2C2C2C] bg-gray-100 resize-none"
-                                            rows="3"
-                                            placeholder="Optional description..."
+                                            className="w-full px-3 py-2 border border-light-gray rounded text-charcoal bg-gray-100"
                                         />
                                     </div>
 
@@ -759,9 +850,21 @@ export default function ScanReceipt({ auth }) {
                                     <button
                                         type="button"
                                         onClick={handleAddTransaction}
-                                        className="w-full bg-black text-white px-6 py-3 rounded hover:bg-gray-800 transition-colors duration-200 font-medium"
+                                        disabled={submitting || loadingCategories}
+                                        className={`w-full px-6 py-3 rounded transition-colors duration-200 font-medium flex items-center justify-center gap-2 ${
+                                            submitting || loadingCategories
+                                                ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                                                : 'bg-black text-white hover:bg-gray-800'
+                                        }`}
                                     >
-                                        Add Transaction
+                                        {submitting ? (
+                                            <>
+                                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                                Adding Transaction...
+                                            </>
+                                        ) : (
+                                            'Add Transaction'
+                                        )}
                                     </button>
                                 </div>
                             ) : (
@@ -770,15 +873,15 @@ export default function ScanReceipt({ auth }) {
                                     <div className="mb-4">
                                         <img src="/images/icons/document-scan-icon.svg" alt="Document Icon" className="w-16 h-16 mx-auto"/>
                                     </div>
-                                    <p className="text-[#757575]">Upload or scan a receipt to see the results</p>
+                                    <p className="text-medium-gray">Upload or scan a receipt to see the results</p>
                                 </div>
                             )}
                         </div>
                     </div>
 
                     {/* How OCR Works Section */}
-                    <div className="bg-white rounded-lg border border-[#E0E0E0] p-8">
-                        <h2 className="text-2xl font-semibold text-[#2C2C2C] mb-8 text-center">How OCR Works</h2>
+                    <div className="bg-white rounded-lg border border-light-gray p-8">
+                        <h2 className="text-2xl font-semibold text-charcoal mb-8 text-center">How OCR Works</h2>
                         
                         <div className="grid md:grid-cols-3 gap-8">
                             {/* Step 1: Upload */}
@@ -786,8 +889,8 @@ export default function ScanReceipt({ auth }) {
                                 <div className="mb-4">
                                     <img src="/images/icons/upload-icon.svg" alt="Upload Icon" className="w-16 h-16 mx-auto"/>
                                 </div>
-                                <h3 className="text-lg font-semibold text-[#2C2C2C] mb-2">1. Upload</h3>
-                                <p className="text-[#757575] text-sm">Take a photo or upload an image of your receipt</p>
+                                <h3 className="text-lg font-semibold text-charcoal mb-2">1. Upload</h3>
+                                <p className="text-medium-gray text-sm">Take a photo or upload an image of your receipt</p>
                             </div>
 
                             {/* Step 2: Scan */}
@@ -795,8 +898,8 @@ export default function ScanReceipt({ auth }) {
                                 <div className="mb-4">
                                     <img src="/images/icons/scan-gold-icon.svg" alt="Scan Icon" className="w-16 h-16 mx-auto"/>
                                 </div>
-                                <h3 className="text-lg font-semibold text-[#2C2C2C] mb-2">2. Scan</h3>
-                                <p className="text-[#757575] text-sm">AI extracts text and identifies key information</p>
+                                <h3 className="text-lg font-semibold text-charcoal mb-2">2. Scan</h3>
+                                <p className="text-medium-gray text-sm">AI extracts text and identifies key information</p>
                             </div>
 
                             {/* Step 3: Save */}
@@ -804,12 +907,11 @@ export default function ScanReceipt({ auth }) {
                                 <div className="mb-4">
                                     <img src="/images/icons/checkmark-save-icon.svg" alt="Save Icon" className="w-16 h-16 mx-auto"/>
                                 </div>
-                                <h3 className="text-lg font-semibold text-[#2C2C2C] mb-2">3. Save</h3>
-                                <p className="text-[#757575] text-sm">Review and automatically add to your transactions</p>
+                                <h3 className="text-lg font-semibold text-charcoal mb-2">3. Save</h3>
+                                <p className="text-medium-gray text-sm">Review and automatically add to your transactions</p>
                             </div>
                         </div>
                     </div>
-                </div>
             </div>
         </AppLayout>
     );

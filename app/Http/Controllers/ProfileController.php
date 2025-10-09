@@ -31,15 +31,55 @@ class ProfileController extends Controller
 
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
+        $validated = $request->validated();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        // Handle profile photo upload
+        if ($request->hasFile('profile_photo')) {
+            // Delete old profile photo if exists
+            if ($user->profile_photo_path) {
+                $oldPath = storage_path('app/public/' . $user->profile_photo_path);
+                if (file_exists($oldPath)) {
+                    unlink($oldPath);
+                }
+            }
+
+            // Store new profile photo
+            $path = $request->file('profile_photo')->store('profile-photos', 'public');
+            $validated['profile_photo_path'] = $path;
         }
 
-        $request->user()->save();
+        // Remove profile_photo from validated data as we're using profile_photo_path
+        unset($validated['profile_photo']);
+
+        $user->fill($validated);
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+
+        $user->save();
 
         return Redirect::route('profile.show')->with('status', 'profile-updated');
+    }
+
+    public function removePhoto(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        
+        // Delete old profile photo if exists
+        if ($user->profile_photo_path) {
+            $oldPath = storage_path('app/public/' . $user->profile_photo_path);
+            if (file_exists($oldPath)) {
+                unlink($oldPath);
+            }
+            
+            // Clear the profile photo path
+            $user->profile_photo_path = null;
+            $user->save();
+        }
+        
+        return Redirect::back()->with('status', 'photo-removed');
     }
 
     public function destroy(Request $request): RedirectResponse

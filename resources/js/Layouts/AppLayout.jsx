@@ -23,9 +23,9 @@ export default function AppLayout({ children, title, auth, navigation }) {
     return (
         <>
             <Head title={title} />
-            <div className="min-h-screen bg-[#F8F7F0] font-sans">
+            <div className="min-h-screen bg-warm-ivory font-sans">
                 {/* Integrated Header with Navigation */}
-                <header className="border-b border-[#E0E0E0] bg-white">
+                <header className="border-b border-light-gray bg-white">
                     <div className="max-w-[1500px] mx-auto px-4 max-[425px]:px-3 py-3 max-[425px]:py-2 flex items-center justify-between">
                         {/* Logo */}
                         <Link href="/" className="flex items-center space-x-2 max-[425px]:space-x-1.5">
@@ -83,15 +83,15 @@ export default function AppLayout({ children, title, auth, navigation }) {
                                         href={route('profile.show')}
                                         className="block relative group"
                                     >
-                                        {auth.user.profile_photo ? (
+                                        {auth.user.profile_photo_path ? (
                                             <img
-                                                src={auth.user.profile_photo}
+                                                src={`/storage/${auth.user.profile_photo_path}`}
                                                 alt="Profile"
                                                 className="w-10 h-10 rounded-full object-cover transition-all duration-200 group-hover:ring-2 group-hover:ring-[#6FB386] group-hover:ring-offset-1"
                                             />
                                         ) : (
                                             <div className="w-10 h-10 rounded-full bg-[#058743] flex items-center justify-center text-white font-semibold transition-all duration-200 group-hover:ring-2 group-hover:ring-[#6FB386] group-hover:ring-offset-1">
-                                                {auth.user.name?.charAt(0)?.toUpperCase() || 'U'}
+                                                {auth.user.name ? auth.user.name.split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2) : 'U'}
                                             </div>
                                         )}
                                     </Link>
@@ -105,7 +105,7 @@ export default function AppLayout({ children, title, auth, navigation }) {
 
                     {/* Mobile Navigation Dropdown */}
                     {auth?.user && isMobileMenuOpen && (
-                        <div className="max-[1023px]:block hidden border-t border-[#E0E0E0] bg-white">
+                        <div className="max-[1023px]:block hidden border-t border-light-gray bg-white">
                             <div className="max-w-[1500px] mx-auto px-4 max-[425px]:px-3 py-4 max-[425px]:py-3 space-y-2">
                                 {/* Mobile Profile Section */}
                                 <Link
@@ -113,15 +113,15 @@ export default function AppLayout({ children, title, auth, navigation }) {
                                     onClick={() => setIsMobileMenuOpen(false)}
                                     className="flex items-center space-x-3 max-[425px]:space-x-2.5 py-3 max-[425px]:py-2.5 px-4 max-[425px]:px-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 mb-3"
                                 >
-                                    {auth.user.profile_photo ? (
+                                    {auth.user.profile_photo_path ? (
                                         <img
-                                            src={auth.user.profile_photo}
+                                            src={`/storage/${auth.user.profile_photo_path}`}
                                             alt="Profile"
                                             className="w-12 h-12 max-[425px]:w-10 max-[425px]:h-10 rounded-full object-cover"
                                         />
                                     ) : (
                                         <div className="w-12 h-12 max-[425px]:w-10 max-[425px]:h-10 rounded-full bg-[#058743] flex items-center justify-center text-white font-semibold max-[425px]:text-sm">
-                                            {auth.user.name?.charAt(0)?.toUpperCase() || 'U'}
+                                            {auth.user.name ? auth.user.name.split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2) : 'U'}
                                         </div>
                                     )}
                                     <div className="flex-1">

@@ -1,29 +1,83 @@
-import { Head, useForm, usePage } from '@inertiajs/react';
-import { UserCircleIcon, KeyIcon } from '@heroicons/react/24/outline';
+import { Head, useForm, usePage, Link, router } from '@inertiajs/react';
+import { UserIcon, KeyIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { PencilIcon } from '@heroicons/react/24/solid';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { Transition } from '@headlessui/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AppLayout from '@/Layouts/AppLayout';
+import ReactCrop from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
+import { useState, useRef, useCallback } from 'react';
 
 export default function Edit({ mustVerifyEmail, status }) {
     const { auth } = usePage().props;
     const user = auth.user;
 
-    const { data: profileData, setData: setProfileData, patch: patchProfile, errors: profileErrors, processing: profileProcessing, recentlySuccessful: profileRecentlySuccessful } = useForm({
-        name: user.name,
+    const avatarUrl = user.profile_photo_path
+        ? `/storage/${user.profile_photo_path}`
+        : null; // We'll use a custom div instead of ui-avatars
+
+    // Crop modal state
+    const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+    const [selectedImage, setSelectedImage] = useState(null);
+    const [crop, setCrop] = useState({
+        unit: '%',
+        width: 50,
+        height: 50,
+        x: 25,
+        y: 25,
+        aspect: 1
+    });
+    const [completedCrop, setCompletedCrop] = useState(null);
+    const [croppedImageUrl, setCroppedImageUrl] = useState(null);
+    const [showMobileOptions, setShowMobileOptions] = useState(false);
+    const imgRef = useRef(null);
+
+    // Form profile
+    const { data: profileData, setData: setProfileData, patch: patchProfile, errors: profileErrors, processing: profileProcessing } = useForm({
+        first_name: user.name?.split(' ')[0] || '',
+        last_name: user.name?.split(' ').slice(1).join(' ') || '',
         email: user.email,
         phone: user.phone || '',
         date_of_birth: user.date_of_birth || '',
+        profile_photo: null,
     });
 
     const submitProfile = (e) => {
         e.preventDefault();
-        patchProfile(route('profile.update'));
+        
+        // Combine first and last name
+        const fullName = `${profileData.first_name} ${profileData.last_name}`.trim();
+        
+        // Prepare form data ensuring all required fields are present
+        const formData = {
+            name: fullName,
+            email: profileData.email,
+            phone: profileData.phone || '',
+            date_of_birth: profileData.date_of_birth || '',
+            _method: 'PATCH'
+        };
+        
+        // Only add profile_photo if it exists
+        if (profileData.profile_photo) {
+            formData.profile_photo = profileData.profile_photo;
+        }
+        
+        // Use router.post for file uploads with multipart data
+        router.post(route('profile.update'), formData, {
+            onSuccess: () => {
+                window.location.href = route('profile.show');
+            },
+            onError: (errors) => {
+                console.log('Form errors:', errors);
+            }
+        });
     };
-    
-    const { data: passwordData, setData: setPasswordData, put: putPassword, errors: passwordErrors, processing: passwordProcessing, recentlySuccessful: passwordRecentlySuccessful, reset: resetPassword } = useForm({
+
+    // Form password
+    const { data: passwordData, setData: setPasswordData, put: putPassword, errors: passwordErrors, processing: passwordProcessing, reset: resetPassword } = useForm({
         current_password: '',
         password: '',
         password_confirmation: '',
@@ -37,89 +91,467 @@ export default function Edit({ mustVerifyEmail, status }) {
         });
     };
 
+    // Image cropping functions
+    const handleImageSelect = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = () => {
+                setSelectedImage(reader.result);
+                // Reset crop to default when selecting new image
+                setCrop({
+                    unit: '%',
+                    width: 80,
+                    height: 80,
+                    x: 10,
+                    y: 10,
+                    aspect: 1
+                });
+                setCompletedCrop(null);
+                setIsCropModalOpen(true);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const getCroppedImg = useCallback((image, crop) => {
+        const canvas = document.createElement('canvas');
+        const scaleX = image.naturalWidth / image.width;
+        const scaleY = image.naturalHeight / image.height;
+        canvas.width = crop.width;
+        canvas.height = crop.height;
+        const ctx = canvas.getContext('2d');
+
+        ctx.drawImage(
+            image,
+            crop.x * scaleX,
+            crop.y * scaleY,
+            crop.width * scaleX,
+            crop.height * scaleY,
+            0,
+            0,
+            crop.width,
+            crop.height,
+        );
+
+        return new Promise((resolve) => {
+            canvas.toBlob(resolve, 'image/jpeg', 1);
+        });
+    }, []);
+
+    const handleCropComplete = async () => {
+        if (completedCrop && imgRef.current) {
+            const croppedBlob = await getCroppedImg(imgRef.current, completedCrop);
+            const croppedFile = new File([croppedBlob], 'cropped-avatar.jpg', { type: 'image/jpeg' });
+            
+            // Preserve existing form data when setting new profile photo
+            setProfileData((prev) => ({
+                ...prev,
+                profile_photo: croppedFile
+            }));
+            const url = URL.createObjectURL(croppedBlob);
+            setCroppedImageUrl(url);
+            setIsCropModalOpen(false);
+            
+            // Reset the file input so user can select a new file again
+            const fileInput = document.querySelector('input[type="file"]');
+            if (fileInput) {
+                fileInput.value = '';
+            }
+        }
+    };
+
+    const handleCropCancel = () => {
+        setIsCropModalOpen(false);
+        setSelectedImage(null);
+        setCrop({
+            unit: '%',
+            width: 50,
+            height: 50,
+            x: 25,
+            y: 25,
+            aspect: 1
+        });
+        setCompletedCrop(null);
+        // Reset the file input so user can select the same file again
+        const fileInput = document.querySelector('input[type="file"]');
+        if (fileInput) {
+            fileInput.value = '';
+        }
+    };
+
+    const handleRemovePhoto = () => {
+        if (confirm('Are you sure you want to remove your profile picture?')) {
+            setProfileData('profile_photo', null);
+            setCroppedImageUrl(null);
+            
+            // If user has existing photo, send request to remove it
+            if (user.profile_photo_path) {
+                router.post(route('profile.remove-photo'), {
+                    _method: 'DELETE'
+                }, {
+                    onSuccess: () => {
+                        window.location.reload();
+                    }
+                });
+            }
+        }
+    };
+
     return (
-        <AuthenticatedLayout
-            user={auth.user}
-            header={<h2 className="font-semibold text-xl text-gray-800 leading-tight">Edit Profile</h2>}
+        <AppLayout
+            title="Edit Profile"
+            auth={auth}
         >
             <Head title="Edit Profile" />
 
-            <div className="py-12">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-                    
-                    <div className="p-6 bg-white shadow-sm sm:rounded-lg">
+            <div className="py-8">
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+
+                    {/* Box Profile Information */}
+                    <div className="p-8 bg-white shadow-md rounded-2xl relative">
                         <div className="flex items-start space-x-4 mb-6">
-                            <UserCircleIcon className="h-7 w-7 text-gray-500"/>
+                            <UserIcon className="h-8 w-8 text-gray-500"/>
                             <div>
-                                <h2 className="text-lg font-medium text-gray-900">Profile Information</h2>
-                                <p className="mt-1 text-sm text-gray-600">Update your account's profile information.</p>
+                                <h2 className="text-lg md:text-xl font-semibold text-gray-900">Profile Information</h2>
+                                <p className="mt-1 text-xs md:text-sm text-gray-600">Update your personal details and contact information.</p>
                             </div>
                         </div>
+
                         <form onSubmit={submitProfile} className="space-y-6">
-                            <div>
-                                <InputLabel htmlFor="name" value="Name" />
-                                <TextInput id="name" className="mt-1 block w-full" value={profileData.name} onChange={(e) => setProfileData('name', e.target.value)} required isFocused autoComplete="name" />
-                                <InputError className="mt-2" message={profileErrors.name} />
-                            </div>
-                            <div>
-                                <InputLabel htmlFor="email" value="Email" />
-                                <TextInput id="email" type="email" className="mt-1 block w-full" value={profileData.email} onChange={(e) => setProfileData('email', e.target.value)} required autoComplete="username" />
-                                <InputError className="mt-2" message={profileErrors.email} />
-                            </div>
-                            <div>
-                                <InputLabel htmlFor="phone" value="Phone" />
-                                <TextInput id="phone" className="mt-1 block w-full" value={profileData.phone} onChange={(e) => setProfileData('phone', e.target.value)} autoComplete="tel" />
-                                <InputError className="mt-2" message={profileErrors.phone} />
-                            </div>
-                            <div>
-                                <InputLabel htmlFor="date_of_birth" value="Date of Birth" />
-                                <TextInput id="date_of_birth" type="date" className="mt-1 block w-full" value={profileData.date_of_birth} onChange={(e) => setProfileData('date_of_birth', e.target.value)} />
-                                <InputError className="mt-2" message={profileErrors.date_of_birth} />
+                            {/* Avatar Upload */}
+                            <div 
+                                className="relative w-32 h-32 group"
+                                onClick={(e) => {
+                                    // Click outside overlay area hides mobile options
+                                    if (showMobileOptions && e.target === e.currentTarget) {
+                                        setShowMobileOptions(false);
+                                    }
+                                }}
+                            >
+                                {(croppedImageUrl || profileData.profile_photo || user.profile_photo_path) ? (
+                                    <img
+                                        src={croppedImageUrl || (profileData.profile_photo ? URL.createObjectURL(profileData.profile_photo) : avatarUrl)}
+                                        alt="Profile Avatar"
+                                        className="h-32 w-32 rounded-full object-cover shadow transition-all duration-300 group-hover:brightness-75"
+                                    />
+                                ) : (
+                                    <div className="h-32 w-32 rounded-full bg-[#058743] flex items-center justify-center text-white font-bold text-4xl shadow transition-all duration-300 group-hover:brightness-75">
+                                        {user.name ? user.name.split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2) : 'U'}
+                                    </div>
+                                )}
+                                
+                                {/* Hover Hint - Desktop only */}
+                                <div className="hidden md:block absolute inset-0 rounded-full bg-black bg-opacity-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
+                                     onClick={(e) => {
+                                         e.stopPropagation();
+                                         setShowMobileOptions(true);
+                                     }}
+                                />
+                                
+                                {/* Click Trigger - Mobile */}
+                                <div className="md:hidden absolute inset-0 cursor-pointer"
+                                     onClick={(e) => {
+                                         e.stopPropagation();
+                                         setShowMobileOptions(true);
+                                     }}
+                                />
+
+                                {/* Hidden file input */}
+                                <input
+                                    type="file"
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={handleImageSelect}
+                                />
+                                <InputError className="mt-2" message={profileErrors.profile_photo} />
                             </div>
 
-                            <div className="flex items-center gap-4">
-                                <PrimaryButton disabled={profileProcessing}>Save</PrimaryButton>
-                                <Transition show={profileRecentlySuccessful} enter="transition ease-in-out" enterFrom="opacity-0" leave="transition ease-in-out" leaveTo="opacity-0">
-                                    <p className="text-sm text-gray-600">Saved.</p>
-                                </Transition>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <InputLabel htmlFor="first_name" value="First Name" />
+                                    <TextInput
+                                        id="first_name"
+                                        className="mt-1 block w-full"
+                                        value={profileData.first_name}
+                                        onChange={(e) => setProfileData('first_name', e.target.value)}
+                                        required
+                                    />
+                                    <InputError className="mt-2" message={profileErrors.first_name} />
+                                </div>
+
+                                <div>
+                                    <InputLabel htmlFor="last_name" value="Last Name" />
+                                    <TextInput
+                                        id="last_name"
+                                        className="mt-1 block w-full"
+                                        value={profileData.last_name}
+                                        onChange={(e) => setProfileData('last_name', e.target.value)}
+                                    />
+                                    <InputError className="mt-2" message={profileErrors.last_name} />
+                                </div>
+
+                                <div>
+                                    <InputLabel htmlFor="email" value="Email" />
+                                    <TextInput
+                                        id="email"
+                                        type="email"
+                                        className="mt-1 block w-full"
+                                        value={profileData.email}
+                                        onChange={(e) => setProfileData('email', e.target.value)}
+                                        required
+                                    />
+                                    <InputError className="mt-2" message={profileErrors.email} />
+                                </div>
+
+                                <div>
+                                    <InputLabel htmlFor="phone" value="Phone" />
+                                    <TextInput
+                                        id="phone"
+                                        className="mt-1 block w-full"
+                                        value={profileData.phone}
+                                        onChange={(e) => setProfileData('phone', e.target.value)}
+                                    />
+                                    <InputError className="mt-2" message={profileErrors.phone} />
+                                </div>
+
+                                <div>
+                                    <InputLabel htmlFor="date_of_birth" value="Date of Birth" />
+                                    <TextInput
+                                        id="date_of_birth"
+                                        type="date"
+                                        className="mt-1 block w-full"
+                                        value={profileData.date_of_birth}
+                                        onChange={(e) => setProfileData('date_of_birth', e.target.value)}
+                                    />
+                                    <InputError className="mt-2" message={profileErrors.date_of_birth} />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3">
+                                <Link
+                                    href={route('profile.show')}
+                                    className="px-5 py-2 bg-gray-200 text-gray-800 font-medium rounded-lg shadow hover:bg-gray-300 transition-colors"
+                                >
+                                    Back to Profile
+                                </Link>
+                                <button
+                                    type="submit"
+                                    disabled={profileProcessing}
+                                    className="px-5 py-2 bg-growth-green-500 text-white font-medium rounded-lg shadow hover:bg-growth-green-600 transition-colors disabled:opacity-50"
+                                >
+                                    Save
+                                </button>
                             </div>
                         </form>
                     </div>
 
-                    <div className="p-6 bg-white shadow-sm sm:rounded-lg">
-                         <div className="flex items-start space-x-4 mb-6">
-                            <KeyIcon className="h-7 w-7 text-gray-500"/>
-                            <div>
-                                <h2 className="text-lg font-medium text-gray-900">Update Password</h2>
-                                <p className="mt-1 text-sm text-gray-600">Ensure your account is using a long, random password.</p>
+                    {/* Overlay Menu - Outside of avatar container */}
+                    {showMobileOptions && (
+                        <div 
+                            className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+                            onClick={(e) => {
+                                if (e.target === e.currentTarget) {
+                                    setShowMobileOptions(false);
+                                }
+                            }}
+                        >
+                            {/* Background overlay */}
+                            <div 
+                                className="fixed inset-0 bg-black bg-opacity-50" 
+                                onClick={() => setShowMobileOptions(false)}
+                            />
+                            
+                            {/* Menu popup */}
+                            <div className="relative bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
+                                <div className="space-y-4">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            document.querySelector('input[type="file"]').click();
+                                            setShowMobileOptions(false);
+                                        }}
+                                        className="w-full py-3 px-4 text-left text-growth-green-600 hover:bg-growth-green-50 rounded-lg transition-colors font-medium"
+                                    >
+                                        Edit your Picture
+                                    </button>
+                                    
+                                    {(user.profile_photo_path || croppedImageUrl) && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleRemovePhoto();
+                                                setShowMobileOptions(false);
+                                            }}
+                                            className="w-full py-3 px-4 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
+                                        >
+                                            Remove your Picture
+                                        </button>
+                                    )}
+                                    
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowMobileOptions(false);
+                                        }}
+                                        className="w-full py-3 px-4 text-left text-gray-600 hover:bg-gray-50 rounded-lg transition-colors font-medium"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
                             </div>
                         </div>
+                    )}
+
+                    {/* Box Update Password */}
+                    <div className="p-8 bg-white shadow-md rounded-2xl">
+                        <div className="flex items-start space-x-4 mb-6">
+                            <KeyIcon className="h-8 w-8 text-gray-500"/>
+                            <div>
+                                <h2 className="text-lg md:text-xl font-semibold text-gray-900">Update Password</h2>
+                                <p className="mt-1 text-xs md:text-sm text-gray-600">Ensure your account is using a strong, unique password.</p>
+                            </div>
+                        </div>
+
                         <form onSubmit={submitPassword} className="space-y-6">
                             <div>
                                 <InputLabel htmlFor="current_password" value="Current Password" />
-                                <TextInput id="current_password" type="password" className="mt-1 block w-full" value={passwordData.current_password} onChange={(e) => setPasswordData('current_password', e.target.value)} required autoComplete="current-password" />
+                                <TextInput
+                                    id="current_password"
+                                    type="password"
+                                    className="mt-1 block w-full"
+                                    value={passwordData.current_password}
+                                    onChange={(e) => setPasswordData('current_password', e.target.value)}
+                                    required
+                                />
                                 <InputError className="mt-2" message={passwordErrors.current_password} />
                             </div>
-                             <div>
+
+                            <div>
                                 <InputLabel htmlFor="password" value="New Password" />
-                                <TextInput id="password" type="password" className="mt-1 block w-full" value={passwordData.password} onChange={(e) => setPasswordData('password', e.target.value)} required autoComplete="new-password" />
+                                <TextInput
+                                    id="password"
+                                    type="password"
+                                    className="mt-1 block w-full"
+                                    value={passwordData.password}
+                                    onChange={(e) => setPasswordData('password', e.target.value)}
+                                    required
+                                />
                                 <InputError className="mt-2" message={passwordErrors.password} />
                             </div>
-                             <div>
+
+                            <div>
                                 <InputLabel htmlFor="password_confirmation" value="Confirm Password" />
-                                <TextInput id="password_confirmation" type="password" className="mt-1 block w-full" value={passwordData.password_confirmation} onChange={(e) => setPasswordData('password_confirmation', e.target.value)} required autoComplete="new-password" />
+                                <TextInput
+                                    id="password_confirmation"
+                                    type="password"
+                                    className="mt-1 block w-full"
+                                    value={passwordData.password_confirmation}
+                                    onChange={(e) => setPasswordData('password_confirmation', e.target.value)}
+                                    required
+                                />
                                 <InputError className="mt-2" message={passwordErrors.password_confirmation} />
                             </div>
-                             <div className="flex items-center gap-4">
-                                <PrimaryButton disabled={passwordProcessing}>Save</PrimaryButton>
-                                <Transition show={passwordRecentlySuccessful} enter="transition ease-in-out" enterFrom="opacity-0" leave="transition ease-in-out" leaveTo="opacity-0">
-                                    <p className="text-sm text-gray-600">Saved.</p>
-                                </Transition>
+
+                            <div className="flex justify-end">
+                                <button
+                                    type="submit"
+                                    disabled={passwordProcessing}
+                                    className="px-5 py-2 bg-growth-green-500 text-white font-medium rounded-lg shadow hover:bg-growth-green-600 transition-colors disabled:opacity-50"
+                                >
+                                    Save
+                                </button>
                             </div>
                         </form>
                     </div>
                 </div>
             </div>
-        </AuthenticatedLayout>
+
+            {/* Image Crop Modal */}
+            {isCropModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black bg-opacity-50" onClick={handleCropCancel} />
+                    <div className="relative bg-white rounded-lg p-6 max-w-2xl w-full shadow-xl max-h-[90vh] overflow-auto">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-gray-900">Crop Profile Image</h3>
+                            <button
+                                onClick={handleCropCancel}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <XMarkIcon className="h-6 w-6" />
+                            </button>
+                        </div>
+
+                        <div className="mb-6 flex justify-center">
+                            {selectedImage && (
+                                <div className="w-full max-w-lg">
+                                    <ReactCrop
+                                        crop={crop}
+                                        onChange={(newCrop) => setCrop(newCrop)}
+                                        onComplete={(c) => setCompletedCrop(c)}
+                                        aspect={1}
+                                        circularCrop
+                                        minWidth={100}
+                                        minHeight={100}
+                                        keepSelection
+                                        onImageLoaded={(img) => {
+                                            imgRef.current = img;
+                                            // Wait for next tick to ensure image is properly rendered
+                                            setTimeout(() => {
+                                                const { offsetWidth, offsetHeight } = img;
+                                                const size = Math.min(offsetWidth, offsetHeight) * 0.7; // 70% of smaller displayed dimension
+                                                const centerX = (offsetWidth - size) / 2;
+                                                const centerY = (offsetHeight - size) / 2;
+                                                
+                                                const newCrop = {
+                                                    unit: 'px',
+                                                    width: size,
+                                                    height: size,
+                                                    x: centerX,
+                                                    y: centerY,
+                                                    aspect: 1
+                                                };
+                                                setCrop(newCrop);
+                                                setCompletedCrop(newCrop);
+                                            }, 100);
+                                        }}
+                                    >
+                                        <img
+                                            ref={imgRef}
+                                            src={selectedImage}
+                                            alt="Crop preview"
+                                            style={{ 
+                                                maxWidth: '100%', 
+                                                maxHeight: '400px',
+                                                display: 'block'
+                                            }}
+                                        />
+                                    </ReactCrop>
+                                    <p className="text-sm text-gray-500 mt-2 text-center">
+                                        Drag to adjust the circular crop area for your profile picture
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={handleCropCancel}
+                                className="px-4 py-2 bg-gray-200 text-gray-800 font-medium rounded-lg hover:bg-gray-300 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleCropComplete}
+                                className="px-4 py-2 bg-growth-green-500 text-white font-medium rounded-lg hover:bg-growth-green-600 transition-colors"
+                                disabled={!completedCrop}
+                            >
+                                Apply Crop
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </AppLayout>
     );
 }

@@ -1,22 +1,94 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Head } from '@inertiajs/react';
 
 export default function Dashboard({ auth }) {
+    /* 
+    ====================================================================
+    📝 BACKEND API INTEGRATION NOTES:
+    ====================================================================
+    
+    For backend team: This dashboard expects data from these API endpoints:
+    
+    1. 📊 Monthly Chart Data: GET /api/dashboard/monthly-stats
+       - Should return last 6 months of income/expense data
+       - Use the 'fullDate' field (YYYY-MM format) to query your database
+       - Expected response format:
+       {
+         "monthlyData": [
+           {
+             "month": "May",
+             "year": 2025, 
+             "fullDate": "2025-05",
+             "income": 5000000.00,
+             "expenses": 3500000.00
+           },
+           // ... more months
+         ]
+       }
+
+    2. 💰 Financial Overview: GET /api/dashboard/financial-overview  
+       - Total income, expenses, current balance, budget progress
+       - Expected response format:
+       {
+         "totalIncome": 92032000.00,
+         "totalExpenses": 89234200.00, 
+         "currentBalance": 19450000.00,
+         "budgetProcess": 84
+       }
+
+    3. 🍕 Expense Categories: GET /api/dashboard/expense-categories
+       - Pie chart data for current month's expense breakdown
+       - Expected response format:
+       {
+         "expenseCategories": [
+           { "name": "Food", "percentage": 18.47, "color": "#EF4444" },
+           // ... more categories
+         ]
+       }
+
+    The months are automatically generated based on current date (October 2025),
+    so backend just needs to query database using the fullDate values.
+    ====================================================================
+    */
+
+    // Generate last 6 months dynamically based on current date
+    const generateLast6Months = useMemo(() => {
+        const months = [];
+        const currentDate = new Date();
+        
+        // Get month names in short format
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        // Generate last 6 months including current month
+        for (let i = 5; i >= 0; i--) {
+            const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+            const monthName = monthNames[date.getMonth()];
+            const year = date.getFullYear();
+            const fullDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            
+            months.push({
+                month: monthName,
+                year: year,
+                fullDate: fullDate, // Backend can use this for API queries (YYYY-MM format)
+                displayName: `${monthName} ${year}`, // Full display name if needed
+                // Sample data - backend will replace these with real values
+                income: Math.floor(Math.random() * 5000) + 3000, // Random sample data
+                expenses: Math.floor(Math.random() * 4000) + 2000
+            });
+        }
+        
+        return months;
+    }, []); // Empty dependency array since we only want to calculate this once
+
     // Sample data - dalam implementasi nyata, data ini akan dari backend/API
     const [dashboardData] = useState({
         totalIncome: 92032000.00,
         totalExpenses: 89234200.00,
         currentBalance: 19450000.00,
         budgetProcess: 84,
-        monthlyData: [
-            { month: 'Mar', income: 5000, expenses: 4500 },
-            { month: 'Apr', income: 6000, expenses: 5200 },
-            { month: 'May', income: 5500, expenses: 4000 },
-            { month: 'Jun', income: 7500, expenses: 6000 },
-            { month: 'Jul', income: 9000, expenses: 7500 },
-            { month: 'Aug', income: 10000, expenses: 7500 }
-        ],
+        monthlyData: generateLast6Months, // Use dynamically generated months
         expenseCategories: [
             { name: 'Others', percentage: 38.83, color: '#60A5FA' },
             { name: 'Utilities', percentage: 14.56, color: '#F59E0B' },
@@ -75,10 +147,10 @@ export default function Dashboard({ auth }) {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Welcome Message */}
                     <div className="mb-8">
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                        <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl font-bold text-charcoal mb-2">
                             {getGreeting()}, {getUserName()}!
                         </h1>
-                        <p className="text-gray-600">
+                        <p className="text-sm sm:text-base md:text-base lg:text-base xl:text-lg text-medium-gray">
                             Here is the overview of your financial health
                         </p>
                     </div>
@@ -97,10 +169,10 @@ export default function Dashboard({ auth }) {
                             role="button"
                             tabIndex={0}
                         >
-                            <h3 className="text-gray-600 text-sm font-medium mb-2">
+                            <h3 className="text-gray-600 text-xs sm:text-sm md:text-base lg:text-sm xl:text-base font-medium mb-2">
                                 Total Income
                             </h3>
-                            <p className="text-2xl font-bold text-green-600">
+                            <p className="text-lg sm:text-xl md:text-2xl lg:text-xl xl:text-2xl font-bold text-green-600">
                                 {formatCurrency(dashboardData.totalIncome)}
                             </p>
                         </div>
@@ -117,10 +189,10 @@ export default function Dashboard({ auth }) {
                             role="button"
                             tabIndex={0}
                         >
-                            <h3 className="text-gray-600 text-sm font-medium mb-2">
+                            <h3 className="text-gray-600 text-xs sm:text-sm md:text-base lg:text-sm xl:text-base font-medium mb-2">
                                 Total Expenses
                             </h3>
-                            <p className="text-2xl font-bold text-red-500">
+                            <p className="text-lg sm:text-xl md:text-2xl lg:text-xl xl:text-2xl font-bold text-red-500">
                                 {formatCurrency(dashboardData.totalExpenses)}
                             </p>
                         </div>
@@ -137,10 +209,10 @@ export default function Dashboard({ auth }) {
                             role="button"
                             tabIndex={0}
                         >
-                            <h3 className="text-gray-600 text-sm font-medium mb-2">
+                            <h3 className="text-gray-600 text-xs sm:text-sm md:text-base lg:text-sm xl:text-base font-medium mb-2">
                                 Current Balance
                             </h3>
-                            <p className="text-2xl font-bold text-gray-900">
+                            <p className="text-lg sm:text-xl md:text-2xl lg:text-xl xl:text-2xl font-bold text-gray-900">
                                 {formatCurrency(dashboardData.currentBalance)}
                             </p>
                         </div>
@@ -157,10 +229,10 @@ export default function Dashboard({ auth }) {
                             role="button"
                             tabIndex={0}
                         >
-                            <h3 className="text-gray-600 text-sm font-medium mb-2">
+                            <h3 className="text-gray-600 text-xs sm:text-sm md:text-base lg:text-sm xl:text-base font-medium mb-2">
                                 Budget Process
                             </h3>
-                            <p className="text-2xl font-bold text-yellow-500">
+                            <p className="text-lg sm:text-xl md:text-2xl lg:text-xl xl:text-2xl font-bold text-yellow-500">
                                 {dashboardData.budgetProcess}%
                             </p>
                         </div>
@@ -171,10 +243,10 @@ export default function Dashboard({ auth }) {
                         {/* Income vs Expenses Chart */}
                         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                             <div className="mb-6">
-                                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                                <h3 className="text-base sm:text-lg md:text-xl lg:text-lg xl:text-xl font-semibold text-gray-900 mb-1">
                                     Income vs Expenses
                                 </h3>
-                                <p className="text-sm text-gray-600">
+                                <p className="text-xs sm:text-sm md:text-base lg:text-sm xl:text-base text-gray-600">
                                     Monthly comparison over the last 6 months
                                 </p>
                             </div>
@@ -204,7 +276,7 @@ export default function Dashboard({ auth }) {
                                                         }%`,
                                                         backgroundColor: '#16a34a'
                                                     }}
-                                                    title={`Income ${data.month}: ${formatCurrency(
+                                                    title={`Income ${data.month} ${data.year}: ${formatCurrency(
                                                         data.income
                                                     )}`}
                                                 ></div>
@@ -221,14 +293,14 @@ export default function Dashboard({ auth }) {
                                                         }%`,
                                                         backgroundColor: '#fb7185'
                                                     }}
-                                                    title={`Expenses ${data.month}: ${formatCurrency(
+                                                    title={`Expenses ${data.month} ${data.year}: ${formatCurrency(
                                                         data.expenses
                                                     )}`}
                                                 ></div>
                                             </div>
-                                            {/* Month Label */}
+                                                            {/* Month Label */}
                                             <span
-                                                className={`text-xs font-medium ${
+                                                className={`text-xs sm:text-sm md:text-base lg:text-sm xl:text-sm font-medium ${
                                                     hoveredMonth === index
                                                         ? 'text-gray-900'
                                                         : 'text-gray-600'
@@ -241,14 +313,14 @@ export default function Dashboard({ auth }) {
                                 </div>
 
                                 {/* Legend */}
-                                <div className="flex justify-center space-x-6 mt-4">
+                                <div className="flex justify-center space-x-4 sm:space-x-6 mt-4">
                                     <div className="flex items-center space-x-2">
                                         <div className="w-3 h-3 bg-green-500 rounded"></div>
-                                        <span className="text-sm text-gray-600">Income</span>
+                                        <span className="text-xs sm:text-sm md:text-base lg:text-sm xl:text-sm text-gray-600">Income</span>
                                     </div>
                                     <div className="flex items-center space-x-2">
                                         <div className="w-3 h-3 bg-red-400 rounded"></div>
-                                        <span className="text-sm text-gray-600">Expenses</span>
+                                        <span className="text-xs sm:text-sm md:text-base lg:text-sm xl:text-sm text-gray-600">Expenses</span>
                                     </div>
                                 </div>
                             </div>
@@ -257,17 +329,17 @@ export default function Dashboard({ auth }) {
                         {/* Expense Categories Pie Chart */}
                         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                             <div className="mb-6">
-                                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                                <h3 className="text-base sm:text-lg md:text-xl lg:text-lg xl:text-xl font-semibold text-gray-900 mb-1">
                                     Expense Categories
                                 </h3>
-                                <p className="text-sm text-gray-600">
+                                <p className="text-xs sm:text-sm md:text-base lg:text-sm xl:text-base text-gray-600">
                                     Breakdown of this month's expenses
                                 </p>
                             </div>
 
-                            <div className="flex items-center justify-center">
+                            <div className="flex flex-col lg:flex-row items-center justify-center">
                                 {/* Pie Chart SVG */}
-                                <div className="relative w-48 h-48">
+                                <div className="relative w-40 h-40 sm:w-48 sm:h-48 md:w-56 md:h-56 lg:w-48 lg:h-48 xl:w-56 xl:h-56">
                                     <svg
                                         className="w-full h-full transform -rotate-90"
                                         viewBox="0 0 100 100"
@@ -351,12 +423,12 @@ export default function Dashboard({ auth }) {
                                 </div>
 
                                 {/* Legend */}
-                                <div className="ml-8 space-y-3">
+                                <div className="mt-6 lg:mt-0 lg:ml-6 xl:ml-8 space-y-2 sm:space-y-3 w-full lg:w-auto">
                                     {dashboardData.expenseCategories.map(
                                         (category, index) => (
                                             <div
                                                 key={index}
-                                                className={`flex items-center space-x-3 cursor-pointer transition-all duration-150 p-1 rounded ${
+                                                className={`flex items-center space-x-3 cursor-pointer transition-all duration-150 p-1 sm:p-2 rounded ${
                                                     hoveredCategory === index
                                                         ? 'bg-gray-50 -translate-x-1'
                                                         : ''
@@ -371,13 +443,13 @@ export default function Dashboard({ auth }) {
                                                 tabIndex={0}
                                             >
                                                 <div
-                                                    className="w-3 h-3 rounded-full"
+                                                    className="w-3 h-3 sm:w-4 sm:h-4 rounded-full flex-shrink-0"
                                                     style={{
                                                         backgroundColor: category.color
                                                     }}
                                                 ></div>
                                                 <span
-                                                    className={`text-sm ${
+                                                    className={`text-xs sm:text-sm md:text-base lg:text-sm xl:text-base flex-1 ${
                                                         hoveredCategory === index
                                                             ? 'text-gray-900 font-medium'
                                                             : 'text-gray-700'
@@ -386,7 +458,7 @@ export default function Dashboard({ auth }) {
                                                     {category.name}
                                                 </span>
                                                 <span
-                                                    className={`text-sm ml-auto ${
+                                                    className={`text-xs sm:text-sm md:text-base lg:text-sm xl:text-base font-medium ${
                                                         hoveredCategory === index
                                                             ? 'text-gray-700'
                                                             : 'text-gray-500'

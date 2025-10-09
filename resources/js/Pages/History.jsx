@@ -2,6 +2,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { Head } from '@inertiajs/react';
 import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
+import EditTransaction from '@/Components/EditTransaction';
 
 // --- DATA DUMMY ---
 const transactionsData = []; // akan diganti hasil API
@@ -31,6 +32,8 @@ export default function History({ auth }) {
     const [meta, setMeta] = useState(null);
     const [deletingId, setDeletingId] = useState(null);
     const [message, setMessage] = useState({ type: '', text: '' });
+    const [editingTransaction, setEditingTransaction] = useState(null);
+    const [showEditModal, setShowEditModal] = useState(false);
 
     // Category dropdown
     let availableCategories = [];
@@ -166,6 +169,42 @@ export default function History({ auth }) {
         }
     };
 
+    const handleEdit = (transaction) => {
+        // Convert the transaction data to the format expected by EditTransaction
+        const editData = {
+            id: transaction.id,
+            type: transaction.type?.toLowerCase(), // Convert "Income"/"Expense" to "income"/"expense"
+            amount: Math.abs(transaction.amount || 0), // Always positive for editing
+            category_id: categoryNameToIdMap[transaction.category] || null,
+            transaction_date: null, // Will be set from API if needed
+            description: transaction.description || ''
+        };
+
+        // Try to find the exact date format - we might need to convert from display format
+        if (transaction.date) {
+            // Convert from "1/9/2025" format to "YYYY-MM-DD" format
+            const dateParts = transaction.date.split('/');
+            if (dateParts.length === 3) {
+                const [day, month, year] = dateParts;
+                editData.transaction_date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            }
+        }
+
+        setEditingTransaction(editData);
+        setShowEditModal(true);
+    };
+
+    const handleEditClose = () => {
+        setShowEditModal(false);
+        setEditingTransaction(null);
+    };
+
+    const handleEditUpdate = () => {
+        // Refresh transactions after successful update
+        fetchTransactions(1);
+        showMessage('success', 'Transaction updated successfully!');
+    };
+
     const totalTransactions = filteredTransactions.length;
     const totalIncome = filteredTransactions.filter(t => t.type === 'Income').reduce((sum, t) => sum + (t.amount ?? 0), 0);
     const totalExpenses = filteredTransactions.filter(t => t.type === 'Expense').reduce((sum, t) => sum + (t.amount ?? 0), 0);
@@ -174,13 +213,12 @@ export default function History({ auth }) {
         <AppLayout title="MONA - History" auth={auth}>
             <Head title="History" />
 
-            <div className="py-12 px-4 sm:px-6 lg:px-8 bg-[F8F7F0]">
-                <div className="max-w-7xl mx-auto">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-[F8F7F0]">
 
                     {/* Summary */}
                     <div className="mb-8">
-                        <h1 className="text-3xl font-bold text-gray-800">Transaction History</h1>
-                        <p className="text-gray-500 mt-1">View and manage all your transactions</p>
+                        <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl font-bold text-charcoal mb-2">Transaction History</h1>
+                        <p className="text-sm sm:text-base md:text-base lg:text-base xl:text-lg text-medium-gray">View and manage all your transactions</p>
                         
                         {/* Success/Error Message */}
                         {message.text && (
@@ -197,15 +235,15 @@ export default function History({ auth }) {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                         <div className="bg-white p-6 rounded-lg shadow-md">
                             <h3 className="text-gray-500">Total Transactions</h3>
-                            <p className="text-2xl font-bold text-gray-800">{totalTransactions}</p>
+                            <p className="text-xl sm:text-xl md:text-xl lg:text-xl xl:text-2xl font-bold text-gray-800">{totalTransactions}</p>
                         </div>
                         <div className="bg-white p-6 rounded-lg shadow-md">
                             <h3 className="text-gray-500">Total Income</h3>
-                            <p className="text-2xl font-bold text-green-600">{formatCurrency(totalIncome)}</p>
+                            <p className="text-xl sm:text-xl md:text-xl lg:text-xl xl:text-2xl font-bold text-green-600">{formatCurrency(totalIncome)}</p>
                         </div>
                         <div className="bg-white p-6 rounded-lg shadow-md">
                             <h3 className="text-gray-500">Total Expenses</h3>
-                            <p className="text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</p>
+                            <p className="text-xl sm:text-xl md:text-xl lg:text-xl xl:text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</p>
                         </div>
                     </div>
 
@@ -293,6 +331,7 @@ export default function History({ auth }) {
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                 <div className="flex items-center gap-4">
                                                     <button 
+                                                        onClick={() => handleEdit(transaction)}
                                                         className="text-blue-600 hover:text-blue-900 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
                                                         disabled={deletingId === transaction.id}
                                                     >
@@ -314,7 +353,15 @@ export default function History({ auth }) {
                         </div>
                     </div>
                 </div>
-            </div>
+
+            {/* Edit Transaction Modal */}
+            {showEditModal && editingTransaction && (
+                <EditTransaction 
+                    transaction={editingTransaction}
+                    onClose={handleEditClose}
+                    onUpdate={handleEditUpdate}
+                />
+            )}
         </AppLayout>
     );
 }

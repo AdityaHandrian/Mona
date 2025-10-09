@@ -3,6 +3,29 @@ import AppLayout from '@/Layouts/AppLayout';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
 
+// Helper functions for number formatting
+const formatNumberWithDots = (value) => {
+    // Remove all non-digits
+    const digits = value.replace(/\D/g, '');
+    
+    // Add dots every 3 digits from right to left
+    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+};
+
+const parseFormattedNumber = (formattedValue) => {
+    // Remove dots to get raw number
+    return formattedValue.replace(/\./g, '');
+};
+
+// Helper function to format currency
+const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        maximumFractionDigits: 0
+    }).format(amount);
+};
+
 export default function Transaction({ auth }) {
     const [transactionType, setTransactionType] = useState('income'); // 'income' or 'expense'
     const [categories, setCategories] = useState([]);
@@ -12,6 +35,17 @@ export default function Transaction({ auth }) {
         category: '',
         date: new Date().toISOString().split('T')[0], // Today's date
         description: ''
+    });
+    // Notification state
+    const [notification, setNotification] = useState({ message: '', type: '' });
+    const [showNotification, setShowNotification] = useState(false);
+    
+    // Quick Stats state
+    const [stats, setStats] = useState({
+        totalIncome: 0,
+        totalExpenses: 0,
+        netBalance: 0,
+        loading: true
     });
 
     // Format date for display as DD/MM/YYYY
@@ -39,12 +73,63 @@ export default function Transaction({ auth }) {
         }
     };
 
+    // Fetch monthly statistics
+    const fetchMonthlyStats = async () => {
+        try {
+            setStats(prev => ({ ...prev, loading: true }));
+            
+            // Get current month and year
+            const now = new Date();
+            const currentMonth = now.getMonth() + 1; // getMonth() returns 0-11
+            const currentYear = now.getFullYear();
+            
+            const response = await axios.get(`/api/transactions/monthly-stats`, {
+                params: {
+                    month: currentMonth,
+                    year: currentYear
+                }
+            });
+            
+            const responseData = response.data.data; // API returns data in data property
+            setStats({
+                totalIncome: responseData.total_income || 0,
+                totalExpenses: Math.abs(responseData.total_expenses || 0), // Make sure it's positive
+                netBalance: responseData.net_balance || 0, // Use the calculated net_balance from API
+                loading: false
+            });
+        } catch (error) {
+            console.error('Error fetching monthly stats:', error);
+            // Set default values on error
+            setStats({
+                totalIncome: 0,
+                totalExpenses: 0,
+                netBalance: 0,
+                loading: false
+            });
+        }
+    };
+
     // Load categories when component mounts or transaction type changes
     useEffect(() => {
         fetchCategories(transactionType);
         // Reset category selection when type changes
         setFormData(prev => ({ ...prev, category: '' }));
     }, [transactionType]);
+
+    // Load monthly statistics when component mounts
+    useEffect(() => {
+        fetchMonthlyStats();
+    }, []);
+
+    // Hide notification after 3 seconds
+    useEffect(() => {
+        if (notification.message) {
+            setShowNotification(true);
+            const timer = setTimeout(() => setShowNotification(false), 2700);
+            const timer2 = setTimeout(() => setNotification({ message: '', type: '' }), 3000);
+            return () => { clearTimeout(timer); clearTimeout(timer2); };
+        }
+    }, [notification]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -53,38 +138,42 @@ export default function Transaction({ auth }) {
 
         const rawAmount = Number(formData.amount);
         if (Number.isNaN(rawAmount)) {
-            console.error('Amount must be a number.');
+            setNotification({ message: 'Amount must be a number.', type: 'error' });
             return;
         }
 
         try {
             const res = await axios.post(
-            `${window.location.origin}/api/transactions`,
-            {
-                category_id: Number(formData.category),
-                amount: formData.amount,
-                description: formData.description || null,
-                transaction_date: formData.date,
-                _token: document.querySelector('meta[name="csrf-token"]')?.content, // aman utk JSON
-            },
-            {
-                headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                withCredentials: true,
-            }
+                `${window.location.origin}/api/transactions`,
+                {
+                    category_id: Number(formData.category),
+                    amount: formData.amount,
+                    description: formData.description || null,
+                    transaction_date: formData.date,
+                    _token: document.querySelector('meta[name="csrf-token"]')?.content, // aman utk JSON
+                },
+                {
+                    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    withCredentials: true,
+                }
             );
 
             console.log('Transaction created:', res.data);
-
+            setNotification({ message: 'Transaction successfully added!', type: 'success' });
             setFormData({
-            amount: '',
-            category: '',
-            date: new Date().toISOString().split('T')[0],
-            description: '',
+                amount: '',
+                category: '',
+                date: new Date().toISOString().split('T')[0],
+                description: '',
             });
+            
+            // Refresh monthly statistics after adding transaction
+            fetchMonthlyStats();
         } catch (err) {
+            setNotification({ message: 'Failed to create transaction.', type: 'error' });
             console.error('Failed to create transaction:', err?.response?.data || err.message);
         }
-        };
+    };
 
     return (
         <AppLayout 
@@ -92,13 +181,30 @@ export default function Transaction({ auth }) {
             auth={auth}
         >
             <Head title="MONA - Transaction" />
+            {/* Floating Notification (bottom left, animated) */}
+            {notification.message && (
+                <div
+                    className={`fixed bottom-8 left-8 z-[9999] px-6 py-3 rounded-lg shadow-lg transition-all duration-300
+                        ${notification.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}
+                        ${showNotification ? 'animate-fade-in' : 'animate-fade-out'}`}
+                    style={{ pointerEvents: 'none' }}
+                >
+                    <style>{`
+                        @keyframes fadeInNotif { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+                        @keyframes fadeOutNotif { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(20px) scale(0.95); } }
+                        .animate-fade-in { animation: fadeInNotif 0.3s ease-out; }
+                        .animate-fade-out { animation: fadeOutNotif 0.3s ease-in; }
+                    `}</style>
+                    {notification.message}
+                </div>
+            )}
             
             <div className="overflow-x-hidden">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Header */}
                     <div className="mb-8">
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">Add Transaction</h1>
-                        <p className="text-gray-600">Record your income and expenses</p>
+                        <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl font-bold text-charcoal mb-2">Add Transaction</h1>
+                        <p className="text-sm sm:text-base md:text-base lg:text-base xl:text-lg text-medium-gray">Record your income and expenses</p>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -115,8 +221,8 @@ export default function Transaction({ auth }) {
                                 onClick={() => setTransactionType('income')}
                                 className={`flex-1 py-3 px-6 rounded-lg text-sm font-medium transition-colors ${
                                     transactionType === 'income'
-                                    ? 'bg-[#058743] text-white'
-                                    : 'bg-[#D4EADF] text-[#058743] hover:bg-[#C0E0CB]'
+                                    ? 'bg-growth-green-500 text-white'
+                                    : 'bg-[#D4EADF] text-growth-green-500 hover:bg-[#C0E0CB]'
                                 }`}
                                 >
                                 + Income
@@ -126,8 +232,8 @@ export default function Transaction({ auth }) {
                                 onClick={() => setTransactionType('expense')}
                                 className={`flex-1 py-3 px-6 rounded-lg text-sm font-medium transition-colors ${
                                     transactionType === 'expense'
-                                    ? 'bg-[#DC3545] text-white'
-                                    : 'bg-[#F9E4E3] text-[#DC3545] hover:bg-[#F5D2D0]'
+                                    ? 'bg-expense-red-500 text-white'
+                                    : 'bg-[#F9E4E3] text-expense-red-500 hover:bg-[#F5D2D0]'
                                 }`}
                                 >
                                 - Expense
@@ -140,12 +246,14 @@ export default function Transaction({ auth }) {
                                 Amount*
                                 </label>
                                 <input
-                                type="number"
-                                step="0.01"
-                                placeholder="0.00"
-                                value={formData.amount}
-                                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#058743] focus:border-transparent"
+                                type="text"
+                                placeholder="0"
+                                value={formatNumberWithDots(formData.amount)}
+                                onChange={(e) => {
+                                    const rawValue = parseFormattedNumber(e.target.value);
+                                    setFormData({ ...formData, amount: rawValue });
+                                }}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-growth-green-500 focus:border-transparent"
                                 // required  <-- sudah di-bypass dengan noValidate pada <form>
                                 />
                             </div>
@@ -256,10 +364,12 @@ export default function Transaction({ auth }) {
                                 <div className="bg-[#D4EADF] rounded-lg p-6">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-base text-[#058743] mb-2 font-medium">Total Income</p>
-                                            <p className="text-3xl font-bold text-[#058743]">Rp0</p>
+                                            <p className="text-base sm:text-lg md:text-xl lg:text-xl xl:text-xl text-[#058743] mb-2 font-medium">Total Income</p>
+                                            <p className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-bold text-[#058743]">
+                                                {stats.loading ? 'Loading...' : formatCurrency(stats.totalIncome)}
+                                            </p>
                                         </div>
-                                        <div className="text-[#058743] text-3xl">+</div>
+                                        <div className="text-[#058743] text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl">+</div>
                                     </div>
                                 </div>
 
@@ -267,10 +377,12 @@ export default function Transaction({ auth }) {
                                 <div className="bg-[#F9E4E3] rounded-lg p-6">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-base text-[#DC3545] mb-2 font-medium">Total Expenses</p>
-                                            <p className="text-3xl font-bold text-[#DC3545]">Rp0</p>
+                                            <p className="text-base sm:text-lg md:text-xl lg:text-xl xl:text-xl text-[#DC3545] mb-2 font-medium">Total Expenses</p>
+                                            <p className="text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-bold text-[#DC3545]">
+                                                {stats.loading ? 'Loading...' : formatCurrency(stats.totalExpenses)}
+                                            </p>
                                         </div>
-                                        <div className="text-[#DC3545] text-3xl">-</div>
+                                        <div className="text-[#DC3545] text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl">-</div>
                                     </div>
                                 </div>
 
@@ -278,10 +390,14 @@ export default function Transaction({ auth }) {
                                 <div className="bg-[#F2F8FE] rounded-lg p-6">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-base text-[#5877D0] mb-2 font-medium">Net Balance</p>
-                                            <p className="text-3xl font-bold text-[#5877D0]">Rp0</p>
+                                            <p className="text-base sm:text-lg md:text-xl lg:text-xl xl:text-xl text-[#5877D0] mb-2 font-medium">Net Balance</p>
+                                            <p className={`text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl font-bold ${
+                                                stats.netBalance >= 0 ? 'text-[#058743]' : 'text-[#DC3545]'
+                                            }`}>
+                                                {stats.loading ? 'Loading...' : formatCurrency(stats.netBalance)}
+                                            </p>
                                         </div>
-                                        <div className="text-[#5877D0] text-3xl">$</div>
+                                        <div className="text-[#5877D0] text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-3xl">$</div>
                                     </div>
                                 </div>
                             </div>
@@ -291,4 +407,4 @@ export default function Transaction({ auth }) {
             </div>
         </AppLayout>
     );
-}
+} 

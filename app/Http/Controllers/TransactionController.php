@@ -121,6 +121,58 @@ class TransactionController extends Controller
         ]);
     }
     
+    // PUT /api/transactions/{id}
+    public function update(StoreTransactionRequest $request, $id)
+    {
+        try {
+            $transaction = Transaction::findOrFail($id);
+            
+            // Check if the transaction belongs to the authenticated user
+            if ($transaction->user_id !== $request->user()->id) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Unauthorized. You can only update your own transactions.'
+                ], 403);
+            }
+
+            $payload = $request->validated();
+            
+            // Update the transaction
+            DB::transaction(function () use ($transaction, $payload) {
+                $transaction->update($payload);
+            });
+
+            // Refresh the model to get updated data
+            $transaction->refresh();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Transaction updated successfully.',
+                'data' => [
+                    'transaction_id'   => (int) $transaction->id,
+                    'user_id'          => (int) $transaction->user_id,
+                    'category_id'      => (int) $transaction->category_id,
+                    'amount'           => (float) $transaction->amount,
+                    'description'      => $transaction->description,
+                    'transaction_date' => optional($transaction->transaction_date)->toIso8601String(),
+                    'updated_at'       => optional($transaction->updated_at)->toIso8601String(),
+                ],
+            ], 200);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Transaction not found.'
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred while updating the transaction.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
     // DELETE /api/transactions/{id}
     public function destroy(Request $request, $id)
     {
@@ -163,6 +215,57 @@ class TransactionController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'An error occurred while deleting the transaction.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // GET /api/transactions/monthly-stats
+    public function monthlyStats(Request $request)
+    {
+        $validated = $request->validate([
+            'month' => ['required', 'integer', 'min:1', 'max:12'],
+            'year'  => ['required', 'integer', 'min:1900', 'max:2100'],
+        ]);
+
+        $userId = $request->user()->id;
+        $month = $validated['month'];
+        $year = $validated['year'];
+
+        try {
+            // Get total income (positive amounts from income categories)
+            $totalIncome = DB::table('transactions as T')
+                ->join('categories as C', 'T.category_id', '=', 'C.id')
+                ->where('T.user_id', $userId)
+                ->where('C.type', 'income')
+                ->whereMonth('T.transaction_date', $month)
+                ->whereYear('T.transaction_date', $year)
+                ->sum('T.amount');
+
+            // Get total expenses (positive amounts from expense categories, but we'll return as positive)
+            $totalExpenses = DB::table('transactions as T')
+                ->join('categories as C', 'T.category_id', '=', 'C.id')
+                ->where('T.user_id', $userId)
+                ->where('C.type', 'expense')
+                ->whereMonth('T.transaction_date', $month)
+                ->whereYear('T.transaction_date', $year)
+                ->sum('T.amount');
+
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'total_income' => (float) ($totalIncome ?? 0),
+                    'total_expenses' => (float) ($totalExpenses ?? 0),
+                    'net_balance' => (float) (($totalIncome ?? 0) - ($totalExpenses ?? 0)),
+                    'month' => $month,
+                    'year' => $year,
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred while fetching monthly statistics.',
                 'error' => $e->getMessage()
             ], 500);
         }

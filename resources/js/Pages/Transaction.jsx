@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
@@ -29,7 +29,9 @@ const formatCurrency = (amount) => {
 export default function Transaction({ auth }) {
     const [transactionType, setTransactionType] = useState('income'); // 'income' or 'expense'
     const [categories, setCategories] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [loadingCategories, setLoadingCategories] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [message, setMessage] = useState({ type: '', text: '' });
     const [formData, setFormData] = useState({
         amount: '',
         category: '',
@@ -61,15 +63,18 @@ export default function Transaction({ auth }) {
     // Fetch categories from API based on transaction type
     const fetchCategories = async (type) => {
         try {
-            setLoading(true);
+            setLoadingCategories(true);
+            console.log('Fetching categories for type:', type);
             const response = await axios.get(`/api/categories?type=${type}`);
+            console.log('Categories received:', response.data);
             setCategories(response.data);
         } catch (error) {
             console.error('Error fetching categories:', error);
-            // Fallback to empty array if API fails
+            showMessage('error', 'Failed to load categories');
+            // Fallback categories
             setCategories([]);
         } finally {
-            setLoading(false);
+            setLoadingCategories(false);
         }
     };
 
@@ -131,35 +136,39 @@ export default function Transaction({ auth }) {
         }
     }, [notification]);
 
+    const showMessage = (type, text) => {
+        setMessage({ type, text });
+        setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('HANDLE SUBMIT CALLED');
-        console.log(formData);
-
-        const rawAmount = Number(formData.amount);
-        if (Number.isNaN(rawAmount)) {
-            setNotification({ message: 'Amount must be a number.', type: 'error' });
+        
+        if (!formData.amount || !formData.category || !formData.date) {
+            setNotification({ message: 'Please fill in all required fields.', type: 'error' });
             return;
         }
 
-        try {
-            const res = await axios.post(
-                `${window.location.origin}/api/transactions`,
-                {
-                    category_id: Number(formData.category),
-                    amount: formData.amount,
-                    description: formData.description || null,
-                    transaction_date: formData.date,
-                    _token: document.querySelector('meta[name="csrf-token"]')?.content, // aman utk JSON
-                },
-                {
-                    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                    withCredentials: true,
-                }
-            );
+        const rawAmount = Number(formData.amount);
+        if (Number.isNaN(rawAmount) || rawAmount <= 0) {
+            setNotification({ message: 'Amount must be a valid positive number.', type: 'error' });
+            return;
+        }
 
-            console.log('Transaction created:', res.data);
-            setNotification({ message: 'Transaction successfully added!', type: 'success' });
+        setSubmitting(true);
+        try {
+            const transactionData = {
+                category_id: parseInt(formData.category),
+                amount: parseFloat(formData.amount),
+                description: formData.description || '',
+                transaction_date: formData.date
+            };
+
+            // Use /api/transactions/add to avoid conflict with History page
+            await axios.post('/api/transactions/add', transactionData);
+            setNotification({ message: 'Transaction added successfully!', type: 'success' });
+
+            // Reset form
             setFormData({
                 amount: '',
                 category: '',
@@ -172,6 +181,21 @@ export default function Transaction({ auth }) {
         } catch (err) {
             setNotification({ message: 'Failed to create transaction.', type: 'error' });
             console.error('Failed to create transaction:', err?.response?.data || err.message);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!confirm('Are you sure you want to delete this transaction?')) return;
+
+        try {
+            await axios.delete(`/api/transactions/${id}`);
+            showMessage('success', 'Transaction deleted successfully!');
+            fetchMonthlyStats();
+        } catch (error) {
+            console.error('Error deleting transaction:', error);
+            showMessage('error', 'Failed to delete transaction');
         }
     };
 
@@ -213,144 +237,145 @@ export default function Transaction({ auth }) {
                             <h2 className="text-xl font-semibold mb-2">New Transaction</h2>
                             <p className="text-gray-600 mb-6">Enter the details of your transaction</p>
 
-                            <form onSubmit={handleSubmit} noValidate className="space-y-6">
-                            {/* Income/Expense Buttons */}
-                            <div className="flex gap-4">
-                                <button
-                                type="button"
-                                onClick={() => setTransactionType('income')}
-                                className={`flex-1 py-3 px-6 rounded-lg text-sm font-medium transition-colors ${
-                                    transactionType === 'income'
-                                    ? 'bg-growth-green-500 text-white'
-                                    : 'bg-[#D4EADF] text-growth-green-500 hover:bg-[#C0E0CB]'
-                                }`}
-                                >
-                                + Income
-                                </button>
-                                <button
-                                type="button"
-                                onClick={() => setTransactionType('expense')}
-                                className={`flex-1 py-3 px-6 rounded-lg text-sm font-medium transition-colors ${
-                                    transactionType === 'expense'
-                                    ? 'bg-expense-red-500 text-white'
-                                    : 'bg-[#F9E4E3] text-expense-red-500 hover:bg-[#F5D2D0]'
-                                }`}
-                                >
-                                - Expense
-                                </button>
-                            </div>
+                            <form onSubmit={handleSubmit} className="space-y-6">
+                                {/* Income/Expense Buttons */}
+                                <div className="flex gap-4">
+                                    <button
+                                    type="button"
+                                    onClick={() => setTransactionType('income')}
+                                    className={`flex-1 py-3 px-6 rounded-lg text-sm font-medium transition-colors ${
+                                        transactionType === 'income'
+                                        ? 'bg-growth-green-500 text-white'
+                                        : 'bg-[#D4EADF] text-growth-green-500 hover:bg-[#C0E0CB]'
+                                    }`}
+                                    >
+                                    + Income
+                                    </button>
+                                    <button
+                                    type="button"
+                                    onClick={() => setTransactionType('expense')}
+                                    className={`flex-1 py-3 px-6 rounded-lg text-sm font-medium transition-colors ${
+                                        transactionType === 'expense'
+                                        ? 'bg-expense-red-500 text-white'
+                                        : 'bg-[#F9E4E3] text-expense-red-500 hover:bg-[#F5D2D0]'
+                                    }`}
+                                    >
+                                    - Expense
+                                    </button>
+                                </div>
 
-                            {/* Amount */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Amount*
-                                </label>
-                                <input
-                                type="text"
-                                placeholder="0"
-                                value={formatNumberWithDots(formData.amount)}
-                                onChange={(e) => {
-                                    const rawValue = parseFormattedNumber(e.target.value);
-                                    setFormData({ ...formData, amount: rawValue });
-                                }}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-growth-green-500 focus:border-transparent"
-                                // required  <-- sudah di-bypass dengan noValidate pada <form>
-                                />
-                            </div>
-
-                            {/* Category */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Category*
-                                </label>
-                                <select
-                                value={formData.category}
-                                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#058743] focus:border-transparent"
-                                disabled={loading}
-                                >
-                                <option value="">
-                                    {loading ? 'Loading categories...' : 'Select a category'}
-                                </option>
-                                {categories.map((category) => (
-                                    <option key={category.id} value={category.id}>
-                                    {category.category_name}
-                                    </option>
-                                ))}
-                                </select>
-                            </div>
-
-                            {/* Date */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Date*
-                                </label>
-                                <div className="relative">
-                                {/* Display input showing DD/MM/YYYY format */}
-                                <input
-                                    type="text"
-                                    value={formatDateForDisplay(formData.date)}
-                                    placeholder="DD/MM/YYYY"
-                                    readOnly
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 cursor-pointer focus:ring-2 focus:ring-[#058743] focus:border-transparent"
-                                    onClick={() =>
-                                    document.getElementById('transaction-date-picker').showPicker()
-                                    }
-                                />
-                                {/* Hidden date picker */}
-                                <input
-                                    id="transaction-date-picker"
-                                    type="date"
-                                    value={formData.date}
-                                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                    className="absolute opacity-0 pointer-events-none"
-                                />
-                                {/* Calendar icon */}
-                                <div
-                                    className="absolute inset-y-0 right-0 flex items-center px-4 cursor-pointer"
-                                    onClick={() =>
-                                    document.getElementById('transaction-date-picker').showPicker()
-                                    }
-                                >
-                                    <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path
-                                        fillRule="evenodd"
-                                        d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
-                                        clipRule="evenodd"
+                                {/* Amount */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Amount*
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="0"
+                                        value={formatNumberWithDots(formData.amount)}
+                                        onChange={(e) => {
+                                            const rawValue = parseFormattedNumber(e.target.value);
+                                            setFormData({ ...formData, amount: rawValue });
+                                        }}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-growth-green-500 focus:border-transparent"
+                                        required
                                     />
-                                    </svg>
                                 </div>
+
+                                {/* Category */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Category*
+                                    </label>
+                                    <select
+                                        value={formData.category}
+                                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#058743] focus:border-transparent"
+                                        disabled={loadingCategories}
+                                        required
+                                    >
+                                        <option value="">
+                                            {loadingCategories ? 'Loading categories...' : 'Select a category'}
+                                        </option>
+                                        {categories.map((category) => (
+                                            <option key={category.id} value={category.id}>
+                                                {category.category_name}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
-                            </div>
 
-                            {/* Description */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Description
-                                </label>
-                                <textarea
-                                placeholder="Optional description..."
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                rows={4}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#058743] focus:border-transparent resize-none"
-                                />
-                            </div>
+                                {/* Date */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Date*
+                                    </label>
+                                    <div className="relative">
+                                    {/* Display input showing DD/MM/YYYY format */}
+                                    <input
+                                        type="text"
+                                        value={formatDateForDisplay(formData.date)}
+                                        placeholder="DD/MM/YYYY"
+                                        readOnly
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 cursor-pointer focus:ring-2 focus:ring-[#058743] focus:border-transparent"
+                                        onClick={() =>
+                                        document.getElementById('transaction-date-picker').showPicker()
+                                        }
+                                    />
+                                    {/* Hidden date picker */}
+                                    <input
+                                        id="transaction-date-picker"
+                                        type="date"
+                                        value={formData.date}
+                                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                        className="absolute opacity-0 pointer-events-none"
+                                    />
+                                    {/* Calendar icon */}
+                                    <div
+                                        className="absolute inset-y-0 right-0 flex items-center px-4 cursor-pointer"
+                                        onClick={() =>
+                                        document.getElementById('transaction-date-picker').showPicker()
+                                        }
+                                    >
+                                        <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path
+                                            fillRule="evenodd"
+                                            d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                                            clipRule="evenodd"
+                                        />
+                                        </svg>
+                                    </div>
+                                    </div>
+                                </div>
 
-                            {/* Submit Button */}
-                            <div className="relative z-50">
-                                <button
-                                id="add-transaction-btn"
-                                type="button"
-                                onClick={(e) => {
-                                    console.log('BTN CLICK');
-                                    handleSubmit(e);
-                                }}
-                                className="w-full bg-black text-white py-3 px-6 rounded-lg font-medium hover:bg-gray-800 transition-colors pointer-events-auto"
-                                >
-                                Add Transaction
-                                </button>
-                            </div>
+                                {/* Description */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Description
+                                    </label>
+                                    <textarea
+                                        placeholder="Optional description..."
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        rows={4}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#058743] focus:border-transparent resize-none"
+                                    />
+                                </div>
+
+                                {/* Submit Button */}
+                                <div className="relative z-50">
+                                    <button
+                                        type="submit"
+                                        disabled={submitting || loadingCategories}
+                                        className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${
+                                            submitting || loadingCategories
+                                                ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                                                : 'bg-black text-white hover:bg-gray-800'
+                                        }`}
+                                    >
+                                        {submitting ? 'Adding...' : 'Add Transaction'}
+                                    </button>
+                                </div>
                             </form>
                         </div>
 
@@ -407,4 +432,4 @@ export default function Transaction({ auth }) {
             </div>
         </AppLayout>
     );
-} 
+}

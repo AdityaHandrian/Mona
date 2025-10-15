@@ -57,11 +57,12 @@ export default function ScanReceipt({ auth }) {
             console.error('Error fetching categories:', error);
             // Fallback categories if API fails
             setCategories([
-                { id: 1, category_name: 'Food and Beverages' },
+                { id: 1, category_name: 'Food & Dining' },
                 { id: 2, category_name: 'Shopping' },
                 { id: 3, category_name: 'Entertainment' },
-                { id: 4, category_name: 'Bills and Utilities' },
-                { id: 5, category_name: 'Other' }
+                { id: 4, category_name: 'Bills & Utilities' },
+                { id: 5, category_name: 'Transportation' },
+                { id: 6, category_name: 'Other Expense' }
             ]);
         } finally {
             setLoadingCategories(false);
@@ -425,7 +426,7 @@ export default function ScanReceipt({ auth }) {
 
         setSubmitting(true);
         try {
-            // Prepare data for API (same format as Transaction page)
+            // Prepare data for API
             const transactionData = {
                 category_id: parseInt(formData.category),
                 amount: parseFloat(formData.amount),
@@ -433,7 +434,7 @@ export default function ScanReceipt({ auth }) {
                 transaction_date: formData.date
             };
 
-            const response = await axios.post('/api/transactions', transactionData);
+            const response = await axios.post('/api/transactions/quick-add', transactionData);
 
             if (response.data.status === 'success') {
                 showMessage('success', 'Transaction added successfully from receipt!');
@@ -458,7 +459,6 @@ export default function ScanReceipt({ auth }) {
             console.error('Error adding transaction:', error);
             
             if (error.response?.data?.errors) {
-                // Handle validation errors
                 const errors = Object.values(error.response.data.errors).flat();
                 showMessage('error', errors.join(', '));
             } else if (error.response?.data?.message) {

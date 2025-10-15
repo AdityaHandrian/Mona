@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
-import { Head } from '@inertiajs/react';
+import { Head, useForm, router, usePage } from '@inertiajs/react';
 
 // ---------- Helper utils ----------
 const formatIDR = (value) => {
@@ -68,24 +68,84 @@ const Icon = {
 };
 
 // ---------- Component ----------
-export default function Budget({ auth }) {
-  const currentDate = new Date();
-  const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
-  const currentYear = currentDate.getFullYear();
+export default function Budget() {
+  // Get ALL props from Inertia page
+  const { props } = usePage();
+  const { 
+    auth,
+    budgets: initialBudgets = [], 
+    categories = [], 
+    selectedMonth, 
+    selectedYear, 
+    isCurrentMonth = true, 
+    currentMonth, 
+    currentYear,
+    flash = {}
+  } = props;
 
-  const [budgets, setBudgets] = useState([
-    { id: 1, title: 'Food & Dining', category: 'Food & Dining', budget: 14200000, spent: 11700000, month: currentMonth, year: currentYear },
-    { id: 2, title: 'Transportation', category: 'Transportation', budget: 5000000, spent: 7000000, month: currentMonth, year: currentYear },
-    { id: 3, title: 'Entertainment', category: 'Entertainment', budget: 3300000, spent: 2000000, month: currentMonth, year: currentYear },
-    { id: 4, title: 'Shopping', category: 'Shopping', budget: 8250000, spent: 6250000, month: currentMonth, year: currentYear },
-  ]);
-
+  const [budgets, setBudgets] = useState(initialBudgets);
   const [isModalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ category: '', budget: '', spent: '', month: '', year: '' });
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState('success');
+  
+  // Debug - log everything we receive
+  useEffect(() => {
+    console.log('ALL PROPS from usePage:', props);
+    console.log('Destructured values:', {
+      budgets: initialBudgets,
+      selectedMonth,
+      selectedYear,
+      isCurrentMonth,
+      currentMonth,
+      currentYear,
+      categories
+    });
+  }, [props]);
+  
+  // Ensure we have valid default values
+  const safeCurrentMonth = currentMonth || String(new Date().getMonth() + 1).padStart(2, '0');
+  const safeCurrentYear = currentYear || new Date().getFullYear();
+  
+  const [viewMonth, setViewMonth] = useState(selectedMonth || safeCurrentMonth);
+  const [viewYear, setViewYear] = useState(selectedYear || safeCurrentYear);
 
-  // Expense categories
-  const expenseCategories = [
+  const { data: form, setData: setForm, post, put, delete: destroy, processing, errors, reset } = useForm({
+    category: '',
+    budget: ''
+  });
+
+  // Update budgets when props change
+  useEffect(() => {
+    console.log('Budget props received:', {
+      budgets: initialBudgets,
+      selectedMonth,
+      selectedYear,
+      isCurrentMonth,
+      currentMonth,
+      currentYear
+    });
+    setBudgets(initialBudgets);
+  }, [initialBudgets]);
+
+  // Show toast notifications
+  useEffect(() => {
+    if (flash.success) {
+      setToastMessage(flash.success);
+      setToastType('success');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } else if (flash.error) {
+      setToastMessage(flash.error);
+      setToastType('error');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    }
+  }, [flash]);
+
+  // Expense categories from props or default
+  const expenseCategories = Array.isArray(categories) && categories.length > 0 ? categories : [
     'Food & Dining',
     'Transportation', 
     'Entertainment',
@@ -115,18 +175,18 @@ export default function Budget({ auth }) {
     { value: '12', label: 'December' }
   ];
 
-  const years = Array.from({ length: 10 }, (_, i) => currentYear + i);
+  const years = Array.from({ length: 10 }, (_, i) => safeCurrentYear + i);
 
   // Validation function for date
   const isDateValid = (month, year) => {
     const selectedYear = parseInt(year);
     const selectedMonth = parseInt(month);
-    const currentMonthNum = parseInt(currentMonth);
+    const currentMonthNum = parseInt(safeCurrentMonth);
     
-    if (!month || !year) return true; // Don't show error if incomplete
+    if (!month || !year) return true;
     
-    if (selectedYear < currentYear) return false;
-    if (selectedYear === currentYear && selectedMonth < currentMonthNum) return false;
+    if (selectedYear < safeCurrentYear) return false;
+    if (selectedYear === safeCurrentYear && selectedMonth < currentMonthNum) return false;
     
     return true;
   };
@@ -138,9 +198,20 @@ export default function Budget({ auth }) {
     return { totalBudget, totalSpent, overCategories };
   }, [budgets]);
 
+  function handleMonthYearChange() {
+    router.get(route('budget'), { month: viewMonth, year: viewYear }, {
+      preserveState: true,
+      preserveScroll: true,
+    });
+  }
+
   function openNew() {
     setEditing(null);
-    setForm({ category: '', budget: '', spent: '', month: '', year: '' });
+    reset();
+    setForm({
+      category: '',
+      budget: ''
+    });
     setModalOpen(true);
   }
 
@@ -148,39 +219,71 @@ export default function Budget({ auth }) {
     setEditing(item);
     setForm({ 
       category: item.category || '', 
-      budget: item.budget, 
-      spent: item.spent,
-      month: item.month || '',
-      year: item.year || ''
+      budget: String(item.budget || '')
     });
     setModalOpen(true);
   }
 
   function save() {
-    const parsed = { 
-      title: `${form.category}`, // Use category as title
-      category: form.category,
-      budget: Number(form.budget || 0), 
-      spent: Number(form.spent || 0),
-      month: form.month,
-      year: form.year
-    };
     if (editing) {
-      setBudgets((prev) => prev.map((p) => (p.id === editing.id ? { ...p, ...parsed } : p)));
+      put(route('budgets.update', editing.id), {
+        onSuccess: () => {
+          setModalOpen(false);
+          reset();
+        },
+        preserveScroll: true,
+      });
     } else {
-      setBudgets((prev) => [...prev, { id: Date.now(), ...parsed }]);
+      post(route('budgets.store'), {
+        onSuccess: () => {
+          setModalOpen(false);
+          reset();
+        },
+        preserveScroll: true,
+      });
     }
-    setModalOpen(false);
   }
 
   function remove(id) {
-    if (!confirm('Hapus budget ini?')) return;
-    setBudgets((prev) => prev.filter((p) => p.id !== id));
+    if (!confirm('Delete this budget?')) return;
+    destroy(route('budgets.destroy', id), {
+      preserveScroll: true,
+    });
   }
 
   return (
     <AppLayout title="MONA - Budget" auth={auth}>
       <Head title="Budget" />
+
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed top-4 right-4 z-50 animate-slide-in-right">
+          <div className={`rounded-lg shadow-lg p-4 flex items-center gap-3 ${
+            toastType === 'success' 
+              ? 'bg-green-50 border border-green-200 text-green-800' 
+              : 'bg-red-50 border border-red-200 text-red-800'
+          }`}>
+            {toastType === 'success' ? (
+              <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            )}
+            <span className="font-medium">{toastMessage}</span>
+            <button 
+              onClick={() => setShowToast(false)}
+              className="ml-2 text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-warm-ivory rounded-md">
@@ -190,21 +293,60 @@ export default function Budget({ auth }) {
                 <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl font-bold text-charcoal mb-2">Budget Manager</h1>
                 <p className="text-sm sm:text-base md:text-base lg:text-base xl:text-lg text-medium-gray">Set and track your spending limits</p>
               </div>
-              <button
-                onClick={openNew}
-                className="inline-flex items-center gap-1 md:gap-2 bg-black text-white rounded-full px-3 md:px-5 py-1.5 md:py-2 lg:py-2.5 font-medium shadow-md transform transition-transform duration-200 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-black"
-              >
-                <Icon.Plus className="w-4 h-4" />
-                <span className="text-base md:text-lg">New Budget</span>
-              </button>
-              {/* <button
-                onClick={openNew}
-                className="inline-flex items-center gap-1 md:gap-2 bg-black text-white rounded-full px-3 md:px-5 py-1.5 md:py-2 text-sm md:text-base font-medium shadow-md transform transition-transform duration-200 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-black"
-              >
-                <Icon.Plus className="w-3 h-3 md:w-4 md:h-4" />
-                <span className="text-xs md:text-sm">New Budget</span>
-              </button> */}
+              {isCurrentMonth && (
+                <button
+                  onClick={openNew}
+                  className="inline-flex items-center gap-1 md:gap-2 bg-black text-white rounded-full px-3 md:px-5 py-1.5 md:py-2 lg:py-2.5 font-medium shadow-md transform transition-transform duration-200 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-black"
+                >
+                  <Icon.Plus className="w-4 h-4" />
+                  <span className="text-base md:text-lg">New Budget</span>
+                </button>
+              )}
             </div>
+
+            {/* Month/Year Selector */}
+            <div className="bg-white rounded-xl p-4 shadow-sm mb-8">
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="text-sm font-medium text-gray-700">View Budget for:</label>
+                <select
+                  value={viewMonth}
+                  onChange={(e) => setViewMonth(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                >
+                  {months.map((month) => (
+                    <option key={month.value} value={month.value}>
+                      {month.label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={viewYear}
+                  onChange={(e) => setViewYear(parseInt(e.target.value))}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent min-w-[100px]"
+                >
+                  {years.map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleMonthYearChange}
+                  className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 font-medium"
+                >
+                  View
+                </button>
+              </div>
+            </div>
+
+            {/* Error messages */}
+            {errors && Object.keys(errors).length > 0 && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+                {Object.values(errors).map((error, idx) => (
+                  <p key={idx}>{error}</p>
+                ))}
+              </div>
+            )}
 
             {/* top metrics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -228,92 +370,108 @@ export default function Budget({ auth }) {
             </div>
 
             {/* budget cards grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-10">
-              {budgets.map((b) => {
-                const pct = percent(b.spent, b.budget);
-                const isOver = b.spent > b.budget;
-                const remaining = b.budget - b.spent;
-                const statusColor = isOver ? 'text-red-600' : pct >= 80 ? 'text-orange-500' : 'text-green-600';
+            {budgets.length === 0 ? (
+              <div className="bg-white rounded-xl p-12 text-center shadow-sm">
+                <div className="text-gray-400 text-lg mb-4">No budgets set for this month</div>
+                {isCurrentMonth && (
+                  <button
+                    onClick={openNew}
+                    className="inline-flex items-center gap-2 bg-black text-white rounded-full px-5 py-2.5 font-medium shadow-md transform transition-transform duration-200 hover:scale-105 active:scale-95"
+                  >
+                    <Icon.Plus className="w-4 h-4" />
+                    <span>Create Your First Budget</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-10">
+                {budgets.map((b) => {
+                  const pct = percent(b.spent, b.budget);
+                  const isOver = b.spent > b.budget;
+                  const remaining = b.budget - b.spent;
+                  const statusColor = isOver ? 'text-red-600' : pct >= 80 ? 'text-orange-500' : 'text-green-600';
 
-                return (
-                  // group enables child elements to react to hover
-                  <div key={b.id} className="group bg-white rounded-xl p-6 shadow-sm transform transition-all duration-200 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-lg">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-xl font-semibold">{b.category || b.title}</h3>
-                        <div className="text-gray-400 text-sm">
-                          {b.month && b.year ? `Ends in: ${months.find(m => m.value === b.month)?.label || 'Month'} ${b.year}` : 'Budget Period'}
+                  return (
+                    // group enables child elements to react to hover
+                    <div key={b.id} className="group bg-white rounded-xl p-6 shadow-sm transform transition-all duration-200 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-lg">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="text-xl font-semibold">{b.category || b.title}</h3>
+                          <div className="text-gray-400 text-sm">
+                            {b.month && b.year ? `Ends in: ${months.find(m => m.value === b.month)?.label || 'Month'} ${b.year}` : 'Budget Period'}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 text-gray-600">
+                          <div
+                            className={`p-1 rounded-full border transition-colors duration-200 ${
+                              isOver 
+                                ? 'border-red-200 text-red-600 bg-red-50' 
+                                : pct >= 80 
+                                  ? 'border-orange-200 text-orange-500 bg-orange-50' 
+                                  : 'border-green-200 text-green-600 bg-green-50'
+                            }`}
+                            title={isOver ? 'Over budget' : pct >= 80 ? 'Warning' : 'Healthy'}
+                          >
+                            {isOver ? <Icon.Warning /> : pct >= 80 ? <Icon.Warning /> : <Icon.Check />}
+                          </div>
+
+                          {isCurrentMonth && (
+                            <div className="flex items-center gap-2 opacity-80 transition-all duration-200">
+                              <button
+                                onClick={() => openEdit(b)}
+                                className="p-1 rounded-md hover:bg-gray-100 hover:text-black transform transition-transform duration-150 hover:-translate-y-0.5 focus:outline-none"
+                                title="Edit"
+                              >
+                                <Icon.Edit />
+                              </button>
+
+                              <button
+                                onClick={() => remove(b.id)}
+                                className="p-1 rounded-md hover:bg-gray-100 hover:text-red-600 transform transition-transform duration-150 hover:-translate-y-0.5 focus:outline-none"
+                                title="Delete"
+                              >
+                                <Icon.Trash />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3 text-gray-600">
-                        <div
-                          className={`p-1 rounded-full border transition-colors duration-200 ${
-                            isOver 
-                              ? 'border-red-200 text-red-600 bg-red-50' 
-                              : pct >= 80 
-                                ? 'border-orange-200 text-orange-500 bg-orange-50' 
-                                : 'border-green-200 text-green-600 bg-green-50'
-                          }`}
-                          title={isOver ? 'Over budget' : pct >= 80 ? 'Warning' : 'Healthy'}
-                        >
-                          {isOver ? <Icon.Warning /> : pct >= 80 ? <Icon.Warning /> : <Icon.Check />}
+                      <div className="mt-6">
+                        <div className="flex justify-between text-sm text-gray-700 mb-2">
+                          <span>Spent</span>
+                          <span className="font-semibold">{formatIDR(b.spent)}</span>
                         </div>
 
-                        {/* action buttons: fade/slide-in on card hover */}
-                        <div className="flex items-center gap-2 opacity-80 transition-all duration-200">
-                          <button
-                            onClick={() => openEdit(b)}
-                            className="p-1 rounded-md hover:bg-gray-100 hover:text-black transform transition-transform duration-150 hover:-translate-y-0.5 focus:outline-none"
-                            title="Edit"
-                          >
-                            <Icon.Edit />
-                          </button>
-
-                          <button
-                            onClick={() => remove(b.id)}
-                            className="p-1 rounded-md hover:bg-gray-100 hover:text-red-600 transform transition-transform duration-150 hover:-translate-y-0.5 focus:outline-none"
-                            title="Delete"
-                          >
-                            <Icon.Trash />
-                          </button>
+                        <div className="bg-gray-100 rounded-full h-2 w-full overflow-hidden">
+                          <div
+                            className="h-2 rounded-full transition-all duration-700 ease-out"
+                            style={{
+                              width: `${Math.min(pct, 200)}%`,
+                              background: isOver 
+                                ? 'linear-gradient(90deg,#DC2626,#991B1B)' 
+                                : pct >= 80 
+                                  ? 'linear-gradient(90deg,#F59E0B,#D97706)' 
+                                  : 'linear-gradient(90deg,#10B981,#047857)',
+                            }}
+                          />
                         </div>
+
+                        <div className="flex justify-between items-center mt-3 text-sm">
+                          <div className="text-gray-500">
+                            {isOver ? `${formatIDR(Math.abs(remaining))} over budget` : `${formatIDR(Math.abs(remaining))} remaining`}
+                          </div>
+                          <div className={`${statusColor} font-semibold`}>{pct}%</div>
+                        </div>
+
+                        <div className="text-gray-300 text-xs mt-3">Budget: {formatIDR(b.budget)}</div>
                       </div>
                     </div>
-
-                    <div className="mt-6">
-                      <div className="flex justify-between text-sm text-gray-700 mb-2">
-                        <span>Spent</span>
-                        <span className="font-semibold">{formatIDR(b.spent)}</span>
-                      </div>
-
-                      <div className="bg-gray-100 rounded-full h-2 w-full overflow-hidden">
-                        <div
-                          className="h-2 rounded-full transition-all duration-700 ease-out"
-                          style={{
-                            width: `${Math.min(pct, 200)}%`,
-                            background: isOver 
-                              ? 'linear-gradient(90deg,#DC2626,#991B1B)' 
-                              : pct >= 80 
-                                ? 'linear-gradient(90deg,#F59E0B,#D97706)' 
-                                : 'linear-gradient(90deg,#10B981,#047857)',
-                          }}
-                        />
-                      </div>
-
-                      <div className="flex justify-between items-center mt-3 text-sm">
-                        <div className="text-gray-500">
-                          {isOver ? `${formatIDR(Math.abs(remaining))} over budget` : `${formatIDR(Math.abs(remaining))} remaining`}
-                        </div>
-                        <div className={`${statusColor} font-semibold`}>{pct}%</div>
-                      </div>
-
-                      <div className="text-gray-300 text-xs mt-3">Budget: {formatIDR(b.budget)}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
 
             {/* modal */}
             {isModalOpen && (
@@ -327,57 +485,17 @@ export default function Budget({ auth }) {
                       <label className="block text-sm font-medium text-gray-700 mb-2">Category*</label>
                       <select
                         value={form.category}
-                        onChange={(e) => setForm((s) => ({ ...s, category: e.target.value }))}
+                        onChange={(e) => setForm('category', e.target.value)}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
                         required
                       >
                         <option value="">Select a category</option>
                         {expenseCategories.map((category) => (
-                          <option key={category} value={category}>
-                            {category}
+                          <option key={category.id || category} value={category.id || category}>
+                            {category.category_name || category}
                           </option>
                         ))}
                       </select>
-                    </div>
-
-                    {/* Budget Period */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Budget Period*</label>
-                      <div className="grid grid-cols-2 gap-3">
-                        {/* Month Selector */}
-                        <select
-                          value={form.month}
-                          onChange={(e) => setForm((s) => ({ ...s, month: e.target.value }))}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                          required
-                        >
-                          <option value="">Select a Month</option>
-                          {months.map((month) => (
-                            <option key={month.value} value={month.value}>
-                              {month.label}
-                            </option>
-                          ))}
-                        </select>
-
-                        {/* Year Input */}
-                        <input
-                          type="number"
-                          value={form.year}
-                          onChange={(e) => setForm((s) => ({ ...s, year: e.target.value }))}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                          placeholder="Enter year"
-                          min={currentYear}
-                          required
-                        />
-                      </div>
-                      
-                      {/* Date validation error */}
-                      {form.month && form.year && !isDateValid(form.month, form.year) && (
-                        <div className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                          <Icon.Warning className="w-4 h-4" />
-                          Date invalid - Cannot select a past date
-                        </div>
-                      )}
                     </div>
 
                     {/* Budget Amount */}
@@ -387,7 +505,7 @@ export default function Budget({ auth }) {
                         value={formatNumberWithDots(form.budget)} 
                         onChange={(e) => {
                           const rawValue = parseFormattedNumber(e.target.value);
-                          setForm((s) => ({ ...s, budget: rawValue }));
+                          setForm('budget', rawValue);
                         }} 
                         type="text" 
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
@@ -396,20 +514,20 @@ export default function Budget({ auth }) {
                       />
                     </div>
 
-                    {/* Current Spent (only show when editing) */}
-                    {editing && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Current Spent</label>
-                        <input 
-                          value={formatNumberWithDots(form.spent)} 
-                          onChange={(e) => {
-                            const rawValue = parseFormattedNumber(e.target.value);
-                            setForm((s) => ({ ...s, spent: rawValue }));
-                          }} 
-                          type="text" 
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                          placeholder="0"
-                        />
+                    {/* Info alert - only show when creating new */}
+                    {!editing && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <div className="flex items-start gap-2">
+                          <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zm-4 4a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                          </svg>
+                          <div className="text-sm text-blue-800">
+                            <p className="font-medium mb-1">Budget Period: Current Month</p>
+                            <p className="text-blue-700">
+                              This budget will automatically cover from the 1st to the last day of {months.find(m => m.value === safeCurrentMonth)?.label} {safeCurrentYear}.
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     )}
 
@@ -417,13 +535,14 @@ export default function Budget({ auth }) {
                       <button 
                         onClick={() => setModalOpen(false)} 
                         className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium"
+                        disabled={processing}
                       >
                         Cancel
                       </button>
                       <button 
                         onClick={save} 
                         className="px-6 py-2 rounded-lg bg-black text-white hover:bg-gray-800 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
-                        disabled={!form.category || !form.budget || !form.month || !form.year || !isDateValid(form.month, form.year)}
+                        disabled={processing || !form.category || !form.budget}
                       >
                         {editing ? 'Update Budget' : 'Create Budget'}
                       </button>

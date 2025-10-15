@@ -2,14 +2,8 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\CategoryController;
-use App\Http\Controllers\TransactionController;
 
-Route::get("/categories", [CategoryController::class, "index"]);
-// Use Sanctum for SPA stateful authentication
-Route::middleware('auth')->group(function () {
-    Route::post("/transactions", [TransactionController::class, "store"]);
-    Route::get("/transactions", [TransactionController::class, "index"]);
-    Route::put("/transactions/{id}", [TransactionController::class, "update"]);
-    Route::delete("/transactions/{id}", [TransactionController::class, "destroy"]);
+// Keep this for future actual API usage
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user();
 });

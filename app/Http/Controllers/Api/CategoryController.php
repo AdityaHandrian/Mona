@@ -3,19 +3,23 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Category;
+use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
     public function index(Request $request)
     {
+        $type = $request->query('type');
+        
         $query = Category::query();
-        if ($request->has("type")){
-            $query->where("type", $request->get("type"));
+        
+        if ($type) {
+            $query->where('type', $type);
         }
-        $categories = $query->get();
-
+        
+        $categories = $query->orderBy('category_name')->get();
+        
         return response()->json($categories);
     }
 }

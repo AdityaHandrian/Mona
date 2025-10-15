@@ -90,4 +90,24 @@ Route::middleware('auth')->prefix('api')->group(function () {
     Route::delete('/transactions/{id}', [TransactionController::class, 'destroy']);
 });
 
+Route::middleware(['auth'])->group(function () {
+    // Budget routes
+    Route::get('/budget', [\App\Http\Controllers\BudgetController::class, 'index'])->name('budget');
+    Route::post('/budgets', [\App\Http\Controllers\BudgetController::class, 'store'])->name('budgets.store');
+    Route::put('/budgets/{budget}', [\App\Http\Controllers\BudgetController::class, 'update'])->name('budgets.update');
+    Route::delete('/budgets/{budget}', [\App\Http\Controllers\BudgetController::class, 'destroy'])->name('budgets.destroy');
+    
+    // API-like routes for React components
+    Route::get('/api/categories', [\App\Http\Controllers\CategoryController::class, 'index']);
+    
+    // History page routes (original methods)
+    Route::get('/api/transactions', [\App\Http\Controllers\TransactionController::class, 'index']);
+    Route::post('/api/transactions', [\App\Http\Controllers\TransactionController::class, 'store']);
+    Route::put('/api/transactions/{id}', [\App\Http\Controllers\TransactionController::class, 'update']);
+    Route::delete('/api/transactions/{id}', [\App\Http\Controllers\TransactionController::class, 'destroy']);
+    
+    // Transaction.jsx routes
+    Route::post('/api/transactions/add', [\App\Http\Controllers\TransactionController::class, 'apiStore']);
+    Route::get('/api/transactions/monthly-stats', [\App\Http\Controllers\TransactionController::class, 'monthlyStats']);
+});
 require __DIR__.'/auth.php';

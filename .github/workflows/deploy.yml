@@ -47,7 +47,7 @@ jobs:
         run: echo "${{ secrets.DOT_ENV }}" > .env
 
       - name: create secrets directory
-        run: touch storage/app/secrets/service-account-key.json
+        run: mkdir storage/app/secrets
 
       - name: add service account key info
         run: echo "${{ secrets.SERVICE_ACCOUNT }}" > storage/app/secrets/service-account-key.json

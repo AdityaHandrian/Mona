@@ -45,6 +45,9 @@ jobs:
 
       - name: making .env
         run: echo "${{ secrets.DOT_ENV }}" > .env
+
+      - name: add service account key info
+        run: echo "${{ secrets.SERVICE_ACCOUNT }}" > storage/app/secrets/service-account-key.json
           
       - name: Menyinkronkan File ke Server (AEnterprise)
         uses: AEnterprise/rsync-deploy@v1.0.2

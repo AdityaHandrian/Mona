@@ -26,6 +26,7 @@
         "@heroicons/react": "^2.2.0",
         "@vitejs/plugin-react": "^5.0.2",
         "react": "^19.1.1",
+        "react-datepicker": "^8.8.0",
         "react-dom": "^19.1.1",
         "react-image-crop": "^11.0.10"
     }

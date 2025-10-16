@@ -76,8 +76,6 @@ export default function Transaction({ auth }) {
             console.error('Error fetching categories:', error);
             showModalNotification('error', 'Something went wrong', 'Failed to load categories');
             // Fallback categories
-            showMessage('error', 'Failed to load categories');
-            // Fallback categories
             setCategories([]);
         } finally {
             setLoadingCategories(false);
@@ -140,20 +138,10 @@ export default function Transaction({ auth }) {
             }, 3000);
             return () => clearTimeout(timer);
         }
-    }, [modalNotification.show]);    const showModalNotification = (type, title, message) => {
-        setModalNotification({ show: true, type, title, message });
-    };
-        if (notification.message) {
-            setShowNotification(true);
-            const timer = setTimeout(() => setShowNotification(false), 2700);
-            const timer2 = setTimeout(() => setNotification({ message: '', type: '' }), 3000);
-            return () => { clearTimeout(timer); clearTimeout(timer2); };
-        }
-    }, [notification]);
+    }, [modalNotification.show]);
 
-    const showMessage = (type, text) => {
-        setMessage({ type, text });
-        setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+    const showModalNotification = (type, title, message) => {
+        setModalNotification({ show: true, type, title, message });
     };
 
     const handleSubmit = async (e) => {
@@ -163,17 +151,10 @@ export default function Transaction({ auth }) {
             showModalNotification('error', 'Something went wrong', 'Please fill in all required fields.');
             return;
         }
-        
-        if (!formData.amount || !formData.category || !formData.date) {
-            setNotification({ message: 'Please fill in all required fields.', type: 'error' });
-            return;
-        }
 
         const rawAmount = Number(formData.amount);
         if (Number.isNaN(rawAmount) || rawAmount <= 0) {
             showModalNotification('error', 'Something went wrong', 'Amount must be a valid positive number.');
-        if (Number.isNaN(rawAmount) || rawAmount <= 0) {
-            setNotification({ message: 'Amount must be a valid positive number.', type: 'error' });
             return;
         }
 
@@ -189,20 +170,6 @@ export default function Transaction({ auth }) {
             // Use /api/transactions/add to avoid conflict with History page
             await axios.post('/api/transactions/add', transactionData);
             showModalNotification('success', 'Success', 'Transaction added Successfully!');
-
-            // Reset form
-        setSubmitting(true);
-        try {
-            const transactionData = {
-                category_id: parseInt(formData.category),
-                amount: parseFloat(formData.amount),
-                description: formData.description || '',
-                transaction_date: formData.date
-            };
-
-            // Use /api/transactions/add to avoid conflict with History page
-            await axios.post('/api/transactions/add', transactionData);
-            setNotification({ message: 'Transaction added successfully!', type: 'success' });
 
             // Reset form
             setFormData({
@@ -232,21 +199,6 @@ export default function Transaction({ auth }) {
         } catch (error) {
             console.error('Error deleting transaction:', error);
             showModalNotification('error', 'Something went wrong', 'Failed to delete transaction');
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    const handleDelete = async (id) => {
-        if (!confirm('Are you sure you want to delete this transaction?')) return;
-
-        try {
-            await axios.delete(`/api/transactions/${id}`);
-            showMessage('success', 'Transaction deleted successfully!');
-            fetchMonthlyStats();
-        } catch (error) {
-            console.error('Error deleting transaction:', error);
-            showMessage('error', 'Failed to delete transaction');
         }
     };
 

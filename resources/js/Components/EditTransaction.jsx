@@ -18,7 +18,10 @@ const parseFormattedNumber = (formattedValue) => {
 };
 
 export default function EditTransaction({ transaction, onClose, onUpdate }) {
-    const [transactionType, setTransactionType] = useState('expense'); // Default to expense since most transactions are expenses
+    // Initialize with the transaction's type if available, otherwise default to 'expense'
+    const [transactionType, setTransactionType] = useState(
+        transaction?.type ? transaction.type.toLowerCase() : 'expense'
+    );
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -51,7 +54,7 @@ export default function EditTransaction({ transaction, onClose, onUpdate }) {
             
             setTransactionType(type);
             setFormData({
-                amount: Math.abs(transaction.amount).toString(), // Always positive in form
+                amount: Math.abs(transaction.amount || 0).toString(), // Always positive in form
                 category: transaction.category_id || '',
                 date: transaction.transaction_date ? transaction.transaction_date.split('T')[0] : '',
                 description: transaction.description || ''
@@ -76,8 +79,8 @@ export default function EditTransaction({ transaction, onClose, onUpdate }) {
     // Load categories when component mounts or transaction type changes
     useEffect(() => {
         fetchCategories(transactionType);
-        // Reset category selection when type changes (but keep it if it's valid for the new type)
-        setFormData(prev => ({ ...prev, category: '' }));
+        // Only reset category if user manually changes the type (not on initial load)
+        // We keep the category from formData during initial population
     }, [transactionType]);
 
     // Hide notification after 3 seconds

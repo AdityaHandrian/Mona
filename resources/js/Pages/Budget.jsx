@@ -285,33 +285,33 @@ export default function Budget() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         <div className="bg-warm-ivory rounded-md">
             {/* Header */}
-            <div className="flex justify-between items-start mb-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
               <div>
-                <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl font-bold text-charcoal mb-2">Budget Manager</h1>
-                <p className="text-sm sm:text-base md:text-base lg:text-base xl:text-lg text-medium-gray">Set and track your spending limits</p>
+                <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-bold text-charcoal mb-2">Budget Manager</h1>
+                <p className="text-xs sm:text-sm md:text-base lg:text-base xl:text-lg text-medium-gray">Set and track your spending limits</p>
               </div>
               {isCurrentMonth && (
                 <button
                   onClick={openNew}
-                  className="inline-flex items-center gap-1 md:gap-2 bg-black text-white rounded-full px-3 md:px-5 py-1.5 md:py-2 lg:py-2.5 font-medium shadow-md transform transition-transform duration-200 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-black"
+                  className="inline-flex items-center gap-1 sm:gap-2 bg-black text-white rounded-full px-3 sm:px-4 md:px-5 py-1.5 md:py-2 lg:py-2.5 font-medium shadow-md transform transition-transform duration-200 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-black text-sm sm:text-base"
                 >
-                  <Icon.Plus className="w-4 h-4" />
-                  <span className="text-base md:text-lg">New Budget</span>
+                  <Icon.Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="md:text-lg">New Budget</span>
                 </button>
               )}
             </div>
 
             {/* Month/Year Selector */}
-            <div className="bg-white rounded-xl p-4 shadow-sm mb-8">
-              <div className="flex flex-wrap items-center gap-3">
-                <label className="text-sm font-medium text-gray-700">View Budget for:</label>
+            <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm mb-6 sm:mb-8">
+              <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
+                <label className="text-xs sm:text-sm font-medium text-gray-700">View Budget for:</label>
                 <select
                   value={viewMonth}
                   onChange={(e) => setViewMonth(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  className="px-2 sm:px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
                 >
                   {months.map((month) => (
                     <option key={month.value} value={month.value}>
@@ -322,7 +322,7 @@ export default function Budget() {
                 <select
                   value={viewYear}
                   onChange={(e) => setViewYear(parseInt(e.target.value))}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent min-w-[100px]"
+                  className="px-2 sm:px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent min-w-[100px]"
                 >
                   {years.map((year) => (
                     <option key={year} value={year}>
@@ -332,7 +332,7 @@ export default function Budget() {
                 </select>
                 <button
                   onClick={handleMonthYearChange}
-                  className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 font-medium"
+                  className="px-3 sm:px-4 py-2 text-sm sm:text-base bg-black text-white rounded-lg hover:bg-gray-800 font-medium"
                 >
                   View
                 </button>
@@ -349,34 +349,34 @@ export default function Budget() {
             )}
 
             {/* top metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
               <Card>
-                <div className="text-lg font-semibold">Total Budget</div>
-                <div className="text-2xl text-green-700 font-semibold mt-4">{formatIDR(totals.totalBudget)}</div>
-                <div className="text-gray-400 mt-3">for this month</div>
+                <div className="text-base sm:text-lg font-semibold">Total Budget</div>
+                <div className="text-xl sm:text-2xl text-green-700 font-semibold mt-3 sm:mt-4">{formatIDR(totals.totalBudget)}</div>
+                <div className="text-gray-400 text-xs sm:text-sm mt-2 sm:mt-3">for this month</div>
               </Card>
 
               <Card>
-                <div className="text-lg font-semibold">Total Spent</div>
-                <div className="text-2xl text-red-600 font-semibold mt-4">{formatIDR(totals.totalSpent)}</div>
-                <div className="text-gray-400 mt-3">{percent(totals.totalSpent, totals.totalBudget)}% from this month budget</div>
+                <div className="text-base sm:text-lg font-semibold">Total Spent</div>
+                <div className="text-xl sm:text-2xl text-red-600 font-semibold mt-3 sm:mt-4">{formatIDR(totals.totalSpent)}</div>
+                <div className="text-gray-400 text-xs sm:text-sm mt-2 sm:mt-3">{percent(totals.totalSpent, totals.totalBudget)}% from this month budget</div>
               </Card>
 
               <Card>
-                <div className="text-lg font-semibold">Over Budget</div>
-                <div className="text-2xl text-orange-600 font-semibold mt-4">{totals.overCategories}</div>
-                <div className="text-gray-400 mt-3">Categories</div>
+                <div className="text-base sm:text-lg font-semibold">Over Budget</div>
+                <div className="text-xl sm:text-2xl text-orange-600 font-semibold mt-3 sm:mt-4">{totals.overCategories}</div>
+                <div className="text-gray-400 text-xs sm:text-sm mt-2 sm:mt-3">Categories</div>
               </Card>
             </div>
 
             {/* budget cards grid */}
             {budgets.length === 0 ? (
-              <div className="bg-white rounded-xl p-12 text-center shadow-sm">
-                <div className="text-gray-400 text-lg mb-4">No budgets set for this month</div>
+              <div className="bg-white rounded-xl p-8 sm:p-12 text-center shadow-sm">
+                <div className="text-gray-400 text-base sm:text-lg mb-4">No budgets set for this month</div>
                 {isCurrentMonth && (
                   <button
                     onClick={openNew}
-                    className="inline-flex items-center gap-2 bg-black text-white rounded-full px-5 py-2.5 font-medium shadow-md transform transition-transform duration-200 hover:scale-105 active:scale-95"
+                    className="inline-flex items-center gap-2 bg-black text-white rounded-full px-4 sm:px-5 py-2 sm:py-2.5 font-medium shadow-md transform transition-transform duration-200 hover:scale-105 active:scale-95 text-sm sm:text-base"
                   >
                     <Icon.Plus className="w-4 h-4" />
                     <span>Create Your First Budget</span>
@@ -384,7 +384,7 @@ export default function Budget() {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-10">
+              <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4 sm:gap-6 pb-6 sm:pb-10">
                 {budgets.map((b) => {
                   const pct = percent(b.spent, b.budget);
                   const isOver = b.spent > b.budget;
@@ -393,16 +393,16 @@ export default function Budget() {
 
                   return (
                     // group enables child elements to react to hover
-                    <div key={b.id} className="group bg-white rounded-xl p-6 shadow-sm transform transition-all duration-200 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-lg">
+                    <div key={b.id} className="group bg-white rounded-xl p-4 sm:p-5 md:p-6 shadow-sm transform transition-all duration-200 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-lg">
                       <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="text-xl font-semibold">{b.category || b.title}</h3>
-                          <div className="text-gray-400 text-sm">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-base sm:text-lg md:text-xl font-semibold truncate">{b.category || b.title}</h3>
+                          <div className="text-gray-400 text-xs sm:text-sm mt-1">
                             {b.month && b.year ? `Ends in: ${months.find(m => m.value === b.month)?.label || 'Month'} ${b.year}` : 'Budget Period'}
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3 text-gray-600">
+                        <div className="flex items-center gap-2 sm:gap-3 text-gray-600 ml-2">
                           <div
                             className={`p-1 rounded-full border transition-colors duration-200 ${
                               isOver 
@@ -413,17 +413,17 @@ export default function Budget() {
                             }`}
                             title={isOver ? 'Over budget' : pct >= 80 ? 'Warning' : 'Healthy'}
                           >
-                            {isOver ? <Icon.Warning /> : pct >= 80 ? <Icon.Warning /> : <Icon.Check />}
+                            {isOver ? <Icon.Warning className="w-3 h-3 sm:w-4 sm:h-4" /> : pct >= 80 ? <Icon.Warning className="w-3 h-3 sm:w-4 sm:h-4" /> : <Icon.Check className="w-3 h-3 sm:w-4 sm:h-4" />}
                           </div>
 
                           {isCurrentMonth && (
-                            <div className="flex items-center gap-2 opacity-80 transition-all duration-200">
+                            <div className="flex items-center gap-1 sm:gap-2 opacity-80 transition-all duration-200">
                               <button
                                 onClick={() => openEdit(b)}
                                 className="p-1 rounded-md hover:bg-gray-100 hover:text-black transform transition-transform duration-150 hover:-translate-y-0.5 focus:outline-none"
                                 title="Edit"
                               >
-                                <Icon.Edit />
+                                <Icon.Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                               </button>
 
                               <button
@@ -431,15 +431,15 @@ export default function Budget() {
                                 className="p-1 rounded-md hover:bg-gray-100 hover:text-red-600 transform transition-transform duration-150 hover:-translate-y-0.5 focus:outline-none"
                                 title="Delete"
                               >
-                                <Icon.Trash />
+                                <Icon.Trash className="w-3 h-3 sm:w-4 sm:h-4" />
                               </button>
                             </div>
                           )}
                         </div>
                       </div>
 
-                      <div className="mt-6">
-                        <div className="flex justify-between text-sm text-gray-700 mb-2">
+                      <div className="mt-4 sm:mt-6">
+                        <div className="flex justify-between text-xs sm:text-sm text-gray-700 mb-2">
                           <span>Spent</span>
                           <span className="font-semibold">{formatIDR(b.spent)}</span>
                         </div>
@@ -458,14 +458,14 @@ export default function Budget() {
                           />
                         </div>
 
-                        <div className="flex justify-between items-center mt-3 text-sm">
+                        <div className="flex justify-between items-center mt-2 sm:mt-3 text-xs sm:text-sm">
                           <div className="text-gray-500">
                             {isOver ? `${formatIDR(Math.abs(remaining))} over budget` : `${formatIDR(Math.abs(remaining))} remaining`}
                           </div>
                           <div className={`${statusColor} font-semibold`}>{pct}%</div>
                         </div>
 
-                        <div className="text-gray-300 text-xs mt-3">Budget: {formatIDR(b.budget)}</div>
+                        <div className="text-gray-300 text-xs mt-2 sm:mt-3">Budget: {formatIDR(b.budget)}</div>
                       </div>
                     </div>
                   );
@@ -475,18 +475,18 @@ export default function Budget() {
 
             {/* modal */}
             {isModalOpen && (
-              <div className="fixed inset-0 z-40 flex items-center justify-center">
+              <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
                 <div className="absolute inset-0 bg-black/30" onClick={() => setModalOpen(false)} />
-                <div className="relative bg-white rounded-lg p-6 w-full max-w-lg shadow-lg">
-                  <h4 className="text-xl font-semibold mb-6">{editing ? 'Edit Budget' : 'Create New Budget'}</h4>
-                  <div className="space-y-4">
+                <div className="relative bg-white rounded-lg p-4 sm:p-6 w-full max-w-lg shadow-lg max-h-[90vh] overflow-y-auto">
+                  <h4 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">{editing ? 'Edit Budget' : 'Create New Budget'}</h4>
+                  <div className="space-y-3 sm:space-y-4">
                     {/* Category */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Category*</label>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Category*</label>
                       <select
                         value={form.category}
                         onChange={(e) => setForm('category', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
                         required
                       >
                         <option value="">Select a category</option>
@@ -500,7 +500,7 @@ export default function Budget() {
 
                     {/* Budget Amount */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Budget Amount*</label>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Budget Amount*</label>
                       <input 
                         value={formatNumberWithDots(form.budget)} 
                         onChange={(e) => {
@@ -508,7 +508,7 @@ export default function Budget() {
                           setForm('budget', rawValue);
                         }} 
                         type="text" 
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
                         placeholder="0"
                         required
                       />
@@ -516,12 +516,12 @@ export default function Budget() {
 
                     {/* Info alert - only show when creating new */}
                     {!editing && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 sm:p-3">
                         <div className="flex items-start gap-2">
-                          <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zm-4 4a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                           </svg>
-                          <div className="text-sm text-blue-800">
+                          <div className="text-xs sm:text-sm text-blue-800">
                             <p className="font-medium mb-1">Budget Period: Current Month</p>
                             <p className="text-blue-700">
                               This budget will automatically cover from the 1st to the last day of {months.find(m => m.value === safeCurrentMonth)?.label} {safeCurrentYear}.
@@ -531,17 +531,17 @@ export default function Budget() {
                       </div>
                     )}
 
-                    <div className="flex justify-end gap-3 pt-6">
+                    <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-4 sm:pt-6">
                       <button 
                         onClick={() => setModalOpen(false)} 
-                        className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium"
+                        className="w-full sm:w-auto px-4 sm:px-6 py-2 text-sm sm:text-base rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium"
                         disabled={processing}
                       >
                         Cancel
                       </button>
                       <button 
                         onClick={save} 
-                        className="px-6 py-2 rounded-lg bg-black text-white hover:bg-gray-800 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        className="w-full sm:w-auto px-4 sm:px-6 py-2 text-sm sm:text-base rounded-lg bg-black text-white hover:bg-gray-800 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
                         disabled={processing || !form.category || !form.budget}
                       >
                         {editing ? 'Update Budget' : 'Create Budget'}
@@ -559,5 +559,5 @@ export default function Budget() {
 
 // ---------- small presentational component ----------
 function Card({ children }) {
-  return <div className="bg-white rounded-xl p-6 shadow-sm">{children}</div>;
+  return <div className="bg-white rounded-xl p-4 sm:p-5 md:p-6 shadow-sm">{children}</div>;
 }

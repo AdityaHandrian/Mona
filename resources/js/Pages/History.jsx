@@ -213,16 +213,16 @@ export default function History({ auth }) {
         <AppLayout title="MONA - History" auth={auth}>
             <Head title="History" />
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-[F8F7F0]">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8 bg-[F8F7F0]">
 
                     {/* Summary */}
-                    <div className="mb-8">
-                        <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl font-bold text-charcoal mb-2">Transaction History</h1>
-                        <p className="text-sm sm:text-base md:text-base lg:text-base xl:text-lg text-medium-gray">View and manage all your transactions</p>
+                    <div className="mb-6 sm:mb-8">
+                        <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-bold text-charcoal mb-2">Transaction History</h1>
+                        <p className="text-xs sm:text-sm md:text-base lg:text-base xl:text-lg text-medium-gray">View and manage all your transactions</p>
                         
                         {/* Success/Error Message */}
                         {message.text && (
-                            <div className={`mt-4 p-4 rounded-lg ${
+                            <div className={`mt-4 p-3 sm:p-4 rounded-lg text-sm sm:text-base ${
                                 message.type === 'success' 
                                     ? 'bg-green-50 text-green-800 border border-green-200' 
                                     : 'bg-red-50 text-red-800 border border-red-200'
@@ -232,34 +232,34 @@ export default function History({ auth }) {
                         )}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <div className="bg-white p-6 rounded-lg shadow-md">
-                            <h3 className="text-gray-500">Total Transactions</h3>
-                            <p className="text-xl sm:text-xl md:text-xl lg:text-xl xl:text-2xl font-bold text-gray-800">{totalTransactions}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                            <h3 className="text-xs sm:text-sm text-gray-500">Total Transactions</h3>
+                            <p className="text-lg sm:text-xl md:text-xl lg:text-xl xl:text-2xl font-bold text-gray-800">{totalTransactions}</p>
                         </div>
-                        <div className="bg-white p-6 rounded-lg shadow-md">
-                            <h3 className="text-gray-500">Total Income</h3>
-                            <p className="text-xl sm:text-xl md:text-xl lg:text-xl xl:text-2xl font-bold text-green-600">{formatCurrency(totalIncome)}</p>
+                        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                            <h3 className="text-xs sm:text-sm text-gray-500">Total Income</h3>
+                            <p className="text-lg sm:text-xl md:text-xl lg:text-xl xl:text-2xl font-bold text-green-600">{formatCurrency(totalIncome)}</p>
                         </div>
-                        <div className="bg-white p-6 rounded-lg shadow-md">
-                            <h3 className="text-gray-500">Total Expenses</h3>
-                            <p className="text-xl sm:text-xl md:text-xl lg:text-xl xl:text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</p>
+                        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                            <h3 className="text-xs sm:text-sm text-gray-500">Total Expenses</h3>
+                            <p className="text-lg sm:text-xl md:text-xl lg:text-xl xl:text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</p>
                         </div>
                     </div>
 
                     {/* Filters */}
-                    <div className="bg-white p-4 rounded-lg shadow-md mb-8 flex flex-col sm:flex-row items-center gap-4">
+                    <div className="bg-white p-3 sm:p-4 rounded-lg shadow-md mb-6 sm:mb-8 flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
                         <input
                             type="text"
                             placeholder="Search Transaction..."
-                            className="w-full border-gray-300 rounded-md px-4 py-2 focus:ring-green-500 focus:border-green-500"
+                            className="w-full text-sm sm:text-base border-gray-300 rounded-md px-3 sm:px-4 py-2 focus:ring-green-500 focus:border-green-500"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                         <select
                             value={filterType}
                             onChange={(e) => { setFilterType(e.target.value); setFilterCategory('All'); }}
-                            className="w-full sm:w-auto border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
+                            className="w-full sm:w-auto text-sm sm:text-base border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
                         >
                             <option value="All">All Types</option>
                             <option value="Income">Income</option>
@@ -268,23 +268,23 @@ export default function History({ auth }) {
                         <select
                             value={filterCategory}
                             onChange={(e) => setFilterCategory(e.target.value)}
-                            className="w-full sm:w-auto border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
+                            className="w-full sm:w-auto text-sm sm:text-base border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
                         >
                             <option value="All">All Categories</option>
                             {availableCategories.map((category) => (
                                 <option key={category} value={category}>{category}</option>
                             ))}
                         </select>
-                        <button onClick={clearFilters} className="w-full sm:w-auto text-gray-600 px-4 py-2 rounded-md hover:bg-gray-100 transition flex-shrink-0">
+                        <button onClick={clearFilters} className="w-full sm:w-auto text-sm sm:text-base text-gray-600 px-3 sm:px-4 py-2 rounded-md hover:bg-gray-100 transition flex-shrink-0">
                             Clear Filters
                         </button>
                     </div>
 
                     {/* Transactions Table */}
                     <div className="bg-white overflow-hidden shadow-md rounded-lg">
-                        <div className="p-6">
-                            <h3 className="text-lg font-semibold text-gray-800">Transactions</h3>
-                            <p className="text-sm text-gray-500">Showing {filteredTransactions.length} transactions</p>
+                        <div className="p-4 sm:p-6">
+                            <h3 className="text-base sm:text-lg font-semibold text-gray-800">Transactions</h3>
+                            <p className="text-xs sm:text-sm text-gray-500">Showing {filteredTransactions.length} transactions</p>
                         </div>
                         {loading && (
                             <div className="p-6 text-center text-gray-500">Loading...</div>
@@ -292,7 +292,9 @@ export default function History({ auth }) {
                         {error && (
                             <div className="p-6 text-center text-red-600">{error}</div>
                         )}
-                        <div className="overflow-x-auto">
+                        
+                        {/* Desktop Table View - Hidden on mobile and tablet */}
+                        <div className="hidden lg:block overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
@@ -350,6 +352,60 @@ export default function History({ auth }) {
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+
+                        {/* Tablet & Mobile Card View - Shown below lg breakpoint */}
+                        <div className="lg:hidden divide-y divide-gray-200">
+                            {filteredTransactions.map((transaction) => (
+                                <div key={transaction.id} className="p-4 sm:p-5 md:p-6 hover:bg-gray-50">
+                                    {/* Header: Date and Type Badge */}
+                                    <div className="flex justify-between items-start mb-3 md:mb-4">
+                                        <span className="text-xs sm:text-sm md:text-base text-gray-500">{transaction.date ?? '-'}</span>
+                                        <span
+                                            className={`px-2 md:px-3 py-1 text-xs md:text-sm font-semibold rounded-full ${
+                                                transaction.type === 'Income'
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : 'bg-red-100 text-red-800'
+                                            }`}
+                                        >
+                                            {transaction.type ?? '-'}
+                                        </span>
+                                    </div>
+
+                                    {/* Category and Description */}
+                                    <div className="mb-3 md:mb-4">
+                                        <p className="text-sm md:text-base font-medium text-gray-900">{transaction.category ?? '-'}</p>
+                                        <p className="text-xs md:text-sm text-gray-600 mt-1">{transaction.description ?? '-'}</p>
+                                    </div>
+
+                                    {/* Amount and Actions */}
+                                    <div className="flex justify-between items-center">
+                                        <span
+                                            className={`text-base md:text-lg font-bold ${
+                                                (transaction.amount ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                                            }`}
+                                        >
+                                            {formatCurrency(transaction.amount ?? 0)}
+                                        </span>
+                                        <div className="flex items-center gap-3 md:gap-4">
+                                            <button 
+                                                onClick={() => handleEdit(transaction)}
+                                                className="text-sm md:text-base text-blue-600 hover:text-blue-900 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
+                                                disabled={deletingId === transaction.id}
+                                            >
+                                                Edit
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDelete(transaction.id)}
+                                                disabled={deletingId === transaction.id}
+                                                className="text-sm md:text-base text-red-600 hover:text-red-900 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
+                                            >
+                                                {deletingId === transaction.id ? 'Deleting...' : 'Delete'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>

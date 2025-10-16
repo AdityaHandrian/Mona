@@ -141,12 +141,42 @@ export default function Dashboard({ auth }) {
     return (
         <AppLayout title="MONA - Dashboard" auth={auth}>
             <Head title="Dashboard" />
+            
+            {/* Animation Styles */}
+            <style>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes fadeInUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(30px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                .animate-fade-in {
+                    animation: fadeIn 0.8s ease-out forwards;
+                }
+                .animate-fade-in-up {
+                    animation: fadeInUp 0.8s ease-out forwards;
+                }
+                .delay-100 { animation-delay: 0.1s; opacity: 0; }
+                .delay-200 { animation-delay: 0.2s; opacity: 0; }
+                .delay-300 { animation-delay: 0.3s; opacity: 0; }
+                .delay-400 { animation-delay: 0.4s; opacity: 0; }
+                .delay-500 { animation-delay: 0.5s; opacity: 0; }
+                .delay-600 { animation-delay: 0.6s; opacity: 0; }
+            `}</style>
 
             <div className="">
                 {/* Main Content */}
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Welcome Message */}
-                    <div className="mb-8">
+                    <div className="mb-8 animate-fade-in">
                         <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl font-bold text-charcoal mb-2">
                             {getGreeting()}, {getUserName()}!
                         </h1>
@@ -161,7 +191,7 @@ export default function Dashboard({ auth }) {
                         <div
                             onMouseEnter={() => setHoveredCard('income')}
                             onMouseLeave={() => setHoveredCard(null)}
-                            className={`bg-white rounded-xl p-6 transition-all duration-200 border border-gray-200 ${
+                            className={`animate-fade-in-up delay-100 bg-white rounded-xl p-6 transition-all duration-200 border border-gray-200 ${
                                 hoveredCard === 'income'
                                     ? 'shadow-lg ring-2 ring-green-100 -translate-y-1'
                                     : 'shadow-sm'
@@ -181,7 +211,7 @@ export default function Dashboard({ auth }) {
                         <div
                             onMouseEnter={() => setHoveredCard('expenses')}
                             onMouseLeave={() => setHoveredCard(null)}
-                            className={`bg-white rounded-xl p-6 transition-all duration-200 border border-gray-200 ${
+                            className={`animate-fade-in-up delay-200 bg-white rounded-xl p-6 transition-all duration-200 border border-gray-200 ${
                                 hoveredCard === 'expenses'
                                     ? 'shadow-lg ring-2 ring-red-100 -translate-y-1'
                                     : 'shadow-sm'
@@ -201,7 +231,7 @@ export default function Dashboard({ auth }) {
                         <div
                             onMouseEnter={() => setHoveredCard('balance')}
                             onMouseLeave={() => setHoveredCard(null)}
-                            className={`bg-white rounded-xl p-6 transition-all duration-200 border border-gray-200 ${
+                            className={`animate-fade-in-up delay-300 bg-white rounded-xl p-6 transition-all duration-200 border border-gray-200 ${
                                 hoveredCard === 'balance'
                                     ? 'shadow-lg ring-2 ring-gray-100 -translate-y-1'
                                     : 'shadow-sm'
@@ -221,7 +251,7 @@ export default function Dashboard({ auth }) {
                         <div
                             onMouseEnter={() => setHoveredCard('budget')}
                             onMouseLeave={() => setHoveredCard(null)}
-                            className={`bg-white rounded-xl p-6 transition-all duration-200 border border-gray-200 ${
+                            className={`animate-fade-in-up delay-400 bg-white rounded-xl p-6 transition-all duration-200 border border-gray-200 ${
                                 hoveredCard === 'budget'
                                     ? 'shadow-lg ring-2 ring-yellow-100 -translate-y-1'
                                     : 'shadow-sm'
@@ -241,7 +271,7 @@ export default function Dashboard({ auth }) {
                     {/* Charts Section */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Income vs Expenses Chart */}
-                        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                        <div className="animate-fade-in-up delay-500 bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                             <div className="mb-6">
                                 <h3 className="text-base sm:text-lg md:text-xl lg:text-lg xl:text-xl font-semibold text-gray-900 mb-1">
                                     Income vs Expenses
@@ -327,7 +357,7 @@ export default function Dashboard({ auth }) {
                         </div>
 
                         {/* Expense Categories Pie Chart */}
-                        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                        <div className="animate-fade-in-up delay-600 bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                             <div className="mb-6">
                                 <h3 className="text-base sm:text-lg md:text-xl lg:text-lg xl:text-xl font-semibold text-gray-900 mb-1">
                                     Expense Categories

@@ -215,8 +215,37 @@ export default function History({ auth }) {
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8 bg-[F8F7F0]">
 
+                    {/* Animation Styles */}
+                    <style>{`
+                        @keyframes fadeIn {
+                            from { opacity: 0; }
+                            to { opacity: 1; }
+                        }
+                        @keyframes fadeInUp {
+                            from {
+                                opacity: 0;
+                                transform: translateY(30px);
+                            }
+                            to {
+                                opacity: 1;
+                                transform: translateY(0);
+                            }
+                        }
+                        .animate-fade-in {
+                            animation: fadeIn 0.8s ease-out forwards;
+                        }
+                        .animate-fade-in-up {
+                            animation: fadeInUp 0.8s ease-out forwards;
+                        }
+                        .delay-100 { animation-delay: 0.1s; opacity: 0; }
+                        .delay-200 { animation-delay: 0.2s; opacity: 0; }
+                        .delay-300 { animation-delay: 0.3s; opacity: 0; }
+                        .delay-400 { animation-delay: 0.4s; opacity: 0; }
+                        .delay-500 { animation-delay: 0.5s; opacity: 0; }
+                    `}</style>
+
                     {/* Summary */}
-                    <div className="mb-6 sm:mb-8">
+                    <div className="mb-6 sm:mb-8 animate-fade-in">
                         <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-bold text-charcoal mb-2">Transaction History</h1>
                         <p className="text-xs sm:text-sm md:text-base lg:text-base xl:text-lg text-medium-gray">View and manage all your transactions</p>
                         
@@ -233,22 +262,22 @@ export default function History({ auth }) {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-                        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                        <div className="animate-fade-in-up delay-100 bg-white p-4 sm:p-6 rounded-lg shadow-md">
                             <h3 className="text-xs sm:text-sm text-gray-500">Total Transactions</h3>
                             <p className="text-lg sm:text-xl md:text-xl lg:text-xl xl:text-2xl font-bold text-gray-800">{totalTransactions}</p>
                         </div>
-                        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                        <div className="animate-fade-in-up delay-200 bg-white p-4 sm:p-6 rounded-lg shadow-md">
                             <h3 className="text-xs sm:text-sm text-gray-500">Total Income</h3>
                             <p className="text-lg sm:text-xl md:text-xl lg:text-xl xl:text-2xl font-bold text-green-600">{formatCurrency(totalIncome)}</p>
                         </div>
-                        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                        <div className="animate-fade-in-up delay-300 bg-white p-4 sm:p-6 rounded-lg shadow-md">
                             <h3 className="text-xs sm:text-sm text-gray-500">Total Expenses</h3>
                             <p className="text-lg sm:text-xl md:text-xl lg:text-xl xl:text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</p>
                         </div>
                     </div>
 
                     {/* Filters */}
-                    <div className="bg-white p-3 sm:p-4 rounded-lg shadow-md mb-6 sm:mb-8 flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+                    <div className="animate-fade-in-up delay-400 bg-white p-3 sm:p-4 rounded-lg shadow-md mb-6 sm:mb-8 flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
                         <input
                             type="text"
                             placeholder="Search Transaction..."
@@ -281,7 +310,7 @@ export default function History({ auth }) {
                     </div>
 
                     {/* Transactions Table */}
-                    <div className="bg-white overflow-hidden shadow-md rounded-lg">
+                    <div className="animate-fade-in-up delay-500 bg-white overflow-hidden shadow-md rounded-lg">
                         <div className="p-4 sm:p-6">
                             <h3 className="text-base sm:text-lg font-semibold text-gray-800">Transactions</h3>
                             <p className="text-xs sm:text-sm text-gray-500">Showing {filteredTransactions.length} transactions</p>

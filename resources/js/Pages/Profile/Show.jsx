@@ -21,11 +21,38 @@ export default function Show({ auth }) {
         >
             <Head title="Profile Settings" />
 
+            {/* Animation Styles */}
+            <style>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes fadeInUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(30px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                .animate-fade-in {
+                    animation: fadeIn 0.8s ease-out forwards;
+                }
+                .animate-fade-in-up {
+                    animation: fadeInUp 0.8s ease-out forwards;
+                }
+                .delay-100 { animation-delay: 0.1s; opacity: 0; }
+                .delay-200 { animation-delay: 0.2s; opacity: 0; }
+                .delay-300 { animation-delay: 0.3s; opacity: 0; }
+            `}</style>
+
             <div className="py-8">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
                     
                     {/* Box Personal Information */}
-                    <div className="relative p-8 bg-white shadow-md rounded-2xl">
+                    <div className="animate-fade-in-up delay-100 relative p-8 bg-white shadow-md rounded-2xl">
                         <Link 
                             href={route('profile.edit')}
                             className="absolute top-6 right-6 p-2 rounded-full text-gray-400 hover:bg-green-100 hover:text-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-150"
@@ -76,7 +103,7 @@ export default function Show({ auth }) {
                     </div>
 
                     {/* Box Preferences */}
-                    <div className="p-8 bg-white shadow-md rounded-2xl">
+                    <div className="animate-fade-in-up delay-200 p-8 bg-white shadow-md rounded-2xl">
                         <div className="flex items-start space-x-4">
                             <AdjustmentsHorizontalIcon className="h-8 w-8 text-gray-500"/>
                             <div>
@@ -97,7 +124,7 @@ export default function Show({ auth }) {
                     </div>
 
                     {/* 🔹 Tombol Logout align kanan bawah */}
-                    <div className="flex justify-end">
+                    <div className="animate-fade-in-up delay-300 flex justify-end">
                         <Link
                             href={route('logout')}
                             method="post"

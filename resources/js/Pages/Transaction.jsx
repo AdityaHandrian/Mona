@@ -48,6 +48,12 @@ export default function Transaction({ auth }) {
         message: '' 
     });
     
+    // Budget warning modal state
+    const [budgetWarningModal, setBudgetWarningModal] = useState({
+        show: false,
+        pendingTransaction: null
+    });
+    
     // Quick Stats state
     const [stats, setStats] = useState({
         totalIncome: 0,
@@ -597,17 +603,44 @@ export default function Transaction({ auth }) {
                 }
             `}</style>
             
+            {/* Animation Styles */}
+            <style>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes fadeInUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(30px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                .animate-fade-in {
+                    animation: fadeIn 0.8s ease-out forwards;
+                }
+                .animate-fade-in-up {
+                    animation: fadeInUp 0.8s ease-out forwards;
+                }
+                .delay-100 { animation-delay: 0.1s; opacity: 0; }
+                .delay-200 { animation-delay: 0.2s; opacity: 0; }
+                .delay-300 { animation-delay: 0.3s; opacity: 0; }
+            `}</style>
+
             <div className="overflow-x-hidden">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Header */}
-                    <div className="mb-8">
+                    <div className="mb-8 animate-fade-in">
                         <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl font-bold text-charcoal mb-2">Add Transaction</h1>
                         <p className="text-sm sm:text-base md:text-base lg:text-base xl:text-lg text-medium-gray">Record your income and expenses</p>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {/* New Transaction Form */}
-                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 relative z-50">
+                        <div className="animate-fade-in-up delay-100 bg-white rounded-lg shadow-sm border border-gray-200 p-6 relative z-50">
                             <h2 className="text-xl font-semibold mb-2">New Transaction</h2>
                             <p className="text-gray-600 mb-6">Enter the details of your transaction</p>
 
@@ -743,7 +776,7 @@ export default function Transaction({ auth }) {
                         </div>
 
                         {/* Quick Stats */}
-                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <div className="animate-fade-in-up delay-200 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                             <h2 className="text-xl font-semibold mb-2">Quick Stats</h2>
                             <p className="text-gray-600 mb-6">This month's summary</p>
 

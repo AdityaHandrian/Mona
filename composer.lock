@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "100fe74e10f8624a6f004bb18322ad20",
+    "content-hash": "d355f596ac66c5b753291c4c7cc78660",
     "packages": [
         {
             "name": "brick/math",
@@ -706,16 +706,16 @@
         },
         {
             "name": "google/cloud-document-ai",
-            "version": "v2.4.1",
+            "version": "v2.5.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/googleapis/google-cloud-php-document-ai.git",
-                "reference": "93e140c87f36d66b8ea33b5c9f9de5ccae14d055"
+                "reference": "337521c122a539e50d9a7fb493bb916711770a08"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/googleapis/google-cloud-php-document-ai/zipball/93e140c87f36d66b8ea33b5c9f9de5ccae14d055",
-                "reference": "93e140c87f36d66b8ea33b5c9f9de5ccae14d055",
+                "url": "https://api.github.com/repos/googleapis/google-cloud-php-document-ai/zipball/337521c122a539e50d9a7fb493bb916711770a08",
+                "reference": "337521c122a539e50d9a7fb493bb916711770a08",
                 "shasum": ""
             },
             "require": {
@@ -750,9 +750,9 @@
             ],
             "description": "Google Cloud Document Ai Client for PHP",
             "support": {
-                "source": "https://github.com/googleapis/google-cloud-php-document-ai/tree/v2.4.1"
+                "source": "https://github.com/googleapis/google-cloud-php-document-ai/tree/v2.5.0"
             },
-            "time": "2025-10-07T18:41:09+00:00"
+            "time": "2025-10-10T18:34:03+00:00"
         },
         {
             "name": "google/common-protos",

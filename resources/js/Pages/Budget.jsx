@@ -287,8 +287,41 @@ export default function Budget() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         <div className="bg-warm-ivory rounded-md">
+            {/* Animation Styles */}
+            <style>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes fadeInUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(30px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                .animate-fade-in {
+                    animation: fadeIn 0.8s ease-out forwards;
+                }
+                .animate-fade-in-up {
+                    animation: fadeInUp 0.8s ease-out forwards;
+                }
+                .delay-100 { animation-delay: 0.1s; opacity: 0; }
+                .delay-200 { animation-delay: 0.2s; opacity: 0; }
+                .delay-300 { animation-delay: 0.3s; opacity: 0; }
+                .delay-400 { animation-delay: 0.4s; opacity: 0; }
+                .delay-500 { animation-delay: 0.5s; opacity: 0; }
+                .delay-600 { animation-delay: 0.6s; opacity: 0; }
+                .delay-700 { animation-delay: 0.7s; opacity: 0; }
+                .delay-800 { animation-delay: 0.8s; opacity: 0; }
+                .delay-900 { animation-delay: 0.9s; opacity: 0; }
+            `}</style>
+
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
+            <div className="animate-fade-in flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
               <div>
                 <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-bold text-charcoal mb-2">Budget Manager</h1>
                 <p className="text-xs sm:text-sm md:text-base lg:text-base xl:text-lg text-medium-gray">Set and track your spending limits</p>
@@ -305,7 +338,7 @@ export default function Budget() {
             </div>
 
             {/* Month/Year Selector */}
-            <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm mb-6 sm:mb-8">
+            <div className="animate-fade-in-up delay-100 bg-white rounded-xl p-3 sm:p-4 shadow-sm mb-6 sm:mb-8">
               <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
                 <label className="text-xs sm:text-sm font-medium text-gray-700">View Budget for:</label>
                 <select
@@ -350,19 +383,19 @@ export default function Budget() {
 
             {/* top metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-              <Card>
+              <Card className="animate-fade-in-up delay-200">
                 <div className="text-base sm:text-lg font-semibold">Total Budget</div>
                 <div className="text-xl sm:text-2xl text-green-700 font-semibold mt-3 sm:mt-4">{formatIDR(totals.totalBudget)}</div>
                 <div className="text-gray-400 text-xs sm:text-sm mt-2 sm:mt-3">for this month</div>
               </Card>
 
-              <Card>
+              <Card className="animate-fade-in-up delay-300">
                 <div className="text-base sm:text-lg font-semibold">Total Spent</div>
                 <div className="text-xl sm:text-2xl text-red-600 font-semibold mt-3 sm:mt-4">{formatIDR(totals.totalSpent)}</div>
                 <div className="text-gray-400 text-xs sm:text-sm mt-2 sm:mt-3">{percent(totals.totalSpent, totals.totalBudget)}% from this month budget</div>
               </Card>
 
-              <Card>
+              <Card className="animate-fade-in-up delay-400">
                 <div className="text-base sm:text-lg font-semibold">Over Budget</div>
                 <div className="text-xl sm:text-2xl text-orange-600 font-semibold mt-3 sm:mt-4">{totals.overCategories}</div>
                 <div className="text-gray-400 text-xs sm:text-sm mt-2 sm:mt-3">Categories</div>
@@ -385,15 +418,18 @@ export default function Budget() {
               </div>
             ) : (
               <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4 sm:gap-6 pb-6 sm:pb-10">
-                {budgets.map((b) => {
+                {budgets.map((b, index) => {
                   const pct = percent(b.spent, b.budget);
                   const isOver = b.spent > b.budget;
                   const remaining = b.budget - b.spent;
                   const statusColor = isOver ? 'text-red-600' : pct >= 80 ? 'text-orange-500' : 'text-green-600';
+                  
+                  // Calculate staggered delay for each card
+                  const delayClass = `delay-${Math.min((index + 5) * 100, 900)}`;
 
                   return (
                     // group enables child elements to react to hover
-                    <div key={b.id} className="group bg-white rounded-xl p-4 sm:p-5 md:p-6 shadow-sm transform transition-all duration-200 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-lg">
+                    <div key={b.id} className={`animate-fade-in-up ${delayClass} group bg-white rounded-xl p-4 sm:p-5 md:p-6 shadow-sm transform transition-all duration-200 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-lg`}>
                       <div className="flex justify-between items-start">
                         <div className="flex-1 min-w-0">
                           <h3 className="text-base sm:text-lg md:text-xl font-semibold truncate">{b.category || b.title}</h3>
@@ -558,6 +594,6 @@ export default function Budget() {
 }
 
 // ---------- small presentational component ----------
-function Card({ children }) {
-  return <div className="bg-white rounded-xl p-4 sm:p-5 md:p-6 shadow-sm">{children}</div>;
+function Card({ children, className = '' }) {
+  return <div className={`bg-white rounded-xl p-4 sm:p-5 md:p-6 shadow-sm ${className}`}>{children}</div>;
 }

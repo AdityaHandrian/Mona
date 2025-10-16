@@ -156,4 +156,23 @@ class BudgetController extends Controller
         
         return redirect()->route('budget')->with('success', 'Budget deleted successfully!');
     }
+
+    public function checkBudget(Request $request)
+    {
+        $request->validate([
+            'category_id' => 'required|integer|exists:categories,id',
+            'month' => 'required|integer|min:1|max:12',
+            'year' => 'required|integer|min:2000',
+        ]);
+
+        $budgetExists = Budget::where('user_id', auth()->id())
+            ->where('category_id', $request->category_id)
+            ->whereYear('start_date', $request->year)
+            ->whereMonth('start_date', $request->month)
+            ->exists();
+
+        return response()->json([
+            'has_budget' => $budgetExists,
+        ]);
+    }
 }

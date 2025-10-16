@@ -99,6 +99,7 @@ Route::middleware(['auth'])->group(function () {
     
     // API-like routes for React components
     Route::get('/api/categories', [\App\Http\Controllers\CategoryController::class, 'index']);
+    Route::get('/api/budgets/check', [\App\Http\Controllers\BudgetController::class, 'checkBudget']);
     
     // History page routes (original methods)
     Route::get('/api/transactions', [\App\Http\Controllers\TransactionController::class, 'index']);

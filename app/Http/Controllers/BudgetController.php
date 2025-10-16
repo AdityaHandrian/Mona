@@ -8,6 +8,7 @@ use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class BudgetController extends Controller
 {
@@ -21,15 +22,17 @@ class BudgetController extends Controller
         
         $startDate = Carbon::create($year, $month, 1)->startOfMonth();
         $endDate = Carbon::create($year, $month, 1)->endOfMonth();
+
+        $userId = Auth::id(); // This is correct
         
-        $budgets = Budget::where('user_id', auth()->id())
+        $budgets = Budget::where('user_id', $userId)
             ->whereYear('start_date', $year)
             ->whereMonth('start_date', $month)
             ->with('category')
             ->get()
-            ->map(function ($budget) use ($startDate, $endDate) {
-                // Calculate spent for this budget's category within the date range
-                $spent = Transaction::where('user_id', auth()->id())
+            // FIXED: Added $userId to the `use` statement
+            ->map(function ($budget) use ($startDate, $endDate, $userId) { 
+                $spent = Transaction::where('user_id', $userId)
                     ->where('category_id', $budget->category_id)
                     ->whereBetween('transaction_date', [$startDate, $endDate])
                     ->sum('amount');
@@ -39,7 +42,7 @@ class BudgetController extends Controller
                     'title' => $budget->category->category_name,
                     'category' => $budget->category->category_name,
                     'budget' => (float) $budget->amount,
-                    'spent' => (float) abs($spent), // Use abs() in case amounts are negative
+                    'spent' => (float) abs($spent),
                     'month' => $budget->start_date->format('m'),
                     'year' => (int) $budget->start_date->year,
                 ];
@@ -80,7 +83,9 @@ class BudgetController extends Controller
         $startDate = $now->copy()->startOfMonth();
         $endDate = $now->copy()->endOfMonth();
         
-        $exists = Budget::where('user_id', auth()->id())
+        $userId = Auth::id(); // FIXED: Added this line
+        
+        $exists = Budget::where('user_id', $userId)
             ->where('category_id', $category->id)
             ->whereYear('start_date', $now->year)
             ->whereMonth('start_date', $now->month)
@@ -91,7 +96,7 @@ class BudgetController extends Controller
         }
         
         Budget::create([
-            'user_id' => auth()->id(),
+            'user_id' => $userId,
             'category_id' => $category->id,
             'amount' => $request->budget,
             'start_date' => $startDate,
@@ -103,7 +108,9 @@ class BudgetController extends Controller
     
     public function update(Request $request, Budget $budget)
     {
-        if ($budget->user_id !== auth()->id()) {
+        $userId = Auth::id(); // FIXED: Added this line
+        
+        if ($budget->user_id !== $userId) {
             abort(403);
         }
 
@@ -112,7 +119,6 @@ class BudgetController extends Controller
             'budget' => 'required|numeric|min:0',
         ]);
 
-        // Find the category by name
         $category = Category::where('category_name', $request->category)
             ->where('type', 'expense')
             ->first();
@@ -121,10 +127,9 @@ class BudgetController extends Controller
             return back()->withErrors(['category' => 'Category not found.']);
         }
 
-        // Check if budget already exists for this category in the same month
-        $exists = Budget::where('user_id', auth()->id())
+        $exists = Budget::where('user_id', $userId)
             ->where('category_id', $category->id)
-            ->where('id', '!=', $budget->id) // Exclude current budget
+            ->where('id', '!=', $budget->id)
             ->whereYear('start_date', $budget->start_date->year)
             ->whereMonth('start_date', $budget->start_date->month)
             ->exists();
@@ -133,7 +138,6 @@ class BudgetController extends Controller
             return back()->withErrors(['category' => 'Budget for this category already exists for this month.']);
         }
 
-        // Update the budget
         $budget->update([
             'category_id' => $category->id,
             'amount' => $request->budget,
@@ -144,7 +148,9 @@ class BudgetController extends Controller
     
     public function destroy(Budget $budget)
     {
-        if ($budget->user_id !== auth()->id()) {
+        $userId = Auth::id(); // FIXED: Added this line
+        
+        if ($budget->user_id !== $userId) {
             abort(403);
         }
         
@@ -165,7 +171,9 @@ class BudgetController extends Controller
             'year' => 'required|integer|min:2000',
         ]);
 
-        $budgetExists = Budget::where('user_id', auth()->id())
+        $userId = Auth::id(); // FIXED: Added this line
+
+        $budgetExists = Budget::where('user_id', $userId)
             ->where('category_id', $request->category_id)
             ->whereYear('start_date', $request->year)
             ->whereMonth('start_date', $request->month)

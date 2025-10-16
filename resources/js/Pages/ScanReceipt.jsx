@@ -37,6 +37,20 @@ export default function ScanReceipt({ auth }) {
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
 
+    // Budget warning modal state
+    const [budgetWarningModal, setBudgetWarningModal] = useState({
+        show: false,
+        pendingTransaction: null
+    });
+
+    // Modal notification state (SweetAlert2-style)
+    const [modalNotification, setModalNotification] = useState({ 
+        show: false, 
+        type: '', // 'success' or 'error'
+        title: '',
+        message: '' 
+    });
+
     // Handle window resize for responsive filename truncation
     useEffect(() => {
         const handleResize = () => {
@@ -74,9 +88,23 @@ export default function ScanReceipt({ auth }) {
         fetchCategories();
     }, []);
 
+    // Hide modal notification after 3 seconds
+    useEffect(() => {
+        if (modalNotification.show) {
+            const timer = setTimeout(() => {
+                setModalNotification({ show: false, type: '', title: '', message: '' });
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [modalNotification.show]);
+
     const showMessage = (type, text) => {
         setMessage({ type, text });
         setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+    };
+
+    const showModalNotification = (type, title, message) => {
+        setModalNotification({ show: true, type, title, message });
     };
 
     // Image compression function to speed up camera photos
@@ -458,24 +486,68 @@ export default function ScanReceipt({ auth }) {
 
     const handleAddTransaction = async () => {
         if (!formData.amount || !formData.category || !formData.date) {
-            showMessage('error', 'Please fill in all required fields (Amount, Category, Date)');
+            showModalNotification('error', 'Validation Error', 'Please fill in all required fields (Amount, Category, Date)');
             return;
         }
 
+        // Check if the selected category is an expense type
+        const selectedCategory = categories.find(cat => cat.id === parseInt(formData.category));
+        const isExpense = selectedCategory && selectedCategory.type === 'expense';
+
+        // Prepare transaction data
+        const transactionData = {
+            category_id: parseInt(formData.category),
+            amount: parseFloat(formData.amount),
+            description: formData.description || 'Receipt transaction',
+            transaction_date: formData.date
+        };
+
+        // Check budget only for expense transactions
+        if (isExpense) {
+            const hasBudget = await checkBudgetExists(transactionData.category_id, transactionData.transaction_date);
+            
+            if (!hasBudget) {
+                // Show budget warning modal
+                setBudgetWarningModal({
+                    show: true,
+                    pendingTransaction: transactionData
+                });
+                return;
+            }
+        }
+
+        // If income or budget exists, save directly
+        await saveTransaction(transactionData);
+    };
+
+    const checkBudgetExists = async (categoryId, date) => {
+        try {
+            const transactionDate = new Date(date);
+            const month = transactionDate.getMonth() + 1; // getMonth() returns 0-11
+            const year = transactionDate.getFullYear();
+            
+            const response = await axios.get('/api/budgets/check', {
+                params: {
+                    category_id: categoryId,
+                    month: month,
+                    year: year
+                }
+            });
+            
+            return response.data.has_budget;
+        } catch (error) {
+            console.error('Error checking budget:', error);
+            return true; // If error, assume budget exists to avoid blocking
+        }
+    };
+
+    const saveTransaction = async (transactionData) => {
         setSubmitting(true);
         try {
-            // Prepare data for API
-            const transactionData = {
-                category_id: parseInt(formData.category),
-                amount: parseFloat(formData.amount),
-                description: formData.description || 'Receipt transaction',
-                transaction_date: formData.date
-            };
-
             const response = await axios.post('/api/transactions/quick-add', transactionData);
 
             if (response.data.status === 'success') {
-                showMessage('success', 'Transaction added successfully from receipt!');
+                showModalNotification('success', 'Success', 'Transaction added successfully from receipt!');
                 
                 // Reset form and clear selected file
                 setFormData({
@@ -498,15 +570,24 @@ export default function ScanReceipt({ auth }) {
             
             if (error.response?.data?.errors) {
                 const errors = Object.values(error.response.data.errors).flat();
-                showMessage('error', errors.join(', '));
+                showModalNotification('error', 'Validation Error', errors.join(', '));
             } else if (error.response?.data?.message) {
-                showMessage('error', error.response.data.message);
+                showModalNotification('error', 'Error', error.response.data.message);
             } else {
-                showMessage('error', 'Failed to add transaction. Please try again.');
+                showModalNotification('error', 'Error', 'Failed to add transaction. Please try again.');
             }
         } finally {
             setSubmitting(false);
         }
+    };
+
+    const handleContinueAnyway = async () => {
+        setBudgetWarningModal({ show: false, pendingTransaction: null });
+        await saveTransaction(budgetWarningModal.pendingTransaction);
+    };
+
+    const handleCancelTransaction = () => {
+        setBudgetWarningModal({ show: false, pendingTransaction: null });
     };
 
     const openCameraOrFile = () => {
@@ -593,6 +674,158 @@ export default function ScanReceipt({ auth }) {
             title="MONA - Scan Receipt" 
             auth={auth}
         >
+            {/* Modal Notification Overlay (SweetAlert2-style) */}
+            {modalNotification.show && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-11/12 animate-scale-in">
+                        {/* Icon */}
+                        <div className="flex justify-center mb-6">
+                            {modalNotification.type === 'success' ? (
+                                <div className="w-20 h-20 rounded-full border-4 border-growth-green-500 flex items-center justify-center animate-check-icon">
+                                    <svg className="w-12 h-12 text-growth-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                            ) : (
+                                <div className="w-20 h-20 rounded-full border-4 border-expense-red-500 flex items-center justify-center animate-error-icon">
+                                    <img 
+                                        src="/images/icons/exclamation-warning-icon.svg" 
+                                        alt="Error" 
+                                        className="w-10 h-10"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                        
+                        {/* Title */}
+                        <h3 className={`text-2xl font-bold text-center mb-3 ${
+                            modalNotification.type === 'success' ? 'text-growth-green-500' : 'text-expense-red-500'
+                        }`}>
+                            {modalNotification.title}
+                        </h3>
+                        
+                        {/* Message */}
+                        <p className="text-gray-600 text-center text-base">
+                            {modalNotification.message}
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Budget Warning Modal */}
+            {budgetWarningModal.show && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-11/12 animate-scale-in">
+                        {/* Warning Icon */}
+                        <div className="flex justify-center mb-6">
+                            <div className="w-20 h-20 rounded-full border-4 border-yellow-500 flex items-center justify-center animate-warning-icon">
+                                <svg className="w-12 h-12 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        {/* Title */}
+                        <h3 className="text-2xl font-bold text-center mb-3 text-yellow-600">
+                            No Budget Set
+                        </h3>
+                        
+                        {/* Message */}
+                        <p className="text-gray-600 text-center text-base mb-6">
+                            You haven't set a budget for this expense category in the selected month. Do you want to continue anyway?
+                        </p>
+                        
+                        {/* Action Buttons */}
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={handleContinueAnyway}
+                                className="w-full py-3 px-6 rounded-lg font-medium bg-growth-green-500 text-white hover:bg-growth-green-600 transition-colors"
+                            >
+                                Continue Anyway
+                            </button>
+                            <button
+                                onClick={handleCancelTransaction}
+                                className="w-full py-3 px-6 rounded-lg font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
+                            >
+                                Cancel Transaction
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Keyframes for animations */}
+            <style>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes scaleIn {
+                    from { 
+                        opacity: 0; 
+                        transform: scale(0.5); 
+                    }
+                    to { 
+                        opacity: 1; 
+                        transform: scale(1); 
+                    }
+                }
+                @keyframes checkIcon {
+                    0% { 
+                        transform: scale(0) rotate(0deg); 
+                        opacity: 0; 
+                    }
+                    50% { 
+                        transform: scale(1.2) rotate(180deg); 
+                    }
+                    100% { 
+                        transform: scale(1) rotate(360deg); 
+                        opacity: 1; 
+                    }
+                }
+                @keyframes errorIcon {
+                    0% { 
+                        transform: scale(0); 
+                        opacity: 0; 
+                    }
+                    50% { 
+                        transform: scale(1.2); 
+                    }
+                    100% { 
+                        transform: scale(1); 
+                        opacity: 1; 
+                    }
+                }
+                @keyframes warningIcon {
+                    0% { 
+                        transform: scale(0) rotate(-180deg); 
+                        opacity: 0; 
+                    }
+                    50% { 
+                        transform: scale(1.1) rotate(10deg); 
+                    }
+                    100% { 
+                        transform: scale(1) rotate(0deg); 
+                        opacity: 1; 
+                    }
+                }
+                .animate-fade-in {
+                    animation: fadeIn 0.3s ease-out;
+                }
+                .animate-scale-in {
+                    animation: scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                }
+                .animate-check-icon {
+                    animation: checkIcon 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s both;
+                }
+                .animate-error-icon {
+                    animation: errorIcon 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s both;
+                }
+                .animate-warning-icon {
+                    animation: warningIcon 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s both;
+                }
+            `}</style>
+
             {/* Page Content */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Page Header */}

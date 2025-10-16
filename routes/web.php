@@ -110,5 +110,8 @@ Route::middleware(['auth'])->group(function () {
     // Transaction.jsx routes
     Route::post('/api/transactions/add', [\App\Http\Controllers\TransactionController::class, 'apiStore']);
     Route::get('/api/transactions/monthly-stats', [\App\Http\Controllers\TransactionController::class, 'monthlyStats']);
+    
+    // ScanReceipt.jsx routes
+    Route::post('/api/transactions/quick-add', [\App\Http\Controllers\TransactionController::class, 'quickAdd']);
 });
 require __DIR__.'/auth.php';

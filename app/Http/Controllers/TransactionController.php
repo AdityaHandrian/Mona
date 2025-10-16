@@ -270,5 +270,32 @@ class TransactionController extends Controller
             ], 500);
         }
     }
-}
 
+    // ============================================
+    // NEW METHODS FOR TRANSACTION.JSX & SCANRECEIPT.JSX
+    // ============================================
+    
+    public function apiStore(Request $request)
+    {
+        $validated = $request->validate([
+            'category_id' => 'required|exists:categories,id',
+            'amount' => 'required|numeric|min:0',
+            'description' => 'nullable|string|max:255',
+            'transaction_date' => 'required|date',
+        ]);
+
+        $transaction = Transaction::create([
+            'user_id' => $request->user()->id,
+            'category_id' => $validated['category_id'],
+            'amount' => $validated['amount'],
+            'description' => $validated['description'] ?? '',
+            'transaction_date' => $validated['transaction_date'],
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Transaction created successfully',
+            'data' => $transaction
+        ], 201);
+    }
+}

@@ -38,9 +38,13 @@ export default function Transaction({ auth }) {
         date: new Date().toISOString().split('T')[0], // Today's date
         description: ''
     });
-    // Notification state
-    const [notification, setNotification] = useState({ message: '', type: '' });
-    const [showNotification, setShowNotification] = useState(false);
+    // Modal notification state
+    const [modalNotification, setModalNotification] = useState({ 
+        show: false, 
+        type: '', // 'success' or 'error'
+        title: '',
+        message: '' 
+    });
     
     // Quick Stats state
     const [stats, setStats] = useState({
@@ -70,7 +74,7 @@ export default function Transaction({ auth }) {
             setCategories(response.data);
         } catch (error) {
             console.error('Error fetching categories:', error);
-            showMessage('error', 'Failed to load categories');
+            showModalNotification('error', 'Something went wrong', 'Failed to load categories');
             // Fallback categories
             setCategories([]);
         } finally {
@@ -126,32 +130,31 @@ export default function Transaction({ auth }) {
         fetchMonthlyStats();
     }, []);
 
-    // Hide notification after 3 seconds
+    // Hide modal notification after 3 seconds
     useEffect(() => {
-        if (notification.message) {
-            setShowNotification(true);
-            const timer = setTimeout(() => setShowNotification(false), 2700);
-            const timer2 = setTimeout(() => setNotification({ message: '', type: '' }), 3000);
-            return () => { clearTimeout(timer); clearTimeout(timer2); };
+        if (modalNotification.show) {
+            const timer = setTimeout(() => {
+                setModalNotification({ show: false, type: '', title: '', message: '' });
+            }, 3000);
+            return () => clearTimeout(timer);
         }
-    }, [notification]);
+    }, [modalNotification.show]);
 
-    const showMessage = (type, text) => {
-        setMessage({ type, text });
-        setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+    const showModalNotification = (type, title, message) => {
+        setModalNotification({ show: true, type, title, message });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         
         if (!formData.amount || !formData.category || !formData.date) {
-            setNotification({ message: 'Please fill in all required fields.', type: 'error' });
+            showModalNotification('error', 'Something went wrong', 'Please fill in all required fields.');
             return;
         }
 
         const rawAmount = Number(formData.amount);
         if (Number.isNaN(rawAmount) || rawAmount <= 0) {
-            setNotification({ message: 'Amount must be a valid positive number.', type: 'error' });
+            showModalNotification('error', 'Something went wrong', 'Amount must be a valid positive number.');
             return;
         }
 
@@ -166,7 +169,7 @@ export default function Transaction({ auth }) {
 
             // Use /api/transactions/add to avoid conflict with History page
             await axios.post('/api/transactions/add', transactionData);
-            setNotification({ message: 'Transaction added successfully!', type: 'success' });
+            showModalNotification('success', 'Success', 'Transaction added Successfully!');
 
             // Reset form
             setFormData({
@@ -179,7 +182,7 @@ export default function Transaction({ auth }) {
             // Refresh monthly statistics after adding transaction
             fetchMonthlyStats();
         } catch (err) {
-            setNotification({ message: 'Failed to create transaction.', type: 'error' });
+            showModalNotification('error', 'Something went wrong', 'Failed to create transaction!');
             console.error('Failed to create transaction:', err?.response?.data || err.message);
         } finally {
             setSubmitting(false);
@@ -191,11 +194,11 @@ export default function Transaction({ auth }) {
 
         try {
             await axios.delete(`/api/transactions/${id}`);
-            showMessage('success', 'Transaction deleted successfully!');
+            showModalNotification('success', 'Success', 'Transaction deleted successfully!');
             fetchMonthlyStats();
         } catch (error) {
             console.error('Error deleting transaction:', error);
-            showMessage('error', 'Failed to delete transaction');
+            showModalNotification('error', 'Something went wrong', 'Failed to delete transaction');
         }
     };
 
@@ -205,23 +208,100 @@ export default function Transaction({ auth }) {
             auth={auth}
         >
             <Head title="MONA - Transaction" />
-            {/* Floating Notification (bottom left, animated) */}
-            {notification.message && (
-                <div
-                    className={`fixed bottom-8 left-8 z-[9999] px-6 py-3 rounded-lg shadow-lg transition-all duration-300
-                        ${notification.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}
-                        ${showNotification ? 'animate-fade-in' : 'animate-fade-out'}`}
-                    style={{ pointerEvents: 'none' }}
-                >
-                    <style>{`
-                        @keyframes fadeInNotif { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
-                        @keyframes fadeOutNotif { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(20px) scale(0.95); } }
-                        .animate-fade-in { animation: fadeInNotif 0.3s ease-out; }
-                        .animate-fade-out { animation: fadeOutNotif 0.3s ease-in; }
-                    `}</style>
-                    {notification.message}
+            
+            {/* Modal Notification Overlay (SweetAlert2-style) */}
+            {modalNotification.show && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-11/12 animate-scale-in">
+                        {/* Icon */}
+                        <div className="flex justify-center mb-6">
+                            {modalNotification.type === 'success' ? (
+                                <div className="w-20 h-20 rounded-full border-4 border-growth-green-500 flex items-center justify-center animate-check-icon">
+                                    <svg className="w-12 h-12 text-growth-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                            ) : (
+                                <div className="w-20 h-20 rounded-full border-4 border-expense-red-500 flex items-center justify-center animate-error-icon">
+                                    <img 
+                                        src="/images/icons/exclamation-warning-icon.svg" 
+                                        alt="Error" 
+                                        className="w-10 h-10"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                        
+                        {/* Title */}
+                        <h3 className={`text-2xl font-bold text-center mb-3 ${
+                            modalNotification.type === 'success' ? 'text-growth-green-500' : 'text-expense-red-500'
+                        }`}>
+                            {modalNotification.title}
+                        </h3>
+                        
+                        {/* Message */}
+                        <p className="text-gray-600 text-center text-base">
+                            {modalNotification.message}
+                        </p>
+                    </div>
                 </div>
             )}
+
+            {/* Keyframes for animations */}
+            <style>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes scaleIn {
+                    from { 
+                        opacity: 0; 
+                        transform: scale(0.5); 
+                    }
+                    to { 
+                        opacity: 1; 
+                        transform: scale(1); 
+                    }
+                }
+                @keyframes checkIcon {
+                    0% { 
+                        transform: scale(0) rotate(0deg); 
+                        opacity: 0; 
+                    }
+                    50% { 
+                        transform: scale(1.2) rotate(180deg); 
+                    }
+                    100% { 
+                        transform: scale(1) rotate(360deg); 
+                        opacity: 1; 
+                    }
+                }
+                @keyframes errorIcon {
+                    0% { 
+                        transform: scale(0); 
+                        opacity: 0; 
+                    }
+                    50% { 
+                        transform: scale(1.2); 
+                    }
+                    100% { 
+                        transform: scale(1); 
+                        opacity: 1; 
+                    }
+                }
+                .animate-fade-in {
+                    animation: fadeIn 0.3s ease-out;
+                }
+                .animate-scale-in {
+                    animation: scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                }
+                .animate-check-icon {
+                    animation: checkIcon 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s both;
+                }
+                .animate-error-icon {
+                    animation: errorIcon 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s both;
+                }
+            `}</style>
             
             <div className="overflow-x-hidden">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

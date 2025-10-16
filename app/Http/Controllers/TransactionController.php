@@ -273,7 +273,7 @@ class TransactionController extends Controller
         ]);
 
         $transaction = Transaction::create([
-            'user_id' => auth()->id(),
+            'user_id' => $request->user()->id,
             'category_id' => $validated['category_id'],
             'amount' => $validated['amount'],
             'description' => $validated['description'] ?? '',

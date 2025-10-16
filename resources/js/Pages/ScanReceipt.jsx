@@ -198,6 +198,19 @@ export default function ScanReceipt({ auth }) {
         setIsScanning(true);
         
         try {
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            
+            if (!csrfToken) {
+                throw new Error('CSRF token not found. Please refresh the page and try again.');
+            }
+            
+            console.log('Starting OCR process with file:', {
+                name: selectedFile.name,
+                size: selectedFile.size,
+                type: selectedFile.type
+            });
+            
             // Create FormData to send the file to your existing OCR endpoint
             const formData = new FormData();
             formData.append('image', selectedFile); // Using 'image' to match your existing endpoint
@@ -206,17 +219,38 @@ export default function ScanReceipt({ auth }) {
             const response = await fetch('/process-receipt-ai', {
                 method: 'POST',
                 headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
+                    'X-CSRF-TOKEN': csrfToken,
                     'Accept': 'application/json',
                 },
                 body: formData
             });
             
+            // Get response text for better error debugging
+            const responseText = await response.text();
+            console.log('Response status:', response.status);
+            console.log('Response body:', responseText);
+            
             if (!response.ok) {
-                throw new Error('OCR processing failed');
+                // Try to parse error message from response
+                let errorMessage = 'OCR processing failed';
+                try {
+                    const errorData = JSON.parse(responseText);
+                    errorMessage = errorData.error || errorData.message || errorMessage;
+                    if (errorData.details) {
+                        errorMessage += ': ' + errorData.details;
+                    }
+                } catch (e) {
+                    // If response is not JSON, use the text
+                    errorMessage += ` (Status: ${response.status})`;
+                    if (responseText && responseText.length < 200) {
+                        errorMessage += ` - ${responseText}`;
+                    }
+                }
+                throw new Error(errorMessage);
             }
             
-            const ocrData = await response.json();
+            // Parse JSON response
+            const ocrData = JSON.parse(responseText);
             
             // Check if there's an error from the backend
             if (ocrData.error) {
@@ -300,10 +334,14 @@ export default function ScanReceipt({ auth }) {
             setFormData(processedResults);
             
         } catch (error) {
-            console.error('OCR Error:', error);
+            console.error('OCR Error Details:', {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+            });
             
-            // Show error to user
-            alert('Failed to process receipt: ' + error.message);
+            // Show detailed error to user
+            showMessage('error', 'Failed to process receipt: ' + error.message);
             
             // Don't set any results - keep the empty state
             console.log('OCR failed, keeping extracted data section empty');

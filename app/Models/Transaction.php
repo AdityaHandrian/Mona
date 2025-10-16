@@ -19,7 +19,7 @@ class Transaction extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
-        'transaction_date' => 'date',
+        'transaction_date' => 'datetime',
     ];
 
     public function user()

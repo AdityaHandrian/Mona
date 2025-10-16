@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreTransactionRequest;
@@ -8,11 +9,13 @@ use Illuminate\Support\Facades\DB;
 
 class TransactionController extends Controller
 {
+    // ============================================
+    // ORIGINAL METHODS FOR HISTORY PAGE (unchanged format)
+    // ============================================
+    
     //POST /api/transactions
-     
     public function store(StoreTransactionRequest $request)
     {
-        
         $payload = $request->validated();
         $payload['user_id'] = $request->user()->id;
 
@@ -24,7 +27,7 @@ class TransactionController extends Controller
                 'transaction_id'   => (int) $trx->id,
                 'user_id'          => (int) $trx->user_id,
                 'category_id'      => (int) $trx->category_id,
-                'amount'           => (float) $trx->amount, // DECIMAL(15,2)
+                'amount'           => (float) $trx->amount,
                 'description'      => $trx->description,
                 'transaction_date' => optional($trx->transaction_date)->toIso8601String(),
                 'created_at'       => optional($trx->created_at)->toIso8601String(),
@@ -32,8 +35,7 @@ class TransactionController extends Controller
         ], 201);
     }
 
-    //GET /api/transactions
-    
+    //GET /api/transactions (for History page)
     public function index(Request $request)
     {
         $validated = $request->validate([
@@ -54,7 +56,6 @@ class TransactionController extends Controller
         $perPage  = $validated['per_page']    ?? 15;
 
         $query = DB::table('transactions as T')
-            // SESUAIKAN PK categories: pakai 'C.id' jika PK = id, atau 'C.category_id' jika PK = category_id
             ->join('categories as C', 'T.category_id', '=', 'C.id')
             ->where('T.user_id', $userId)
             ->select([
@@ -76,10 +77,8 @@ class TransactionController extends Controller
 
         $page = $query->paginate($perPage);
 
-        // Map DB rows to the frontend shape used in resources/js/Pages/History.jsx
-        // Frontend expects: { id, date, type, category, description, amount }
+        // Map to History.jsx expected format
         $items = collect($page->items())->map(function ($row) {
-            // Format date as D/M/YYYY to match the dummy data (e.g. '1/9/2025')
             $date = null;
             if (!empty($row->transaction_date)) {
                 try {
@@ -89,10 +88,7 @@ class TransactionController extends Controller
                 }
             }
 
-            // type in DB is 'income' or 'expense' (lowercase). Frontend uses 'Income'/'Expense'
             $typeLabel = isset($row->type) ? ucfirst($row->type) : null;
-
-            // Amount in DB is positive; make it negative for expense to match frontend dummy values
             $amount = (float) $row->amount;
             if (isset($row->type) && $row->type === 'expense') {
                 $amount = -1 * abs($amount);
@@ -127,7 +123,6 @@ class TransactionController extends Controller
         try {
             $transaction = Transaction::findOrFail($id);
             
-            // Check if the transaction belongs to the authenticated user
             if ($transaction->user_id !== $request->user()->id) {
                 return response()->json([
                     'status' => 'error',
@@ -137,12 +132,10 @@ class TransactionController extends Controller
 
             $payload = $request->validated();
             
-            // Update the transaction
             DB::transaction(function () use ($transaction, $payload) {
                 $transaction->update($payload);
             });
 
-            // Refresh the model to get updated data
             $transaction->refresh();
 
             return response()->json([
@@ -179,7 +172,6 @@ class TransactionController extends Controller
         try {
             $transaction = Transaction::findOrFail($id);
             
-            // Check if the transaction belongs to the authenticated user
             if ($transaction->user_id !== $request->user()->id) {
                 return response()->json([
                     'status' => 'error',
@@ -187,7 +179,6 @@ class TransactionController extends Controller
                 ], 403);
             }
 
-            // Store transaction data before deletion for response
             $deletedTransactionData = [
                 'transaction_id'   => $transaction->id,
                 'user_id'          => $transaction->user_id,
@@ -197,7 +188,6 @@ class TransactionController extends Controller
                 'transaction_date' => $transaction->transaction_date?->toIso8601String(),
             ];
 
-            // Delete the transaction
             DB::transaction(fn() => $transaction->delete());
 
             return response()->json([
@@ -233,7 +223,6 @@ class TransactionController extends Controller
         $year = $validated['year'];
 
         try {
-            // Get total income (positive amounts from income categories)
             $totalIncome = DB::table('transactions as T')
                 ->join('categories as C', 'T.category_id', '=', 'C.id')
                 ->where('T.user_id', $userId)
@@ -242,7 +231,6 @@ class TransactionController extends Controller
                 ->whereYear('T.transaction_date', $year)
                 ->sum('T.amount');
 
-            // Get total expenses (positive amounts from expense categories, but we'll return as positive)
             $totalExpenses = DB::table('transactions as T')
                 ->join('categories as C', 'T.category_id', '=', 'C.id')
                 ->where('T.user_id', $userId)

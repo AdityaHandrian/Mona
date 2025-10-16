@@ -22,6 +22,7 @@ export default function ScanReceipt({ auth }) {
     const [selectedFile, setSelectedFile] = useState(null);
     const [isScanning, setIsScanning] = useState(false);
     const [ocrResults, setOcrResults] = useState(null);
+    const [processingTime, setProcessingTime] = useState(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
     const [formData, setFormData] = useState({
@@ -56,11 +57,12 @@ export default function ScanReceipt({ auth }) {
             console.error('Error fetching categories:', error);
             // Fallback categories if API fails
             setCategories([
-                { id: 1, category_name: 'Food and Beverages' },
+                { id: 1, category_name: 'Food & Dining' },
                 { id: 2, category_name: 'Shopping' },
                 { id: 3, category_name: 'Entertainment' },
-                { id: 4, category_name: 'Bills and Utilities' },
-                { id: 5, category_name: 'Other' }
+                { id: 4, category_name: 'Bills & Utilities' },
+                { id: 5, category_name: 'Transportation' },
+                { id: 6, category_name: 'Other Expense' }
             ]);
         } finally {
             setLoadingCategories(false);
@@ -187,6 +189,7 @@ export default function ScanReceipt({ auth }) {
         
         // Reset results when new file is selected
         setOcrResults(null);
+        setProcessingTime(null);
     };
 
     const handleScanReceipt = async () => {
@@ -195,34 +198,81 @@ export default function ScanReceipt({ auth }) {
         setIsScanning(true);
         
         try {
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            
+            if (!csrfToken) {
+                throw new Error('CSRF token not found. Please refresh the page and try again.');
+            }
+            
+            console.log('Starting OCR process with file:', {
+                name: selectedFile.name,
+                size: selectedFile.size,
+                type: selectedFile.type
+            });
+            
             // Create FormData to send the file to your existing OCR endpoint
             const formData = new FormData();
             formData.append('image', selectedFile); // Using 'image' to match your existing endpoint
             
-            // Send to your existing Laravel OCR endpoint
-            const response = await fetch('/process-receipt', {
+            // Send to your new Laravel Document AI endpoint
+            const response = await fetch('/process-receipt-ai', {
                 method: 'POST',
                 headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
+                    'X-CSRF-TOKEN': csrfToken,
                     'Accept': 'application/json',
                 },
                 body: formData
             });
             
+            // Get response text for better error debugging
+            const responseText = await response.text();
+            console.log('Response status:', response.status);
+            console.log('Response body:', responseText);
+            
             if (!response.ok) {
-                throw new Error('OCR processing failed');
+                // Try to parse error message from response
+                let errorMessage = 'OCR processing failed';
+                try {
+                    const errorData = JSON.parse(responseText);
+                    errorMessage = errorData.error || errorData.message || errorMessage;
+                    if (errorData.details) {
+                        errorMessage += ': ' + errorData.details;
+                    }
+                } catch (e) {
+                    // If response is not JSON, use the text
+                    errorMessage += ` (Status: ${response.status})`;
+                    if (responseText && responseText.length < 200) {
+                        errorMessage += ` - ${responseText}`;
+                    }
+                }
+                throw new Error(errorMessage);
             }
             
-            const ocrData = await response.json();
+            // Parse JSON response
+            const ocrData = JSON.parse(responseText);
             
             // Check if there's an error from the backend
             if (ocrData.error) {
                 throw new Error(ocrData.error);
             }
+
+            // Store processing time if available
+            if (ocrData.processing_stats?.processing_time_ms) {
+                setProcessingTime(ocrData.processing_stats.processing_time_ms);
+            }
+            
+            // Use the extracted data from Document AI
+            const extractedData = ocrData.extracted || {};
             
             // Helper function to parse and validate date
             const parseReceiptDate = (dateString) => {
                 if (!dateString) return new Date().toISOString().split('T')[0];
+                
+                // If date is already in YYYY-MM-DD format, return as is
+                if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    return dateString;
+                }
                 
                 // Try multiple date formats commonly found on Indonesian receipts
                 const dateFormats = [
@@ -272,23 +322,26 @@ export default function ScanReceipt({ auth }) {
                 return new Date().toISOString().split('T')[0];
             };
             
-            // Process the OCR results from your Gemini AI service
-            const mappedCategoryId = mapToValidCategory(ocrData.category, ocrData.description);
+            // Process the OCR results from Document AI service
             const processedResults = {
-                amount: ocrData.amount || '',
-                category: mappedCategoryId || (categories.length > 0 ? categories[0].id : ''), // Smart mapping with fallback
-                date: parseReceiptDate(ocrData.date), // Better date parsing
-                description: ocrData.description || 'Receipt transaction'
+                amount: extractedData.amount || '',
+                category: mapToValidCategory(extractedData.category, extractedData.description), // Smart mapping with description
+                date: parseReceiptDate(extractedData.date), // Better date parsing
+                description: extractedData.description || 'Receipt transaction'
             };
             
             setOcrResults(processedResults);
             setFormData(processedResults);
             
         } catch (error) {
-            console.error('OCR Error:', error);
+            console.error('OCR Error Details:', {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+            });
             
-            // Show error to user
-            alert('Failed to process receipt: ' + error.message);
+            // Show detailed error to user
+            showMessage('error', 'Failed to process receipt: ' + error.message);
             
             // Don't set any results - keep the empty state
             console.log('OCR failed, keeping extracted data section empty');
@@ -411,7 +464,7 @@ export default function ScanReceipt({ auth }) {
 
         setSubmitting(true);
         try {
-            // Prepare data for API (same format as Transaction page)
+            // Prepare data for API
             const transactionData = {
                 category_id: parseInt(formData.category),
                 amount: parseFloat(formData.amount),
@@ -419,7 +472,7 @@ export default function ScanReceipt({ auth }) {
                 transaction_date: formData.date
             };
 
-            const response = await axios.post('/api/transactions', transactionData);
+            const response = await axios.post('/api/transactions/quick-add', transactionData);
 
             if (response.data.status === 'success') {
                 showMessage('success', 'Transaction added successfully from receipt!');
@@ -444,7 +497,6 @@ export default function ScanReceipt({ auth }) {
             console.error('Error adding transaction:', error);
             
             if (error.response?.data?.errors) {
-                // Handle validation errors
                 const errors = Object.values(error.response.data.errors).flat();
                 showMessage('error', errors.join(', '));
             } else if (error.response?.data?.message) {
@@ -706,12 +758,17 @@ export default function ScanReceipt({ auth }) {
                             </div>
                         </div>
 
-                        {/* Extracted Data Section */}
-                        <div className="bg-white rounded-lg border border-light-gray p-6">
-                            <h2 className="text-xl font-semibold text-charcoal mb-2">Extracted Data</h2>
-                            <p className="text-medium-gray mb-6">Review the Scanned Information</p>
-
-                            {isScanning ? (
+        {/* Extracted Data Section */}
+        <div className="bg-white rounded-lg border border-[#E0E0E0] p-6">
+            <div className="flex justify-between items-start mb-2">
+                <h2 className="text-xl font-semibold text-[#2C2C2C]">Extracted Data</h2>
+                {processingTime && (
+                    <span className="text-sm text-[#757575] bg-gray-100 px-2 py-1 rounded">
+                        Processed in {processingTime}ms
+                    </span>
+                )}
+            </div>
+            <p className="text-[#757575] mb-6">Review the Scanned Information</p>                            {isScanning ? (
                                 /* Loading State */
                                 <div className="text-center py-12">
                                     <div className="mb-4">

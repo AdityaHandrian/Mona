@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 // Helper functions for number formatting
 const formatNumberWithDots = (value) => {
@@ -44,12 +46,6 @@ export default function Transaction({ auth }) {
         type: '', // 'success' or 'error'
         title: '',
         message: '' 
-    });
-    
-    // Budget warning modal state
-    const [budgetWarningModal, setBudgetWarningModal] = useState({
-        show: false,
-        pendingTransaction: null
     });
     
     // Quick Stats state
@@ -194,12 +190,12 @@ export default function Transaction({ auth }) {
             setSubmitting(false);
         }
     };
-
+    
     const handleSubmit = async (e) => {
         e.preventDefault();
         
         if (!formData.amount || !formData.category || !formData.date) {
-            showModalNotification('error', 'Something went wrong', 'Please fill in all required fields.');
+               showModalNotification('error', 'Something went wrong', 'Please fill in all required fields.');
             return;
         }
 
@@ -390,19 +386,6 @@ export default function Transaction({ auth }) {
                         opacity: 1; 
                     }
                 }
-                @keyframes warningIcon {
-                    0% { 
-                        transform: scale(0) rotate(-180deg); 
-                        opacity: 0; 
-                    }
-                    50% { 
-                        transform: scale(1.1) rotate(10deg); 
-                    }
-                    100% { 
-                        transform: scale(1) rotate(0deg); 
-                        opacity: 1; 
-                    }
-                }
                 .animate-fade-in {
                     animation: fadeIn 0.3s ease-out;
                 }
@@ -417,6 +400,200 @@ export default function Transaction({ auth }) {
                 }
                 .animate-warning-icon {
                     animation: warningIcon 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s both;
+                }
+
+                /* Custom DatePicker Styles */
+                .react-datepicker-popper {
+                    z-index: 9999 !important;
+                }
+
+                /* Mobile fullscreen */
+                @media (max-width: 640px) {
+                    .react-datepicker-popper {
+                        position: fixed !important;
+                        top: 0 !important;
+                        left: 0 !important;
+                        transform: none !important;
+                        width: 100vw !important;
+                        height: 100vh !important;
+                        max-width: none !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        background-color: rgba(0, 0, 0, 0.5) !important;
+                        padding: 20px !important;
+                    }
+
+                    .react-datepicker {
+                        width: 100% !important;
+                        max-width: 380px !important;
+                        margin: auto !important;
+                    }
+                }
+
+                .react-datepicker {
+                    font-family: inherit !important;
+                    border: none !important;
+                    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
+                    border-radius: 16px !important;
+                    padding: 16px !important;
+                    background-color: white !important;
+                }
+
+                .react-datepicker__header {
+                    background-color: white !important;
+                    border-bottom: 1px solid #f0f0f0 !important;
+                    padding: 16px 0 !important;
+                    border-top-left-radius: 16px !important;
+                    border-top-right-radius: 16px !important;
+                }
+
+                .react-datepicker__current-month {
+                    font-size: 18px !important;
+                    font-weight: 700 !important;
+                    color: #1a1a1a !important;
+                    margin-bottom: 12px !important;
+                }
+
+                .react-datepicker__day-names {
+                    display: flex !important;
+                    justify-content: space-between !important;
+                    margin-top: 12px !important;
+                }
+
+                .react-datepicker__day-name {
+                    color: #666 !important;
+                    font-weight: 600 !important;
+                    font-size: 13px !important;
+                    width: 40px !important;
+                    line-height: 40px !important;
+                    margin: 0 !important;
+                }
+
+                .react-datepicker__month {
+                    margin: 0 !important;
+                    padding: 8px 0 !important;
+                }
+
+                .react-datepicker__week {
+                    display: flex !important;
+                    justify-content: space-between !important;
+                }
+
+                .react-datepicker__day {
+                    width: 40px !important;
+                    height: 40px !important;
+                    line-height: 40px !important;
+                    margin: 2px !important;
+                    border-radius: 8px !important;
+                    color: #1a1a1a !important;
+                    font-weight: 500 !important;
+                    transition: all 0.2s ease !important;
+                }
+
+                .react-datepicker__day:hover {
+                    background-color: #f5f5f5 !important;
+                    border-radius: 8px !important;
+                }
+
+                /* Selected date - Growth Green background with white text */
+                .react-datepicker__day--selected {
+                    background-color: #058743 !important;
+                    color: white !important;
+                    font-weight: 600 !important;
+                }
+
+                .react-datepicker__day--selected:hover {
+                    background-color: #046d36 !important;
+                }
+
+                /* Remove keyboard-selected state to avoid "half pressed" appearance */
+                .react-datepicker__day--keyboard-selected {
+                    background-color: transparent !important;
+                    color: inherit !important;
+                }
+
+                .react-datepicker__day--keyboard-selected:hover {
+                    background-color: #f5f5f5 !important;
+                }
+
+                /* Today's date - Growth Green color with light background */
+                .react-datepicker__day--today {
+                    font-weight: 600 !important;
+                    color: #058743 !important;
+                    background-color: #d4eadf !important;
+                }
+
+                .react-datepicker__day--today:hover {
+                    background-color: #c0e0cb !important;
+                }
+
+                /* Selected date overrides today styling - solid growth green */
+                .react-datepicker__day--selected.react-datepicker__day--today {
+                    background-color: #058743 !important;
+                    color: white !important;
+                    font-weight: 600 !important;
+                }
+
+                .react-datepicker__day--outside-month {
+                    color: #d0d0d0 !important;
+                }
+
+                .react-datepicker__navigation {
+                    top: 20px !important;
+                }
+
+                .react-datepicker__navigation-icon::before {
+                    border-color: #666 !important;
+                    border-width: 2px 2px 0 0 !important;
+                }
+
+                .react-datepicker__navigation:hover *::before {
+                    border-color: #058743 !important;
+                }
+
+                /* Mobile adjustments */
+                @media (max-width: 640px) {
+                    .react-datepicker {
+                        padding: 24px !important;
+                        max-width: none !important;
+                        width: calc(100vw - 40px) !important;
+                    }
+
+                    .react-datepicker__header {
+                        padding: 20px 0 16px 0 !important;
+                    }
+
+                    .react-datepicker__current-month {
+                        font-size: 20px !important;
+                        margin-bottom: 16px !important;
+                    }
+
+                    .react-datepicker__day {
+                        width: calc((100vw - 120px) / 7) !important;
+                        height: calc((100vw - 120px) / 7) !important;
+                        line-height: calc((100vw - 120px) / 7) !important;
+                        font-size: 16px !important;
+                        margin: 3px !important;
+                    }
+
+                    .react-datepicker__day-name {
+                        width: calc((100vw - 120px) / 7) !important;
+                        line-height: calc((100vw - 120px) / 7) !important;
+                        font-size: 14px !important;
+                    }
+
+                    .react-datepicker__navigation {
+                        top: 24px !important;
+                        width: 32px !important;
+                        height: 32px !important;
+                    }
+
+                    .react-datepicker__navigation-icon::before {
+                        border-width: 3px 3px 0 0 !important;
+                        width: 10px !important;
+                        height: 10px !important;
+                    }
                 }
             `}</style>
             
@@ -508,40 +685,29 @@ export default function Transaction({ auth }) {
                                         Date*
                                     </label>
                                     <div className="relative">
-                                    {/* Display input showing DD/MM/YYYY format */}
-                                    <input
-                                        type="text"
-                                        value={formatDateForDisplay(formData.date)}
-                                        placeholder="DD/MM/YYYY"
-                                        readOnly
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 cursor-pointer focus:ring-2 focus:ring-[#058743] focus:border-transparent"
-                                        onClick={() =>
-                                        document.getElementById('transaction-date-picker').showPicker()
-                                        }
-                                    />
-                                    {/* Hidden date picker */}
-                                    <input
-                                        id="transaction-date-picker"
-                                        type="date"
-                                        value={formData.date}
-                                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                        className="absolute opacity-0 pointer-events-none"
-                                    />
-                                    {/* Calendar icon */}
-                                    <div
-                                        className="absolute inset-y-0 right-0 flex items-center px-4 cursor-pointer"
-                                        onClick={() =>
-                                        document.getElementById('transaction-date-picker').showPicker()
-                                        }
-                                    >
-                                        <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                        <path
-                                            fillRule="evenodd"
-                                            d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
-                                            clipRule="evenodd"
+                                        <DatePicker
+                                            selected={formData.date ? new Date(formData.date) : new Date()}
+                                            onChange={(date) => {
+                                                const formattedDate = date.toISOString().split('T')[0];
+                                                setFormData({ ...formData, date: formattedDate });
+                                            }} 
+                                            dateFormat="dd/MM/yyyy"
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg cursor-pointer focus:ring-2 focus:ring-[#058743] focus:border-transparent"
+                                            calendarClassName="custom-calendar"
+                                            wrapperClassName="w-full"
+                                            placeholderText="DD/MM/YYYY"
+                                            showPopperArrow={false}
                                         />
-                                        </svg>
-                                    </div>
+                                        {/* Calendar icon */}
+                                        <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none">
+                                            <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path
+                                                    fillRule="evenodd"
+                                                    d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                                                    clipRule="evenodd"
+                                                />
+                                            </svg>
+                                        </div>
                                     </div>
                                 </div>
 

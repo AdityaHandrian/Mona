@@ -146,29 +146,29 @@ export default function Transaction({ auth }) {
         setModalNotification({ show: true, type, title, message });
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        
-        if (!formData.amount || !formData.category || !formData.date) {
-            showModalNotification('error', 'Something went wrong', 'Please fill in all required fields.');
-            return;
-        }
-
-        const rawAmount = Number(formData.amount);
-        if (Number.isNaN(rawAmount) || rawAmount <= 0) {
-            showModalNotification('error', 'Something went wrong', 'Amount must be a valid positive number.');
-            return;
-        }
-
-        setSubmitting(true);
+    const checkBudgetExists = async (categoryId, date) => {
         try {
-            const transactionData = {
-                category_id: parseInt(formData.category),
-                amount: parseFloat(formData.amount),
-                description: formData.description || '',
-                transaction_date: formData.date
-            };
+            const transactionDate = new Date(date);
+            const month = transactionDate.getMonth() + 1; // getMonth() returns 0-11
+            const year = transactionDate.getFullYear();
+            
+            const response = await axios.get('/api/budgets/check', {
+                params: {
+                    category_id: categoryId,
+                    month: month,
+                    year: year
+                }
+            });
+            
+            return response.data.has_budget;
+        } catch (error) {
+            console.error('Error checking budget:', error);
+            return true; // If error, assume budget exists to avoid blocking
+        }
+    };
 
+    const saveTransaction = async (transactionData) => {
+        try {
             // Use /api/transactions/add to avoid conflict with History page
             await axios.post('/api/transactions/add', transactionData);
             showModalNotification('success', 'Success', 'Transaction added Successfully!');
@@ -190,7 +190,7 @@ export default function Transaction({ auth }) {
             setSubmitting(false);
         }
     };
-
+    
     const handleSubmit = async (e) => {
         e.preventDefault();
         
@@ -298,6 +298,48 @@ export default function Transaction({ auth }) {
                         <p className="text-gray-600 text-center text-base">
                             {modalNotification.message}
                         </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Budget Warning Modal */}
+            {budgetWarningModal.show && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-11/12 animate-scale-in">
+                        {/* Warning Icon */}
+                        <div className="flex justify-center mb-6">
+                            <div className="w-20 h-20 rounded-full border-4 border-yellow-500 flex items-center justify-center animate-warning-icon">
+                                <svg className="w-12 h-12 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        {/* Title */}
+                        <h3 className="text-2xl font-bold text-center mb-3 text-yellow-600">
+                            No Budget Set
+                        </h3>
+                        
+                        {/* Message */}
+                        <p className="text-gray-600 text-center text-base mb-6">
+                            You haven't set a budget for this expense category in the selected month. Do you want to continue anyway?
+                        </p>
+                        
+                        {/* Action Buttons */}
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={handleContinueAnyway}
+                                className="w-full py-3 px-6 rounded-lg font-medium bg-growth-green-500 text-white hover:bg-growth-green-600 transition-colors"
+                            >
+                                Continue Anyway
+                            </button>
+                            <button
+                                onClick={handleCancelTransaction}
+                                className="w-full py-3 px-6 rounded-lg font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
+                            >
+                                Cancel Transaction
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

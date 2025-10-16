@@ -99,6 +99,7 @@ Route::middleware(['auth'])->group(function () {
     
     // API-like routes for React components
     Route::get('/api/categories', [\App\Http\Controllers\CategoryController::class, 'index']);
+    Route::get('/api/budgets/check', [\App\Http\Controllers\BudgetController::class, 'checkBudget']);
     
     // History page routes (original methods)
     Route::get('/api/transactions', [\App\Http\Controllers\TransactionController::class, 'index']);
@@ -109,5 +110,8 @@ Route::middleware(['auth'])->group(function () {
     // Transaction.jsx routes
     Route::post('/api/transactions/add', [\App\Http\Controllers\TransactionController::class, 'apiStore']);
     Route::get('/api/transactions/monthly-stats', [\App\Http\Controllers\TransactionController::class, 'monthlyStats']);
+    
+    // ScanReceipt.jsx routes
+    Route::post('/api/transactions/quick-add', [\App\Http\Controllers\TransactionController::class, 'quickAdd']);
 });
 require __DIR__.'/auth.php';

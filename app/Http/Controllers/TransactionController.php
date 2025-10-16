@@ -286,4 +286,55 @@ class TransactionController extends Controller
             'data' => $transaction
         ], 201);
     }
+
+    // POST /api/transactions/quick-add (for ScanReceipt.jsx)
+    public function quickAdd(Request $request)
+    {
+        $validated = $request->validate([
+            'category_id' => 'required|exists:categories,id',
+            'amount' => 'required|numeric|min:0',
+            'description' => 'nullable|string|max:255',
+            'transaction_date' => 'required|date',
+        ]);
+
+        try {
+            // Check if the category is an expense category
+            $category = \App\Models\Category::findOrFail($validated['category_id']);
+            
+            $transaction = DB::transaction(function () use ($request, $validated) {
+                return Transaction::create([
+                    'user_id' => $request->user()->id,
+                    'category_id' => $validated['category_id'],
+                    'amount' => $validated['amount'],
+                    'description' => $validated['description'] ?? 'Receipt transaction',
+                    'transaction_date' => $validated['transaction_date'],
+                ]);
+            });
+
+            $transaction->load('category');
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Transaction added successfully from receipt',
+                'data' => [
+                    'transaction_id' => (int) $transaction->id,
+                    'user_id' => (int) $transaction->user_id,
+                    'category_id' => (int) $transaction->category_id,
+                    'category_name' => $transaction->category->category_name,
+                    'category_type' => $transaction->category->type,
+                    'amount' => (float) $transaction->amount,
+                    'description' => $transaction->description,
+                    'transaction_date' => $transaction->transaction_date?->toIso8601String(),
+                    'created_at' => $transaction->created_at?->toIso8601String(),
+                ]
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to add transaction from receipt',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

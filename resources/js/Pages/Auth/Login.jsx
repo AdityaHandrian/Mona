@@ -18,7 +18,7 @@ export default function Login({ status, canResetPassword }) {
 
     const submit = (e) => {
         e.preventDefault();
-        post(route('login')); // Inertia form post — CSRF header is set by axios bootstrap
+        post(route('login'));
     };
 
     return (
@@ -27,22 +27,6 @@ export default function Login({ status, canResetPassword }) {
             
             {/* Full Page Layout */}
             <div className="flex flex-col">
-                {/* Header dengan Logo */}
-                {/* <div className="w-full px-8 py-6 bg-white shadow-sm">
-                    <div className="flex items-center">
-                        <div className="flex items-center">
-                            Logo MONA */}
-                            {/* <div className="relative">
-                                <img 
-                                    src="/images/logo.png" 
-                                    alt="MONA Logo"
-                                    className="h-14 w-auto"
-                                />
-                            </div>
-                            <span className="ml-3 text-3xl font-bold text-[#058743] tracking-wide">MONA</span>
-                        </div>
-                    </div>
-                </div> */}
 
                 {/* Main Content Container */}
                 <div className="flex-1 flex items-center justify-center px-4 max-[768px]:px-3 max-[375px]:px-2 py-8 max-[768px]:py-6 max-[425px]:py-4 max-[375px]:py-3 max-[320px]:py-2">
@@ -85,11 +69,6 @@ export default function Login({ status, canResetPassword }) {
                                         onChange={(e) => setData('email', e.target.value)}
                                         placeholder="Email Address"
                                     />
-                                    {errors.email && (
-                                        <div className="mt-2 text-sm text-[#D9534F] font-medium">
-                                            {errors.email}
-                                        </div>
-                                    )}
                                 </div>
 
                                 {/* Password Field */}
@@ -128,9 +107,10 @@ export default function Login({ status, canResetPassword }) {
                                             )}
                                         </button>
                                     </div>
-                                    {errors.password && (
+                                    {/* Display both email and password errors here */}
+                                    {(errors.email || errors.password) && (
                                         <div className="mt-2 text-sm text-[#D9534F] font-medium">
-                                            {errors.password}
+                                            {errors.email || errors.password}
                                         </div>
                                     )}
                                 </div>

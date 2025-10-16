@@ -64,6 +64,10 @@ Route::get('/testing', function () {
     return view('testing');
 })->name('testing');
 
+Route::get('/dashboard-api-test', function () {
+    return view('dashboard-api-test');
+})->name('dashboard-api-test');
+
 Route::post('/process-receipt', [OcrController::class, 'processReceipt']);
 Route::post('/process-receipt-ai', [DocumentAIController::class, 'processReceipt']);
 
@@ -113,5 +117,11 @@ Route::middleware(['auth'])->group(function () {
     
     // ScanReceipt.jsx routes
     Route::post('/api/transactions/quick-add', [\App\Http\Controllers\TransactionController::class, 'quickAdd']);
+    
+    // Dashboard API routes
+    Route::get('/api/dashboard/monthly-stats', [\App\Http\Controllers\DashboardController::class, 'monthlyStats']);
+    Route::get('/api/dashboard/financial-overview', [\App\Http\Controllers\DashboardController::class, 'financialOverview']);
+    Route::get('/api/dashboard/expense-categories', [\App\Http\Controllers\DashboardController::class, 'expenseCategories']);
+    Route::get('/api/dashboard/complete', [\App\Http\Controllers\DashboardController::class, 'completeData']);
 });
 require __DIR__.'/auth.php';

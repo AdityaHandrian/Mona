@@ -1,102 +1,67 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Head } from '@inertiajs/react';
+import axios from 'axios';
 
 export default function Dashboard({ auth }) {
-    /* 
-    ====================================================================
-    📝 BACKEND API INTEGRATION NOTES:
-    ====================================================================
-    
-    For backend team: This dashboard expects data from these API endpoints:
-    
-    1. 📊 Monthly Chart Data: GET /api/dashboard/monthly-stats
-       - Should return last 6 months of income/expense data
-       - Use the 'fullDate' field (YYYY-MM format) to query your database
-       - Expected response format:
-       {
-         "monthlyData": [
-           {
-             "month": "May",
-             "year": 2025, 
-             "fullDate": "2025-05",
-             "income": 5000000.00,
-             "expenses": 3500000.00
-           },
-           // ... more months
-         ]
-       }
-
-    2. 💰 Financial Overview: GET /api/dashboard/financial-overview  
-       - Total income, expenses, current balance, budget progress
-       - Expected response format:
-       {
-         "totalIncome": 92032000.00,
-         "totalExpenses": 89234200.00, 
-         "currentBalance": 19450000.00,
-         "budgetProcess": 84
-       }
-
-    3. 🍕 Expense Categories: GET /api/dashboard/expense-categories
-       - Pie chart data for current month's expense breakdown
-       - Expected response format:
-       {
-         "expenseCategories": [
-           { "name": "Food", "percentage": 18.47, "color": "#EF4444" },
-           // ... more categories
-         ]
-       }
-
-    The months are automatically generated based on current date (October 2025),
-    so backend just needs to query database using the fullDate values.
-    ====================================================================
-    */
-
-    // Generate last 6 months dynamically based on current date
-    const generateLast6Months = useMemo(() => {
-        const months = [];
-        const currentDate = new Date();
-        
-        // Get month names in short format
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        
-        // Generate last 6 months including current month
-        for (let i = 5; i >= 0; i--) {
-            const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-            const monthName = monthNames[date.getMonth()];
-            const year = date.getFullYear();
-            const fullDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            
-            months.push({
-                month: monthName,
-                year: year,
-                fullDate: fullDate, // Backend can use this for API queries (YYYY-MM format)
-                displayName: `${monthName} ${year}`, // Full display name if needed
-                // Sample data - backend will replace these with real values
-                income: Math.floor(Math.random() * 5000) + 3000, // Random sample data
-                expenses: Math.floor(Math.random() * 4000) + 2000
-            });
-        }
-        
-        return months;
-    }, []); // Empty dependency array since we only want to calculate this once
-
-    // Sample data - dalam implementasi nyata, data ini akan dari backend/API
-    const [dashboardData] = useState({
-        totalIncome: 92032000.00,
-        totalExpenses: 89234200.00,
-        currentBalance: 19450000.00,
-        budgetProcess: 84,
-        monthlyData: generateLast6Months, // Use dynamically generated months
-        expenseCategories: [
-            { name: 'Others', percentage: 38.83, color: '#60A5FA' },
-            { name: 'Utilities', percentage: 14.56, color: '#F59E0B' },
-            { name: 'Food', percentage: 18.47, color: '#EF4444' },
-            { name: 'Transport', percentage: 10.66, color: '#8B5CF6' },
-            { name: 'Entertaiment', percentage: 17.48, color: '#3B82F6' }
-        ]
+    // State management
+    const [dashboardData, setDashboardData] = useState({
+        totalIncome: 0,
+        totalExpenses: 0,
+        currentBalance: 0,
+        budgetProcess: 0,
+        monthlyData: [],
+        expenseCategories: []
     });
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    // Fetch dashboard data from API
+    const fetchDashboardData = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            
+            // Use the complete endpoint to get all data in one request
+            const response = await axios.get('/api/dashboard/complete');
+            
+            if (response.data.status === 'success') {
+                const { monthlyData, financialOverview, expenseCategories } = response.data.data;
+                
+                setDashboardData({
+                    totalIncome: financialOverview.totalIncome,
+                    totalExpenses: financialOverview.totalExpenses,
+                    currentBalance: financialOverview.currentBalance,
+                    budgetProcess: financialOverview.budgetProcess,
+                    monthlyData: monthlyData,
+                    expenseCategories: expenseCategories
+                });
+            }
+        } catch (err) {
+            console.error('Error fetching dashboard data:', err);
+            setError('Failed to load dashboard data. Please try again.');
+            
+            // Fallback to empty data structure
+            setDashboardData({
+                totalIncome: 0,
+                totalExpenses: 0,
+                currentBalance: 0,
+                budgetProcess: 0,
+                monthlyData: [],
+                expenseCategories: [{
+                    name: 'No data available',
+                    percentage: 100.0,
+                    color: '#9CA3AF'
+                }]
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchDashboardData();
+    }, []); // Run once on component mount
 
     // hover states
     const [hoveredCard, setHoveredCard] = useState(null); // 'income' | 'expenses' | 'balance' | 'budget'
@@ -134,9 +99,9 @@ export default function Dashboard({ auth }) {
     };
 
     // Calculate max value for chart scaling
-    const maxValue = Math.max(
-        ...dashboardData.monthlyData.map(data => Math.max(data.income, data.expenses))
-    );
+    const maxValue = dashboardData.monthlyData.length > 0 
+        ? Math.max(...dashboardData.monthlyData.map(data => Math.max(data.income, data.expenses)))
+        : 1000; // Default value when no data
 
     return (
         <AppLayout title="MONA - Dashboard" auth={auth}>
@@ -173,16 +138,66 @@ export default function Dashboard({ auth }) {
             `}</style>
 
             <div className="">
+                {/* Loading State */}
+                {loading && (
+                    <div className="flex items-center justify-center min-h-screen">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        <span className="ml-3 text-gray-600">Loading dashboard data...</span>
+                    </div>
+                )}
+
+                {/* Error State */}
+                {error && !loading && (
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                            <div className="flex">
+                                <div className="flex-shrink-0">
+                                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div className="ml-3">
+                                    <h3 className="text-sm font-medium text-red-800">Error</h3>
+                                    <p className="text-sm text-red-700 mt-1">{error}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Main Content */}
+                {!loading && !error && (
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Welcome Message */}
-                    <div className="mb-8 animate-fade-in">
-                        <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl font-bold text-charcoal mb-2">
-                            {getGreeting()}, {getUserName()}!
-                        </h1>
-                        <p className="text-sm sm:text-base md:text-base lg:text-base xl:text-lg text-medium-gray">
-                            Here is the overview of your financial health
-                        </p>
+                    <div className="mb-8 animate-fade-in flex justify-between items-start">
+                        <div>
+                            <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl font-bold text-charcoal mb-2">
+                                {getGreeting()}, {getUserName()}!
+                            </h1>
+                            <p className="text-sm sm:text-base md:text-base lg:text-base xl:text-lg text-medium-gray">
+                                Here is the overview of your financial health
+                            </p>
+                        </div>
+                        <button
+                            onClick={fetchDashboardData}
+                            disabled={loading}
+                            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                        >
+                            <svg
+                                className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                />
+                            </svg>
+                            <span className="text-sm">Refresh</span>
+                        </button>
                     </div>
 
                     {/* Financial Overview Cards */}
@@ -284,7 +299,8 @@ export default function Dashboard({ auth }) {
                             <div className="relative">
                                 {/* Chart Container */}
                                 <div className="flex items-end justify-between h-64 space-x-2">
-                                    {dashboardData.monthlyData.map((data, index) => (
+                                    {dashboardData.monthlyData.length > 0 ? (
+                                        dashboardData.monthlyData.map((data, index) => (
                                         <div
                                             key={index}
                                             className="flex flex-col items-center space-y-2 flex-1"
@@ -339,7 +355,12 @@ export default function Dashboard({ auth }) {
                                                 {data.month}
                                             </span>
                                         </div>
-                                    ))}
+                                    ))
+                                    ) : (
+                                        <div className="flex items-center justify-center h-48 w-full">
+                                            <p className="text-gray-500">No transaction data available</p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Legend */}
@@ -504,6 +525,7 @@ export default function Dashboard({ auth }) {
                         </div>
                     </div>
                 </div>
+                )}
             </div>
         </AppLayout>
     );

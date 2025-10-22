@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import axios from 'axios';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
 
 // Helper functions for number formatting
 const formatNumberWithDots = (value) => {
@@ -38,20 +36,6 @@ export default function ScanReceipt({ auth }) {
     const [loadingCategories, setLoadingCategories] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
-
-    // Budget warning modal state
-    const [budgetWarningModal, setBudgetWarningModal] = useState({
-        show: false,
-        pendingTransaction: null
-    });
-
-    // Modal notification state (SweetAlert2-style)
-    const [modalNotification, setModalNotification] = useState({ 
-        show: false, 
-        type: '', // 'success' or 'error'
-        title: '',
-        message: '' 
-    });
 
     // Handle window resize for responsive filename truncation
     useEffect(() => {
@@ -90,23 +74,9 @@ export default function ScanReceipt({ auth }) {
         fetchCategories();
     }, []);
 
-    // Hide modal notification after 3 seconds
-    useEffect(() => {
-        if (modalNotification.show) {
-            const timer = setTimeout(() => {
-                setModalNotification({ show: false, type: '', title: '', message: '' });
-            }, 3000);
-            return () => clearTimeout(timer);
-        }
-    }, [modalNotification.show]);
-
     const showMessage = (type, text) => {
         setMessage({ type, text });
         setTimeout(() => setMessage({ type: '', text: '' }), 5000);
-    };
-
-    const showModalNotification = (type, title, message) => {
-        setModalNotification({ show: true, type, title, message });
     };
 
     // Image compression function to speed up camera photos
@@ -488,68 +458,24 @@ export default function ScanReceipt({ auth }) {
 
     const handleAddTransaction = async () => {
         if (!formData.amount || !formData.category || !formData.date) {
-            showModalNotification('error', 'Validation Error', 'Please fill in all required fields (Amount, Category, Date)');
+            showMessage('error', 'Please fill in all required fields (Amount, Category, Date)');
             return;
         }
 
-        // Check if the selected category is an expense type
-        const selectedCategory = categories.find(cat => cat.id === parseInt(formData.category));
-        const isExpense = selectedCategory && selectedCategory.type === 'expense';
-
-        // Prepare transaction data
-        const transactionData = {
-            category_id: parseInt(formData.category),
-            amount: parseFloat(formData.amount),
-            description: formData.description || 'Receipt transaction',
-            transaction_date: formData.date
-        };
-
-        // Check budget only for expense transactions
-        if (isExpense) {
-            const hasBudget = await checkBudgetExists(transactionData.category_id, transactionData.transaction_date);
-            
-            if (!hasBudget) {
-                // Show budget warning modal
-                setBudgetWarningModal({
-                    show: true,
-                    pendingTransaction: transactionData
-                });
-                return;
-            }
-        }
-
-        // If income or budget exists, save directly
-        await saveTransaction(transactionData);
-    };
-
-    const checkBudgetExists = async (categoryId, date) => {
-        try {
-            const transactionDate = new Date(date);
-            const month = transactionDate.getMonth() + 1; // getMonth() returns 0-11
-            const year = transactionDate.getFullYear();
-            
-            const response = await axios.get('/api/budgets/check', {
-                params: {
-                    category_id: categoryId,
-                    month: month,
-                    year: year
-                }
-            });
-            
-            return response.data.has_budget;
-        } catch (error) {
-            console.error('Error checking budget:', error);
-            return true; // If error, assume budget exists to avoid blocking
-        }
-    };
-
-    const saveTransaction = async (transactionData) => {
         setSubmitting(true);
         try {
+            // Prepare data for API
+            const transactionData = {
+                category_id: parseInt(formData.category),
+                amount: parseFloat(formData.amount),
+                description: formData.description || 'Receipt transaction',
+                transaction_date: formData.date
+            };
+
             const response = await axios.post('/api/transactions/quick-add', transactionData);
 
             if (response.data.status === 'success') {
-                showModalNotification('success', 'Success', 'Transaction added successfully from receipt!');
+                showMessage('success', 'Transaction added successfully from receipt!');
                 
                 // Reset form and clear selected file
                 setFormData({
@@ -572,24 +498,15 @@ export default function ScanReceipt({ auth }) {
             
             if (error.response?.data?.errors) {
                 const errors = Object.values(error.response.data.errors).flat();
-                showModalNotification('error', 'Validation Error', errors.join(', '));
+                showMessage('error', errors.join(', '));
             } else if (error.response?.data?.message) {
-                showModalNotification('error', 'Error', error.response.data.message);
+                showMessage('error', error.response.data.message);
             } else {
-                showModalNotification('error', 'Error', 'Failed to add transaction. Please try again.');
+                showMessage('error', 'Failed to add transaction. Please try again.');
             }
         } finally {
             setSubmitting(false);
         }
-    };
-
-    const handleContinueAnyway = async () => {
-        setBudgetWarningModal({ show: false, pendingTransaction: null });
-        await saveTransaction(budgetWarningModal.pendingTransaction);
-    };
-
-    const handleCancelTransaction = () => {
-        setBudgetWarningModal({ show: false, pendingTransaction: null });
     };
 
     const openCameraOrFile = () => {
@@ -676,178 +593,10 @@ export default function ScanReceipt({ auth }) {
             title="MONA - Scan Receipt" 
             auth={auth}
         >
-            {/* Modal Notification Overlay (SweetAlert2-style) */}
-            {modalNotification.show && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50 animate-fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-11/12 animate-scale-in">
-                        {/* Icon */}
-                        <div className="flex justify-center mb-6">
-                            {modalNotification.type === 'success' ? (
-                                <div className="w-20 h-20 rounded-full border-4 border-growth-green-500 flex items-center justify-center animate-check-icon">
-                                    <svg className="w-12 h-12 text-growth-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </div>
-                            ) : (
-                                <div className="w-20 h-20 rounded-full border-4 border-expense-red-500 flex items-center justify-center animate-error-icon">
-                                    <img 
-                                        src="/images/icons/exclamation-warning-icon.svg" 
-                                        alt="Error" 
-                                        className="w-10 h-10"
-                                    />
-                                </div>
-                            )}
-                        </div>
-                        
-                        {/* Title */}
-                        <h3 className={`text-2xl font-bold text-center mb-3 ${
-                            modalNotification.type === 'success' ? 'text-growth-green-500' : 'text-expense-red-500'
-                        }`}>
-                            {modalNotification.title}
-                        </h3>
-                        
-                        {/* Message */}
-                        <p className="text-gray-600 text-center text-base">
-                            {modalNotification.message}
-                        </p>
-                    </div>
-                </div>
-            )}
-
-            {/* Budget Warning Modal */}
-            {budgetWarningModal.show && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50 animate-fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-11/12 animate-scale-in">
-                        {/* Warning Icon */}
-                        <div className="flex justify-center mb-6">
-                            <div className="w-20 h-20 rounded-full border-4 border-yellow-500 flex items-center justify-center animate-warning-icon">
-                                <svg className="w-12 h-12 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                </svg>
-                            </div>
-                        </div>
-                        
-                        {/* Title */}
-                        <h3 className="text-2xl font-bold text-center mb-3 text-yellow-600">
-                            No Budget Set
-                        </h3>
-                        
-                        {/* Message */}
-                        <p className="text-gray-600 text-center text-base mb-6">
-                            You haven't set a budget for this expense category in the selected month. Do you want to continue anyway?
-                        </p>
-                        
-                        {/* Action Buttons */}
-                        <div className="flex flex-col gap-3">
-                            <button
-                                onClick={handleContinueAnyway}
-                                className="w-full py-3 px-6 rounded-lg font-medium bg-growth-green-500 text-white hover:bg-growth-green-600 transition-colors"
-                            >
-                                Continue Anyway
-                            </button>
-                            <button
-                                onClick={handleCancelTransaction}
-                                className="w-full py-3 px-6 rounded-lg font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
-                            >
-                                Cancel Transaction
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Keyframes for animations */}
-            <style>{`
-                @keyframes fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-                @keyframes fadeInUp {
-                    from {
-                        opacity: 0;
-                        transform: translateY(30px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-                @keyframes scaleIn {
-                    from { 
-                        opacity: 0; 
-                        transform: scale(0.5); 
-                    }
-                    to { 
-                        opacity: 1; 
-                        transform: scale(1); 
-                    }
-                }
-                @keyframes checkIcon {
-                    0% { 
-                        transform: scale(0) rotate(0deg); 
-                        opacity: 0; 
-                    }
-                    50% { 
-                        transform: scale(1.2) rotate(180deg); 
-                    }
-                    100% { 
-                        transform: scale(1) rotate(360deg); 
-                        opacity: 1; 
-                    }
-                }
-                @keyframes errorIcon {
-                    0% { 
-                        transform: scale(0); 
-                        opacity: 0; 
-                    }
-                    50% { 
-                        transform: scale(1.2); 
-                    }
-                    100% { 
-                        transform: scale(1); 
-                        opacity: 1; 
-                    }
-                }
-                @keyframes warningIcon {
-                    0% { 
-                        transform: scale(0) rotate(-180deg); 
-                        opacity: 0; 
-                    }
-                    50% { 
-                        transform: scale(1.1) rotate(10deg); 
-                    }
-                    100% { 
-                        transform: scale(1) rotate(0deg); 
-                        opacity: 1; 
-                    }
-                }
-                .animate-fade-in {
-                    animation: fadeIn 0.3s ease-out;
-                }
-                .animate-fade-in-up {
-                    animation: fadeInUp 0.8s ease-out forwards;
-                }
-                .animate-scale-in {
-                    animation: scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-                }
-                .animate-check-icon {
-                    animation: checkIcon 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s both;
-                }
-                .animate-error-icon {
-                    animation: errorIcon 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s both;
-                }
-                .animate-warning-icon {
-                    animation: warningIcon 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s both;
-                }
-                .delay-100 { animation-delay: 0.1s; opacity: 0; }
-                .delay-200 { animation-delay: 0.2s; opacity: 0; }
-                .delay-300 { animation-delay: 0.3s; opacity: 0; }
-            `}</style>
-
             {/* Page Content */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Page Header */}
-                    <div className="mb-8 animate-fade-in">
+                    <div className="mb-8">
                         <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl font-bold text-charcoal mb-2">Scan Receipt</h1>
                         <p className="text-sm sm:text-base md:text-base lg:text-base xl:text-lg text-medium-gray">Scan receipts and automatically extract transaction data</p>
                         
@@ -866,7 +615,7 @@ export default function ScanReceipt({ auth }) {
                     {/* Main Content Grid */}
                     <div className="grid lg:grid-cols-2 gap-8 mb-12">
                         {/* Upload Receipt Section */}
-                        <div className="animate-fade-in-up delay-100 bg-white rounded-lg border border-light-gray p-6">
+                        <div className="bg-white rounded-lg border border-light-gray p-6">
                             <h2 className="text-xl font-semibold text-charcoal mb-2">Upload Receipt</h2>
                             <p className="text-medium-gray mb-6">Take a photo or upload an image of your receipt</p>
 
@@ -1010,7 +759,7 @@ export default function ScanReceipt({ auth }) {
                         </div>
 
         {/* Extracted Data Section */}
-        <div className="animate-fade-in-up delay-200 bg-white rounded-lg border border-[#E0E0E0] p-6">
+        <div className="bg-white rounded-lg border border-[#E0E0E0] p-6">
             <div className="flex justify-between items-start mb-2">
                 <h2 className="text-xl font-semibold text-[#2C2C2C]">Extracted Data</h2>
                 {processingTime && (
@@ -1092,28 +841,29 @@ export default function ScanReceipt({ auth }) {
                                         <label className="block text-charcoal font-medium mb-2">
                                             Date<span className="text-red-500">*</span>
                                         </label>
-                                        <div className="relative">
-                                            <DatePicker
-                                                selected={formData.date ? new Date(formData.date) : null}
-                                                onChange={(date) => {
-                                                    const formattedDate = date ? date.toISOString().split('T')[0] : '';
-                                                    handleInputChange('date', formattedDate);
-                                                }} 
-                                                dateFormat="dd/MM/yyyy"
-                                                className="w-full px-3 py-2 border border-light-gray rounded text-charcoal bg-gray-100 cursor-pointer focus:ring-2 focus:ring-[#058743] focus:border-transparent"
-                                                calendarClassName="custom-calendar"
-                                                wrapperClassName="w-full"
-                                                placeholderText="DD/MM/YYYY"
-                                                showPopperArrow={false}
-                                                onKeyDown={(e) => {
-                                                    // Prevent all keyboard input except Tab for accessibility
-                                                    if (e.key !== 'Tab') {
-                                                        e.preventDefault();
-                                                    }
-                                                }}
+                                        <div className="date-input-container relative">
+                                            {/* Display input showing DD/MM/YYYY format */}
+                                            <input
+                                                type="text"
+                                                value={formatDateForDisplay(formData.date)}
+                                                placeholder="DD/MM/YYYY"
+                                                readOnly
+                                                className="w-full px-3 py-2 border border-light-gray rounded text-charcoal bg-gray-100 cursor-pointer"
+                                                onClick={() => document.getElementById('hidden-date-picker').showPicker()}
+                                            />
+                                            {/* Hidden date picker */}
+                                            <input
+                                                id="hidden-date-picker"
+                                                type="date"
+                                                value={formData.date}
+                                                onChange={(e) => handleInputChange('date', e.target.value)}
+                                                className="absolute opacity-0 pointer-events-none"
                                             />
                                             {/* Calendar icon */}
-                                            <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
+                                            <div 
+                                                className="absolute inset-y-0 right-0 flex items-center px-3 cursor-pointer"
+                                                onClick={() => document.getElementById('hidden-date-picker').showPicker()}
+                                            >
                                                 <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
                                                 </svg>
@@ -1168,7 +918,7 @@ export default function ScanReceipt({ auth }) {
                     </div>
 
                     {/* How OCR Works Section */}
-                    <div className="animate-fade-in-up delay-300 bg-white rounded-lg border border-light-gray p-8">
+                    <div className="bg-white rounded-lg border border-light-gray p-8">
                         <h2 className="text-2xl font-semibold text-charcoal mb-8 text-center">How OCR Works</h2>
                         
                         <div className="grid md:grid-cols-3 gap-8">
@@ -1200,203 +950,6 @@ export default function ScanReceipt({ auth }) {
                             </div>
                         </div>
                     </div>
-
-                    {/* Custom DatePicker Styles */}
-                    <style>{`
-                        /* Custom DatePicker Styles */
-                        .react-datepicker-popper {
-                            z-index: 9999 !important;
-                        }
-
-                        /* Mobile fullscreen */
-                        @media (max-width: 640px) {
-                            .react-datepicker-popper {
-                                position: fixed !important;
-                                top: 0 !important;
-                                left: 0 !important;
-                                transform: none !important;
-                                width: 100vw !important;
-                                height: 100vh !important;
-                                max-width: none !important;
-                                display: flex !important;
-                                align-items: center !important;
-                                justify-content: center !important;
-                                background-color: rgba(0, 0, 0, 0.5) !important;
-                                padding: 20px !important;
-                            }
-
-                            .react-datepicker {
-                                width: 100% !important;
-                                max-width: 380px !important;
-                                margin: auto !important;
-                            }
-                        }
-
-                        .react-datepicker {
-                            font-family: inherit !important;
-                            border: none !important;
-                            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
-                            border-radius: 16px !important;
-                            padding: 16px !important;
-                            background-color: white !important;
-                        }
-
-                        .react-datepicker__header {
-                            background-color: white !important;
-                            border-bottom: 1px solid #f0f0f0 !important;
-                            padding: 16px 0 !important;
-                            border-top-left-radius: 16px !important;
-                            border-top-right-radius: 16px !important;
-                        }
-
-                        .react-datepicker__current-month {
-                            font-size: 18px !important;
-                            font-weight: 700 !important;
-                            color: #1a1a1a !important;
-                            margin-bottom: 12px !important;
-                        }
-
-                        .react-datepicker__day-names {
-                            display: flex !important;
-                            justify-content: space-between !important;
-                            margin-top: 12px !important;
-                        }
-
-                        .react-datepicker__day-name {
-                            color: #666 !important;
-                            font-weight: 600 !important;
-                            font-size: 13px !important;
-                            width: 40px !important;
-                            line-height: 40px !important;
-                            margin: 0 !important;
-                        }
-
-                        .react-datepicker__month {
-                            margin: 0 !important;
-                            padding: 8px 0 !important;
-                        }
-
-                        .react-datepicker__week {
-                            display: flex !important;
-                            justify-content: space-between !important;
-                        }
-
-                        .react-datepicker__day {
-                            width: 40px !important;
-                            height: 40px !important;
-                            line-height: 40px !important;
-                            margin: 2px !important;
-                            border-radius: 8px !important;
-                            color: #1a1a1a !important;
-                            font-weight: 500 !important;
-                            transition: all 0.2s ease !important;
-                        }
-
-                        .react-datepicker__day:hover {
-                            background-color: #f5f5f5 !important;
-                            border-radius: 8px !important;
-                        }
-
-                        /* Selected date - Growth Green background with white text */
-                        .react-datepicker__day--selected {
-                            background-color: #058743 !important;
-                            color: white !important;
-                            font-weight: 600 !important;
-                        }
-
-                        .react-datepicker__day--selected:hover {
-                            background-color: #046d36 !important;
-                        }
-
-                        /* Remove keyboard-selected state to avoid "half pressed" appearance */
-                        .react-datepicker__day--keyboard-selected {
-                            background-color: transparent !important;
-                            color: inherit !important;
-                        }
-
-                        .react-datepicker__day--keyboard-selected:hover {
-                            background-color: #f5f5f5 !important;
-                        }
-
-                        /* Today's date - Growth Green color with light background */
-                        .react-datepicker__day--today {
-                            font-weight: 600 !important;
-                            color: #058743 !important;
-                            background-color: #d4eadf !important;
-                        }
-
-                        .react-datepicker__day--today:hover {
-                            background-color: #c0e0cb !important;
-                        }
-
-                        /* Selected date overrides today styling - solid growth green */
-                        .react-datepicker__day--selected.react-datepicker__day--today {
-                            background-color: #058743 !important;
-                            color: white !important;
-                            font-weight: 600 !important;
-                        }
-
-                        .react-datepicker__day--outside-month {
-                            color: #d0d0d0 !important;
-                        }
-
-                        .react-datepicker__navigation {
-                            top: 20px !important;
-                        }
-
-                        .react-datepicker__navigation-icon::before {
-                            border-color: #666 !important;
-                            border-width: 2px 2px 0 0 !important;
-                        }
-
-                        .react-datepicker__navigation:hover *::before {
-                            border-color: #058743 !important;
-                        }
-
-                        /* Mobile adjustments */
-                        @media (max-width: 640px) {
-                            .react-datepicker {
-                                padding: 24px !important;
-                                max-width: none !important;
-                                width: calc(100vw - 40px) !important;
-                            }
-
-                            .react-datepicker__header {
-                                padding: 20px 0 16px 0 !important;
-                            }
-
-                            .react-datepicker__current-month {
-                                font-size: 20px !important;
-                                margin-bottom: 16px !important;
-                            }
-
-                            .react-datepicker__day {
-                                width: calc((100vw - 120px) / 7) !important;
-                                height: calc((100vw - 120px) / 7) !important;
-                                line-height: calc((100vw - 120px) / 7) !important;
-                                font-size: 16px !important;
-                                margin: 3px !important;
-                            }
-
-                            .react-datepicker__day-name {
-                                width: calc((100vw - 120px) / 7) !important;
-                                line-height: calc((100vw - 120px) / 7) !important;
-                                font-size: 14px !important;
-                            }
-
-                            .react-datepicker__navigation {
-                                top: 24px !important;
-                                width: 32px !important;
-                                height: 32px !important;
-                            }
-
-                            .react-datepicker__navigation-icon::before {
-                                border-width: 3px 3px 0 0 !important;
-                                width: 10px !important;
-                                height: 10px !important;
-                            }
-                        }
-                    `}</style>
             </div>
         </AppLayout>
     );

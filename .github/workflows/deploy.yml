@@ -50,7 +50,7 @@ jobs:
         run: mkdir storage/app/secrets
 
       - name: add service account key info
-        run: echo "${{ secrets.SERVICE_ACCOUNT }}" > storage/app/secrets/service-account-key.json
+        run: echo "${{ secrets.SERVICE_ACCOUNT }}" > storage/app/secrets/healthy-spark-458003-h1-26f5513893cc.json
           
       - name: Menyinkronkan File ke Server (AEnterprise)
         uses: AEnterprise/rsync-deploy@v1.0.2

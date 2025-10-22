@@ -40,6 +40,11 @@ export default function Transaction({ auth }) {
         date: new Date().toISOString().split('T')[0], // Today's date
         description: ''
     });
+    
+    // Transaction details state (itemized list)
+    const [transactionDetails, setTransactionDetails] = useState([]);
+    const [showItemizedInput, setShowItemizedInput] = useState(false);
+    
     // Modal notification state
     const [modalNotification, setModalNotification] = useState({ 
         show: false, 
@@ -152,6 +157,50 @@ export default function Transaction({ auth }) {
         setModalNotification({ show: true, type, title, message });
     };
 
+    // Transaction Details Functions
+    const addNewItem = () => {
+        setTransactionDetails([
+            ...transactionDetails,
+            {
+                id: Date.now(), // Temporary ID for React key
+                item_name: '',
+                quantity: 1,
+                item_price: '',
+                category_id: formData.category || '' // Use main category as default
+            }
+        ]);
+    };
+
+    const removeItem = (id) => {
+        setTransactionDetails(transactionDetails.filter(item => item.id !== id));
+    };
+
+    const updateItem = (id, field, value) => {
+        setTransactionDetails(transactionDetails.map(item => {
+            if (item.id === id) {
+                return { ...item, [field]: value };
+            }
+            return item;
+        }));
+    };
+
+    // Calculate total from items
+    const calculateTotalFromItems = () => {
+        return transactionDetails.reduce((total, item) => {
+            const quantity = parseInt(item.quantity) || 0;
+            const price = parseFloat(parseFormattedNumber(item.item_price)) || 0;
+            return total + (quantity * price);
+        }, 0);
+    };
+
+    // Auto-update amount when items change
+    useEffect(() => {
+        if (showItemizedInput && transactionDetails.length > 0) {
+            const total = calculateTotalFromItems();
+            setFormData(prev => ({ ...prev, amount: total.toString() }));
+        }
+    }, [transactionDetails, showItemizedInput]);
+
     const checkBudgetExists = async (categoryId, date) => {
         try {
             const transactionDate = new Date(date);
@@ -187,6 +236,10 @@ export default function Transaction({ auth }) {
                 description: '',
             });
             
+            // Reset transaction details
+            setTransactionDetails([]);
+            setShowItemizedInput(false);
+            
             // Refresh monthly statistics after adding transaction
             fetchMonthlyStats();
         } catch (err) {
@@ -219,6 +272,16 @@ export default function Transaction({ auth }) {
             description: formData.description || '',
             transaction_date: formData.date
         };
+
+        // Add transaction details if itemized input is enabled and has items
+        if (showItemizedInput && transactionDetails.length > 0) {
+            transactionData.transaction_details = transactionDetails.map(item => ({
+                item_name: item.item_name,
+                quantity: parseInt(item.quantity) || 1,
+                item_price: parseFloat(parseFormattedNumber(item.item_price)),
+                category_id: item.category_id ? parseInt(item.category_id) : parseInt(formData.category)
+            }));
+        }
 
         // Check budget only for expense transactions
         if (transactionType === 'expense') {
@@ -686,8 +749,126 @@ export default function Transaction({ auth }) {
                                         }}
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-growth-green-500 focus:border-transparent"
                                         required
+                                        disabled={showItemizedInput && transactionDetails.length > 0}
                                     />
+                                    {showItemizedInput && transactionDetails.length > 0 && (
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Amount is auto-calculated from items below
+                                        </p>
+                                    )}
                                 </div>
+
+                                {/* Itemized Input Toggle */}
+                                <div className="flex items-center justify-between py-2">
+                                    <label className="flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={showItemizedInput}
+                                            onChange={(e) => {
+                                                setShowItemizedInput(e.target.checked);
+                                                if (!e.target.checked) {
+                                                    setTransactionDetails([]);
+                                                }
+                                            }}
+                                            className="w-4 h-4 text-growth-green-500 border-gray-300 rounded focus:ring-growth-green-500"
+                                        />
+                                        <span className="ml-2 text-sm font-medium text-gray-700">
+                                            Add itemized details
+                                        </span>
+                                    </label>
+                                </div>
+
+                                {/* Transaction Details (Items) */}
+                                {showItemizedInput && (
+                                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 space-y-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h3 className="text-sm font-semibold text-gray-700">Items</h3>
+                                            <button
+                                                type="button"
+                                                onClick={addNewItem}
+                                                className="text-sm px-3 py-1 bg-growth-green-500 text-white rounded hover:bg-growth-green-600 transition-colors"
+                                            >
+                                                + Add Item
+                                            </button>
+                                        </div>
+
+                                        {transactionDetails.length === 0 ? (
+                                            <p className="text-sm text-gray-500 text-center py-4">
+                                                No items yet. Click "Add Item" to start.
+                                            </p>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {transactionDetails.map((item, index) => (
+                                                    <div key={item.id} className="bg-gray-50 rounded-lg p-3 space-y-2">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <span className="text-xs font-semibold text-gray-600">
+                                                                Item #{index + 1}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeItem(item.id)}
+                                                                className="text-red-500 hover:text-red-700 text-xs"
+                                                            >
+                                                                Remove
+                                                            </button>
+                                                        </div>
+                                                        
+                                                        {/* Item Name */}
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Item name"
+                                                            value={item.item_name}
+                                                            onChange={(e) => updateItem(item.id, 'item_name', e.target.value)}
+                                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-growth-green-500 focus:border-transparent"
+                                                        />
+                                                        
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            {/* Quantity */}
+                                                            <input
+                                                                type="number"
+                                                                placeholder="Qty"
+                                                                value={item.quantity}
+                                                                onChange={(e) => updateItem(item.id, 'quantity', e.target.value)}
+                                                                min="1"
+                                                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-growth-green-500 focus:border-transparent"
+                                                            />
+                                                            
+                                                            {/* Price */}
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Price"
+                                                                value={formatNumberWithDots(item.item_price)}
+                                                                onChange={(e) => {
+                                                                    const rawValue = parseFormattedNumber(e.target.value);
+                                                                    updateItem(item.id, 'item_price', rawValue);
+                                                                }}
+                                                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-growth-green-500 focus:border-transparent"
+                                                            />
+                                                        </div>
+
+                                                        {/* Subtotal Display */}
+                                                        <div className="text-right text-xs text-gray-600 font-medium">
+                                                            Subtotal: {formatNumberWithDots(
+                                                                ((parseInt(item.quantity) || 0) * (parseFloat(parseFormattedNumber(item.item_price)) || 0)).toString()
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {transactionDetails.length > 0 && (
+                                            <div className="border-t pt-3 mt-3">
+                                                <div className="flex justify-between items-center font-semibold text-gray-700">
+                                                    <span>Total Amount:</span>
+                                                    <span className="text-lg text-growth-green-500">
+                                                        {formatNumberWithDots(calculateTotalFromItems().toString())}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 {/* Category */}
                                 <div>

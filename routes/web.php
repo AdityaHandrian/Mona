@@ -107,13 +107,16 @@ Route::middleware(['auth'])->group(function () {
     
     // History page routes (original methods)
     Route::get('/api/transactions', [\App\Http\Controllers\TransactionController::class, 'index']);
+    
+    // Transaction.jsx routes (must be before {id} route)
+    Route::post('/api/transactions/add', [\App\Http\Controllers\TransactionController::class, 'apiStore']);
+    Route::get('/api/transactions/monthly-stats', [\App\Http\Controllers\TransactionController::class, 'monthlyStats']);
+    
+    // Specific ID routes (must be after named routes)
+    Route::get('/api/transactions/{id}', [\App\Http\Controllers\TransactionController::class, 'show']);
     Route::post('/api/transactions', [\App\Http\Controllers\TransactionController::class, 'store']);
     Route::put('/api/transactions/{id}', [\App\Http\Controllers\TransactionController::class, 'update']);
     Route::delete('/api/transactions/{id}', [\App\Http\Controllers\TransactionController::class, 'destroy']);
-    
-    // Transaction.jsx routes
-    Route::post('/api/transactions/add', [\App\Http\Controllers\TransactionController::class, 'apiStore']);
-    Route::get('/api/transactions/monthly-stats', [\App\Http\Controllers\TransactionController::class, 'monthlyStats']);
     
     // ScanReceipt.jsx routes
     Route::post('/api/transactions/quick-add', [\App\Http\Controllers\TransactionController::class, 'quickAdd']);

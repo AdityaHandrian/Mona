@@ -19,7 +19,33 @@ class TransactionController extends Controller
         $payload = $request->validated();
         $payload['user_id'] = $request->user()->id;
 
-        $trx = DB::transaction(fn () => \App\Models\Transaction::create($payload));
+        $trx = DB::transaction(function () use ($payload, $request) {
+            // Create the transaction
+            $transaction = \App\Models\Transaction::create($payload);
+            
+            // Handle transaction details if provided
+            if ($request->has('transaction_details') && is_array($request->transaction_details)) {
+                $totalAmount = 0;
+                
+                foreach ($request->transaction_details as $detail) {
+                    $transactionDetail = $transaction->transactionDetails()->create([
+                        'category_id' => $detail['category_id'] ?? $payload['category_id'],
+                        'item_name' => $detail['item_name'],
+                        'quantity' => $detail['quantity'] ?? 1,
+                        'item_price' => $detail['item_price'],
+                        // subtotal will be calculated automatically by the model
+                    ]);
+                    $totalAmount += $transactionDetail->subtotal;
+                }
+                
+                // Update transaction amount with calculated total from details
+                if ($totalAmount > 0) {
+                    $transaction->update(['amount' => $totalAmount]);
+                }
+            }
+            
+            return $transaction->load('transactionDetails');
+        });
         
         return response()->json([
             'status' => 'success',
@@ -31,6 +57,13 @@ class TransactionController extends Controller
                 'description'      => $trx->description,
                 'transaction_date' => optional($trx->transaction_date)->toIso8601String(),
                 'created_at'       => optional($trx->created_at)->toIso8601String(),
+                'details'          => $trx->transactionDetails->map(fn($d) => [
+                    'id' => $d->id,
+                    'item_name' => $d->item_name,
+                    'quantity' => $d->quantity,
+                    'item_price' => (float) $d->item_price,
+                    'subtotal' => (float) $d->subtotal,
+                ]),
             ],
         ], 201);
     }
@@ -45,6 +78,7 @@ class TransactionController extends Controller
             'date_from'   => ['nullable', 'date'],
             'date_to'     => ['nullable', 'date'],
             'per_page'    => ['nullable', 'integer', 'min:1', 'max:100'],
+            'include_details' => ['nullable', 'boolean'], // New parameter to include details
         ]);
 
         $userId   = $request->user()->id;
@@ -54,7 +88,64 @@ class TransactionController extends Controller
         $dateFrom = $validated['date_from']   ?? null;
         $dateTo   = $validated['date_to']     ?? null;
         $perPage  = $validated['per_page']    ?? 15;
+        $includeDetails = $validated['include_details'] ?? false;
 
+        // If details are requested, use Eloquent instead of Query Builder
+        if ($includeDetails) {
+            $query = Transaction::with(['category', 'transactionDetails.category'])
+                ->where('user_id', $userId)
+                ->when($type, function($q) use ($type) {
+                    $q->whereHas('category', fn($c) => $c->where('type', $type));
+                })
+                ->when($catId, fn($q) => $q->where('category_id', $catId))
+                ->when($search, fn($q) => $q->where('description', 'like', "%{$search}%"))
+                ->when($dateFrom, fn($q) => $q->whereDate('transaction_date', '>=', $dateFrom))
+                ->when($dateTo, fn($q) => $q->whereDate('transaction_date', '<=', $dateTo))
+                ->orderBy('transaction_date', 'desc');
+
+            $page = $query->paginate($perPage);
+
+            $items = $page->getCollection()->map(function ($trx) {
+                $date = $trx->transaction_date ? $trx->transaction_date->format('j/n/Y') : null;
+                $typeLabel = $trx->category ? ucfirst($trx->category->type) : null;
+                $amount = (float) $trx->amount;
+                
+                if ($trx->category && $trx->category->type === 'expense') {
+                    $amount = -1 * abs($amount);
+                }
+
+                return [
+                    'id' => (int) $trx->id,
+                    'date' => $date,
+                    'type' => $typeLabel,
+                    'category' => $trx->category?->category_name,
+                    'description' => $trx->description,
+                    'amount' => $amount,
+                    'details' => $trx->transactionDetails->map(fn($d) => [
+                        'id' => $d->id,
+                        'item_name' => $d->item_name,
+                        'quantity' => $d->quantity,
+                        'item_price' => (float) $d->item_price,
+                        'subtotal' => (float) $d->subtotal,
+                        'category' => $d->category?->category_name,
+                    ]),
+                ];
+            });
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Transactions fetched with details',
+                'data'    => $items,
+                'meta'    => [
+                    'current_page' => $page->currentPage(),
+                    'per_page'     => $page->perPage(),
+                    'total'        => $page->total(),
+                    'last_page'    => $page->lastPage(),
+                ],
+            ]);
+        }
+
+        // Original query builder approach for backward compatibility
         $query = DB::table('transactions as T')
             ->join('categories as C', 'T.category_id', '=', 'C.id')
             ->where('T.user_id', $userId)
@@ -117,6 +208,55 @@ class TransactionController extends Controller
         ]);
     }
     
+    // GET /api/transactions/{id} - Get single transaction with details
+    public function show(Request $request, $id)
+    {
+        try {
+            $transaction = Transaction::with(['category', 'transactionDetails.category'])
+                ->where('id', $id)
+                ->where('user_id', $request->user()->id)
+                ->firstOrFail();
+
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'transaction_id' => (int) $transaction->id,
+                    'user_id' => (int) $transaction->user_id,
+                    'category_id' => (int) $transaction->category_id,
+                    'category_name' => $transaction->category->category_name,
+                    'category_type' => $transaction->category->type,
+                    'amount' => (float) $transaction->amount,
+                    'description' => $transaction->description,
+                    'transaction_date' => $transaction->transaction_date?->format('Y-m-d'),
+                    'created_at' => $transaction->created_at?->toIso8601String(),
+                    'updated_at' => $transaction->updated_at?->toIso8601String(),
+                    'details' => $transaction->transactionDetails->map(fn($d) => [
+                        'id' => $d->id,
+                        'item_name' => $d->item_name,
+                        'quantity' => $d->quantity,
+                        'item_price' => (float) $d->item_price,
+                        'subtotal' => (float) $d->subtotal,
+                        'category_id' => $d->category_id,
+                        'category_name' => $d->category?->category_name,
+                    ]),
+                ]
+            ], 200);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Transaction not found or unauthorized.'
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred while fetching the transaction.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    
     // PUT /api/transactions/{id}
     public function update(StoreTransactionRequest $request, $id)
     {
@@ -132,11 +272,37 @@ class TransactionController extends Controller
 
             $payload = $request->validated();
             
-            DB::transaction(function () use ($transaction, $payload) {
+            DB::transaction(function () use ($transaction, $payload, $request) {
+                // Update the transaction
                 $transaction->update($payload);
+                
+                // Handle transaction details if provided
+                if ($request->has('transaction_details') && is_array($request->transaction_details)) {
+                    // Delete existing details
+                    $transaction->transactionDetails()->delete();
+                    
+                    $totalAmount = 0;
+                    
+                    // Create new details
+                    foreach ($request->transaction_details as $detail) {
+                        $transactionDetail = $transaction->transactionDetails()->create([
+                            'category_id' => $detail['category_id'] ?? $payload['category_id'],
+                            'item_name' => $detail['item_name'],
+                            'quantity' => $detail['quantity'] ?? 1,
+                            'item_price' => $detail['item_price'],
+                            // subtotal will be calculated automatically by the model
+                        ]);
+                        $totalAmount += $transactionDetail->subtotal;
+                    }
+                    
+                    // Update transaction amount with calculated total from details
+                    if ($totalAmount > 0) {
+                        $transaction->update(['amount' => $totalAmount]);
+                    }
+                }
             });
 
-            $transaction->refresh();
+            $transaction->refresh()->load('transactionDetails');
 
             return response()->json([
                 'status' => 'success',
@@ -149,6 +315,13 @@ class TransactionController extends Controller
                     'description'      => $transaction->description,
                     'transaction_date' => optional($transaction->transaction_date)->toIso8601String(),
                     'updated_at'       => optional($transaction->updated_at)->toIso8601String(),
+                    'details'          => $transaction->transactionDetails->map(fn($d) => [
+                        'id' => $d->id,
+                        'item_name' => $d->item_name,
+                        'quantity' => $d->quantity,
+                        'item_price' => (float) $d->item_price,
+                        'subtotal' => (float) $d->subtotal,
+                    ]),
                 ],
             ], 200);
 
@@ -270,20 +443,66 @@ class TransactionController extends Controller
             'amount' => 'required|numeric|min:0',
             'description' => 'nullable|string|max:255',
             'transaction_date' => 'required|date',
+            'transaction_details' => 'nullable|array',
+            'transaction_details.*.item_name' => 'required_with:transaction_details|string|max:255',
+            'transaction_details.*.quantity' => 'nullable|integer|min:1',
+            'transaction_details.*.item_price' => 'required_with:transaction_details|numeric|min:0',
+            'transaction_details.*.category_id' => 'nullable|exists:categories,id',
         ]);
 
-        $transaction = Transaction::create([
-            'user_id' => $request->user()->id,
-            'category_id' => $validated['category_id'],
-            'amount' => $validated['amount'],
-            'description' => $validated['description'] ?? '',
-            'transaction_date' => $validated['transaction_date'],
-        ]);
+        $transaction = DB::transaction(function () use ($request, $validated) {
+            // Create the transaction
+            $transaction = Transaction::create([
+                'user_id' => $request->user()->id,
+                'category_id' => $validated['category_id'],
+                'amount' => $validated['amount'],
+                'description' => $validated['description'] ?? '',
+                'transaction_date' => $validated['transaction_date'],
+            ]);
+            
+            // Handle transaction details if provided
+            if (isset($validated['transaction_details']) && is_array($validated['transaction_details'])) {
+                $totalAmount = 0;
+                
+                foreach ($validated['transaction_details'] as $detail) {
+                    $transactionDetail = $transaction->transactionDetails()->create([
+                        'category_id' => $detail['category_id'] ?? $validated['category_id'],
+                        'item_name' => $detail['item_name'],
+                        'quantity' => $detail['quantity'] ?? 1,
+                        'item_price' => $detail['item_price'],
+                        // subtotal will be calculated automatically by the model
+                    ]);
+                    $totalAmount += $transactionDetail->subtotal;
+                }
+                
+                // Update transaction amount with calculated total from details
+                if ($totalAmount > 0) {
+                    $transaction->update(['amount' => $totalAmount]);
+                }
+            }
+            
+            return $transaction->load('transactionDetails');
+        });
 
         return response()->json([
             'status' => 'success',
             'message' => 'Transaction created successfully',
-            'data' => $transaction
+            'data' => [
+                'transaction_id' => (int) $transaction->id,
+                'user_id' => (int) $transaction->user_id,
+                'category_id' => (int) $transaction->category_id,
+                'amount' => (float) $transaction->amount,
+                'description' => $transaction->description,
+                'transaction_date' => $transaction->transaction_date?->toIso8601String(),
+                'created_at' => $transaction->created_at?->toIso8601String(),
+                'details' => $transaction->transactionDetails->map(fn($d) => [
+                    'id' => $d->id,
+                    'item_name' => $d->item_name,
+                    'quantity' => $d->quantity,
+                    'item_price' => (float) $d->item_price,
+                    'subtotal' => (float) $d->subtotal,
+                ]),
+            ]
         ], 201);
     }
 
@@ -295,6 +514,11 @@ class TransactionController extends Controller
             'amount' => 'required|numeric|min:0',
             'description' => 'nullable|string|max:255',
             'transaction_date' => 'required|date',
+            'transaction_details' => 'nullable|array',
+            'transaction_details.*.item_name' => 'required_with:transaction_details|string|max:255',
+            'transaction_details.*.quantity' => 'nullable|integer|min:1',
+            'transaction_details.*.item_price' => 'required_with:transaction_details|numeric|min:0',
+            'transaction_details.*.category_id' => 'nullable|exists:categories,id',
         ]);
 
         try {
@@ -302,16 +526,38 @@ class TransactionController extends Controller
             $category = \App\Models\Category::findOrFail($validated['category_id']);
             
             $transaction = DB::transaction(function () use ($request, $validated) {
-                return Transaction::create([
+                // Create the transaction
+                $transaction = Transaction::create([
                     'user_id' => $request->user()->id,
                     'category_id' => $validated['category_id'],
                     'amount' => $validated['amount'],
                     'description' => $validated['description'] ?? 'Receipt transaction',
                     'transaction_date' => $validated['transaction_date'],
                 ]);
+                
+                // Handle transaction details if provided
+                if (isset($validated['transaction_details']) && is_array($validated['transaction_details'])) {
+                    $totalAmount = 0;
+                    
+                    foreach ($validated['transaction_details'] as $detail) {
+                        $transactionDetail = $transaction->transactionDetails()->create([
+                            'category_id' => $detail['category_id'] ?? $validated['category_id'],
+                            'item_name' => $detail['item_name'],
+                            'quantity' => $detail['quantity'] ?? 1,
+                            'item_price' => $detail['item_price'],
+                            // subtotal will be calculated automatically by the model
+                        ]);
+                        $totalAmount += $transactionDetail->subtotal;
+                    }
+                    
+                    // Update transaction amount with calculated total from details
+                    if ($totalAmount > 0) {
+                        $transaction->update(['amount' => $totalAmount]);
+                    }
+                }
+                
+                return $transaction->load('category', 'transactionDetails');
             });
-
-            $transaction->load('category');
 
             return response()->json([
                 'status' => 'success',
@@ -326,6 +572,13 @@ class TransactionController extends Controller
                     'description' => $transaction->description,
                     'transaction_date' => $transaction->transaction_date?->toIso8601String(),
                     'created_at' => $transaction->created_at?->toIso8601String(),
+                    'details' => $transaction->transactionDetails->map(fn($d) => [
+                        'id' => $d->id,
+                        'item_name' => $d->item_name,
+                        'quantity' => $d->quantity,
+                        'item_price' => (float) $d->item_price,
+                        'subtotal' => (float) $d->subtotal,
+                    ]),
                 ]
             ], 201);
 

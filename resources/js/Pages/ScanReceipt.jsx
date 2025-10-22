@@ -2,19 +2,14 @@ import { useState, useEffect } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import axios from 'axios';
 
-// Helper functions for number formatting
 const formatNumberWithDots = (value) => {
-    // Handle empty or undefined values
     if (!value) return '';
-    // Remove all non-digits
     const digits = String(value).replace(/\D/g, '');
     
-    // Add dots every 3 digits from right to left
     return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 };
 
 const parseFormattedNumber = (formattedValue) => {
-    // Remove dots to get raw number
     return formattedValue.replace(/\./g, '');
 };
 
@@ -37,7 +32,6 @@ export default function ScanReceipt({ auth }) {
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
 
-    // Handle window resize for responsive filename truncation
     useEffect(() => {
         const handleResize = () => {
             setWindowWidth(window.innerWidth);
@@ -47,7 +41,6 @@ export default function ScanReceipt({ auth }) {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Fetch categories from API (expense categories since receipts are usually expenses)
     const fetchCategories = async () => {
         try {
             setLoadingCategories(true);
@@ -55,7 +48,6 @@ export default function ScanReceipt({ auth }) {
             setCategories(response.data);
         } catch (error) {
             console.error('Error fetching categories:', error);
-            // Fallback categories if API fails
             setCategories([
                 { id: 1, category_name: 'Food & Dining' },
                 { id: 2, category_name: 'Shopping' },
@@ -69,7 +61,6 @@ export default function ScanReceipt({ auth }) {
         }
     };
 
-    // Load categories when component mounts
     useEffect(() => {
         fetchCategories();
     }, []);
@@ -196,6 +187,7 @@ export default function ScanReceipt({ auth }) {
         if (!selectedFile) return;
         
         setIsScanning(true);
+        setOcrResults(null);
         
         try {
             // Get CSRF token
@@ -211,40 +203,40 @@ export default function ScanReceipt({ auth }) {
                 type: selectedFile.type
             });
             
-            // Create FormData to send the file to your existing OCR endpoint
-            const formData = new FormData();
-            formData.append('image', selectedFile); // Using 'image' to match your existing endpoint
+            const startTime = Date.now();
             
-            // Send to your new Laravel Document AI endpoint
-            const response = await fetch('/process-receipt-ai', {
+            // Create FormData to send the file to OCR endpoint
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+            
+            // Send to /process-receipt endpoint (Gemini AI)
+            const response = await fetch('/process-receipt', {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
                 },
-                body: formData
+                body: formData,
+                credentials: 'same-origin'
             });
             
-            // Get response text for better error debugging
+            const endTime = Date.now();
+            const processingTime = endTime - startTime;
+            setProcessingTime(processingTime);
+            
+            // Get response
             const responseText = await response.text();
             console.log('Response status:', response.status);
             console.log('Response body:', responseText);
             
             if (!response.ok) {
-                // Try to parse error message from response
                 let errorMessage = 'OCR processing failed';
                 try {
                     const errorData = JSON.parse(responseText);
                     errorMessage = errorData.error || errorData.message || errorMessage;
-                    if (errorData.details) {
-                        errorMessage += ': ' + errorData.details;
-                    }
                 } catch (e) {
-                    // If response is not JSON, use the text
                     errorMessage += ` (Status: ${response.status})`;
-                    if (responseText && responseText.length < 200) {
-                        errorMessage += ` - ${responseText}`;
-                    }
                 }
                 throw new Error(errorMessage);
             }
@@ -253,115 +245,37 @@ export default function ScanReceipt({ auth }) {
             const ocrData = JSON.parse(responseText);
             
             // Check if there's an error from the backend
-            if (ocrData.error) {
-                throw new Error(ocrData.error);
+            if (ocrData.error || !ocrData.success) {
+                throw new Error(ocrData.error || 'Failed to process receipt');
             }
 
-            // Store processing time if available
-            if (ocrData.processing_stats?.processing_time_ms) {
-                setProcessingTime(ocrData.processing_stats.processing_time_ms);
-            }
+            console.log('OCR Data received:', ocrData);
             
-            // Use the extracted data from Document AI
-            const extractedData = ocrData.extracted || {};
+            // Store the complete OCR results for display
+            setOcrResults(ocrData);
             
-            // Helper function to parse and validate date
-            const parseReceiptDate = (dateString) => {
-                if (!dateString) return new Date().toISOString().split('T')[0];
-                
-                // If date is already in YYYY-MM-DD format, return as is
-                if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                    return dateString;
-                }
-                
-                // Try multiple date formats commonly found on Indonesian receipts
-                const dateFormats = [
-                    // DD/MM/YYYY or DD-MM-YYYY
-                    /^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/,
-                    // DD/MM/YY or DD-MM-YY
-                    /^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2})$/,
-                    // YYYY-MM-DD (ISO format)
-                    /^(\d{4})-(\d{1,2})-(\d{1,2})$/,
-                    // DD MMM YYYY (16 Nov 2019)
-                    /^(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})$/i
-                ];
-                
-                const dateStr = dateString.trim();
-                
-                // Try DD/MM/YYYY or DD-MM-YYYY format first (most common in Indonesia)
-                const ddmmyyyy = dateStr.match(dateFormats[0]);
-                if (ddmmyyyy) {
-                    const [, day, month, year] = ddmmyyyy;
-                    const date = new Date(year, month - 1, day);
-                    if (!isNaN(date.getTime())) {
-                        return date.toISOString().split('T')[0];
-                    }
-                }
-                
-                // Try DD/MM/YY format
-                const ddmmyy = dateStr.match(dateFormats[1]);
-                if (ddmmyy) {
-                    const [, day, month, year] = ddmmyy;
-                    const fullYear = parseInt(year) > 50 ? 1900 + parseInt(year) : 2000 + parseInt(year);
-                    const date = new Date(fullYear, month - 1, day);
-                    if (!isNaN(date.getTime())) {
-                        return date.toISOString().split('T')[0];
-                    }
-                }
-                
-                // Try ISO format
-                const iso = dateStr.match(dateFormats[2]);
-                if (iso) {
-                    const date = new Date(dateStr);
-                    if (!isNaN(date.getTime())) {
-                        return date.toISOString().split('T')[0];
-                    }
-                }
-                
-                // Fallback to current date if parsing fails
-                return new Date().toISOString().split('T')[0];
-            };
-            
-            // Process the OCR results from Document AI service
-            const processedResults = {
-                amount: extractedData.amount || '',
-                category: mapToValidCategory(extractedData.category, extractedData.description), // Smart mapping with description
-                date: parseReceiptDate(extractedData.date), // Better date parsing
-                description: extractedData.description || 'Receipt transaction'
-            };
-            
-            setOcrResults(processedResults);
-            setFormData(processedResults);
-            
-        } catch (error) {
-            console.error('OCR Error Details:', {
-                message: error.message,
-                stack: error.stack,
-                name: error.name
+            // Populate formData for editing
+            setFormData({
+                amount: ocrData.amount?.toString() || '',
+                category: ocrData.category_id || '',
+                date: ocrData.date || new Date().toISOString().split('T')[0],
+                description: ocrData.description || 'Receipt transaction'
             });
             
-            // Show detailed error to user
-            showMessage('error', 'Failed to process receipt: ' + error.message);
+            // Show success message
+            const itemCount = ocrData.items?.length || 0;
+            const successMsg = itemCount > 0 
+                ? `Receipt scanned successfully! Found ${itemCount} item${itemCount > 1 ? 's' : ''}. Review and edit before adding.`
+                : 'Receipt scanned successfully! Review and edit before adding.';
+            showMessage('success', successMsg);
             
-            // Don't set any results - keep the empty state
-            console.log('OCR failed, keeping extracted data section empty');
-            
+        } catch (error) {
+            console.error('OCR error:', error);
+            showMessage('error', error.message || 'Failed to process receipt');
+            setOcrResults(null);
         } finally {
             setIsScanning(false);
         }
-        
-        // // Mock Scan (for testing)
-        // setTimeout(() => {
-        //     const mockResults = {
-        //         amount: '255.255.255',
-        //         category: 'Food and Beverages',
-        //         date: '2025-09-17',
-        //         description: 'Receipt transaction (Fake Scan)'
-        //     };
-        //     setOcrResults(mockResults);
-        //     setFormData(mockResults);
-        //     setIsScanning(false);
-        // }, 3000);
     };
 
     const handleInputChange = (field, value) => {
@@ -472,10 +386,24 @@ export default function ScanReceipt({ auth }) {
                 transaction_date: formData.date
             };
 
-            const response = await axios.post('/api/transactions/quick-add', transactionData);
+            // Add transaction details (items) if they exist from OCR
+            if (ocrResults?.items && ocrResults.items.length > 0) {
+                transactionData.transaction_details = ocrResults.items.map(item => ({
+                    item_name: item.item_name,
+                    quantity: parseInt(item.quantity) || 1,
+                    item_price: parseFloat(item.item_price),
+                    category_id: parseInt(formData.category) // Use selected category
+                }));
+            }
+
+            const response = await axios.post('/api/transactions/add', transactionData);
 
             if (response.data.status === 'success') {
-                showMessage('success', 'Transaction added successfully from receipt!');
+                const itemCount = ocrResults?.items?.length || 0;
+                const successMsg = itemCount > 0 
+                    ? `Transaction with ${itemCount} item${itemCount > 1 ? 's' : ''} added successfully!`
+                    : 'Transaction added successfully from receipt!';
+                showMessage('success', successMsg);
                 
                 // Reset form and clear selected file
                 setFormData({
@@ -778,7 +706,7 @@ export default function ScanReceipt({ auth }) {
                                     <p className="text-medium-gray text-sm">Please wait while we extract the data</p>
                                 </div>
                             ) : ocrResults ? (
-                                /* OCR Results Form */
+                                /* OCR Results Form - Editable */
                                 <div className="space-y-4">
                                     {/* Amount Field */}
                                     <div>
@@ -789,7 +717,7 @@ export default function ScanReceipt({ auth }) {
                                             type="text"
                                             value={formatNumberWithDots(formData.amount)}
                                             onChange={(e) => handleInputChange('amount', e.target.value)}
-                                            className="w-full px-3 py-2 border border-light-gray rounded text-charcoal bg-gray-100"
+                                            className="w-full px-3 py-2 border border-light-gray rounded text-charcoal focus:ring-2 focus:ring-growth-green-500 focus:border-transparent"
                                             placeholder="0"
                                         />
                                     </div>
@@ -805,7 +733,7 @@ export default function ScanReceipt({ auth }) {
                                                 onChange={(e) => handleInputChange('category', e.target.value)}
                                                 onFocus={() => setIsDropdownOpen(true)}
                                                 onBlur={() => setIsDropdownOpen(false)}
-                                                className="w-full px-3 py-2 border border-light-gray rounded text-charcoal bg-gray-100 cursor-pointer pr-10"
+                                                className="w-full px-3 py-2 border border-light-gray rounded text-charcoal cursor-pointer pr-10 focus:ring-2 focus:ring-growth-green-500 focus:border-transparent"
                                                 disabled={loadingCategories}
                                                 style={{ 
                                                     WebkitAppearance: 'none', 
@@ -848,7 +776,7 @@ export default function ScanReceipt({ auth }) {
                                                 value={formatDateForDisplay(formData.date)}
                                                 placeholder="DD/MM/YYYY"
                                                 readOnly
-                                                className="w-full px-3 py-2 border border-light-gray rounded text-charcoal bg-gray-100 cursor-pointer"
+                                                className="w-full px-3 py-2 border border-light-gray rounded text-charcoal cursor-pointer focus:ring-2 focus:ring-growth-green-500 focus:border-transparent"
                                                 onClick={() => document.getElementById('hidden-date-picker').showPicker()}
                                             />
                                             {/* Hidden date picker */}
@@ -880,8 +808,57 @@ export default function ScanReceipt({ auth }) {
                                             type="text"
                                             value={formData.description}
                                             onChange={(e) => handleInputChange('description', e.target.value)}
-                                            className="w-full px-3 py-2 border border-light-gray rounded text-charcoal bg-gray-100"
+                                            className="w-full px-3 py-2 border border-light-gray rounded text-charcoal focus:ring-2 focus:ring-growth-green-500 focus:border-transparent"
                                         />
+                                    </div>
+
+                                    {/* Itemized Details (Read-only display) */}
+                                    {ocrResults.items && ocrResults.items.length > 0 && (
+                                        <div className="border-t border-gray-200 pt-4 mt-4">
+                                            <label className="block text-charcoal font-medium mb-3">
+                                                Itemized Details ({ocrResults.items.length} items)
+                                            </label>
+                                            <p className="text-xs text-gray-500 mb-3">Extracted from receipt - these items were already saved</p>
+                                            <div className="space-y-2 max-h-64 overflow-y-auto">
+                                                {ocrResults.items.map((item, index) => (
+                                                    <div key={index} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                                        <div className="flex justify-between items-start mb-1">
+                                                            <span className="font-medium text-sm text-gray-800">
+                                                                {item.item_name}
+                                                            </span>
+                                                            <span className="text-sm font-semibold text-growth-green-500">
+                                                                {formatNumberWithDots(item.subtotal?.toString() || ((item.quantity || 1) * (item.item_price || 0)).toString())}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center text-xs text-gray-600">
+                                                            <span>Qty: {item.quantity || 1}</span>
+                                                            <span>@ {formatNumberWithDots(item.item_price?.toString() || '0')}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between items-center font-semibold text-gray-800">
+                                                <span>Items Total:</span>
+                                                <span className="text-lg text-growth-green-500">
+                                                    {formatNumberWithDots(ocrResults.amount?.toString() || '')}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Info Message */}
+                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                        <div className="flex items-start gap-2 text-blue-700">
+                                            <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                            </svg>
+                                            <div className="flex-1">
+                                                <span className="font-medium">Review and edit the extracted data</span>
+                                                <p className="text-sm text-blue-600 mt-1">
+                                                    You can modify the amount, category, date, or description before adding the transaction.
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     {/* Add Transaction Button */}
@@ -903,6 +880,25 @@ export default function ScanReceipt({ auth }) {
                                         ) : (
                                             'Add Transaction'
                                         )}
+                                    </button>
+
+                                    {/* Scan Another Receipt Button */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSelectedFile(null);
+                                            setOcrResults(null);
+                                            setProcessingTime(null);
+                                            setFormData({
+                                                amount: '',
+                                                category: 'Other',
+                                                date: '',
+                                                description: ''
+                                            });
+                                        }}
+                                        className="w-full px-6 py-3 rounded transition-colors duration-200 font-medium bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                    >
+                                        Scan Another Receipt
                                     </button>
                                 </div>
                             ) : (

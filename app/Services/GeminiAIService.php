@@ -29,17 +29,44 @@ Analisis gambar struk ini. Ekstrak informasi berikut dan berikan HANYA dalam for
 3. "date": Tanggal transaksi dalam format YYYY-MM-DD, tanggal transaksi pasti tidak lebih dari 90 hari yang lalu, pastikan data yang diberikan akurat.
 4. "description": Deskripsi singkat dan jelas dari transaksi, biasanya nama toko atau item utama.
 5. "category": Jika expense kategorikan transaksi ke dalam salah satu dari berikut: 'Food and Beverages', 'Shopping', 'Entertainment', 'Bills and Utilities', 'Other Expense'. Jika income kategorikan transaksi ke dalam salah satu dari berikut: 'Salary', 'Bonus', 'Business Income', 'Gift', 'Other Income'.
+6. "items": Array dari item-item dalam struk (jika ada dan terbaca). Setiap item harus memiliki:
+   - "item_name": Nama item/barang
+   - "quantity": Jumlah/kuantitas item (default 1 jika tidak ada)
+   - "item_price": Harga per item (bukan total, tapi harga satuan)
+   
+   Jika struk tidak memiliki detail item atau tidak terbaca dengan jelas, berikan array kosong [].
 
-Contoh output JSON yang diinginkan:
+Contoh output JSON yang diinginkan (dengan items):
 {
     "type": "expense",
     "amount": 115500,
     "date": "2024-05-21",
     "description": "Pembelian di Indomaret",
-    "category": "Food and Beverages"
+    "category": "Food and Beverages",
+    "items": [
+        {"item_name": "Indomie Goreng", "quantity": 5, "item_price": 3500},
+        {"item_name": "Teh Botol", "quantity": 2, "item_price": 5000},
+        {"item_name": "Roti Tawar", "quantity": 1, "item_price": 15000}
+    ]
 }
 
-Jika ada informasi yang tidak ditemukan, berikan nilai null untuk field tersebut. Berikan HANYA JSON, tanpa teks tambahan.
+Contoh output JSON tanpa items (jika tidak terbaca):
+{
+    "type": "expense",
+    "amount": 50000,
+    "date": "2024-05-21",
+    "description": "Pembelian di Alfamart",
+    "category": "Shopping",
+    "items": []
+}
+
+PENTING: 
+- Pastikan total amount sesuai dengan jumlah akhir di struk (setelah diskon/pajak).
+- item_price adalah harga PER ITEM, bukan total. Total = quantity × item_price.
+- Jika ada item dengan qty > 1, pastikan item_price adalah harga satuan.
+- Jika struk tidak jelas atau tidak ada detail item, gunakan items: []
+
+Jika ada informasi yang tidak ditemukan, berikan nilai null untuk field tersebut (kecuali items yang harus array). Berikan HANYA JSON, tanpa teks tambahan.
 PROMPT;
 
         $mimeType = $imageFile->getMimeType();

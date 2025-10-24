@@ -1,6 +1,7 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Head } from '@inertiajs/react';
 import { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import axios from 'axios';
 import EditTransaction from '@/Components/EditTransaction';
 
@@ -34,6 +35,11 @@ export default function History({ auth }) {
     const [message, setMessage] = useState({ type: '', text: '' });
     const [editingTransaction, setEditingTransaction] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
+    
+    // State for expandable transaction details
+    const [expandedId, setExpandedId] = useState(null);
+    const [transactionDetails, setTransactionDetails] = useState({});
+    const [loadingDetails, setLoadingDetails] = useState({});
 
     // Category dropdown
     let availableCategories = [];
@@ -61,6 +67,64 @@ export default function History({ auth }) {
     });
 
     const searchRef = useRef(null);
+
+    // Fetch single transaction details
+    const fetchTransactionDetails = async (transactionId) => {
+        if (transactionDetails[transactionId]) {
+            // Already loaded
+            return;
+        }
+
+        setLoadingDetails(prev => ({ ...prev, [transactionId]: true }));
+        
+        try {
+            const res = await axios.get(`/api/transactions/${transactionId}`, {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                withCredentials: true,
+            });
+            
+            if (res.data.status === 'success') {
+                setTransactionDetails(prev => ({
+                    ...prev,
+                    [transactionId]: res.data.data.details || []
+                }));
+            }
+        } catch (err) {
+            console.error('Failed to fetch transaction details:', err);
+            console.error('Error response:', err.response?.data);
+            console.error('Error status:', err.response?.status);
+            
+            // Set empty array on error
+            setTransactionDetails(prev => ({
+                ...prev,
+                [transactionId]: []
+            }));
+            
+            // Show error message to user
+            if (err.response?.status === 404) {
+                showMessage('error', 'Transaction not found or has been deleted.');
+            } else if (err.response?.status === 403) {
+                showMessage('error', 'You do not have permission to view this transaction.');
+            } else {
+                // Don't show error for "no details" case - it's expected
+                console.log('Transaction has no itemized details or error fetching details');
+            }
+        } finally {
+            setLoadingDetails(prev => ({ ...prev, [transactionId]: false }));
+        }
+    };
+
+    // Toggle expansion
+    const toggleExpand = (transactionId) => {
+        if (expandedId === transactionId) {
+            // Collapse if already expanded
+            setExpandedId(null);
+        } else {
+            // Expand and fetch details
+            setExpandedId(transactionId);
+            fetchTransactionDetails(transactionId);
+        }
+    };
 
     const fetchTransactions = async (page = 1) => {
         setLoading(true);
@@ -231,11 +295,26 @@ export default function History({ auth }) {
                                 transform: translateY(0);
                             }
                         }
+                        @keyframes slideDown {
+                            from {
+                                opacity: 0;
+                                max-height: 0;
+                                transform: translateY(-10px);
+                            }
+                            to {
+                                opacity: 1;
+                                max-height: 500px;
+                                transform: translateY(0);
+                            }
+                        }
                         .animate-fade-in {
                             animation: fadeIn 0.8s ease-out forwards;
                         }
                         .animate-fade-in-up {
                             animation: fadeInUp 0.8s ease-out forwards;
+                        }
+                        .animate-slide-down {
+                            animation: slideDown 0.3s ease-out forwards;
                         }
                         .delay-100 { animation-delay: 0.1s; opacity: 0; }
                         .delay-200 { animation-delay: 0.2s; opacity: 0; }
@@ -337,47 +416,107 @@ export default function History({ auth }) {
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {filteredTransactions.map((transaction) => (
-                                        <tr key={transaction.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{transaction.date ?? '-'}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span
-                                                    className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                                        transaction.type === 'Income'
-                                                            ? 'bg-green-100 text-green-800'
-                                                            : 'bg-red-100 text-red-800'
+                                        <React.Fragment key={transaction.id}>
+                                            <tr 
+                                                className="hover:bg-gray-50 cursor-pointer transition-colors"
+                                                onClick={() => toggleExpand(transaction.id)}
+                                            >
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                    <div className="flex items-center gap-2">
+                                                        <svg 
+                                                            className={`w-4 h-4 transition-transform ${expandedId === transaction.id ? 'rotate-90' : ''}`} 
+                                                            fill="currentColor" 
+                                                            viewBox="0 0 20 20"
+                                                        >
+                                                            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                                                        </svg>
+                                                        {transaction.date ?? '-'}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span
+                                                        className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                                            transaction.type === 'Income'
+                                                                ? 'bg-green-100 text-green-800'
+                                                                : 'bg-red-100 text-red-800'
+                                                        }`}
+                                                    >
+                                                        {transaction.type ?? '-'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{transaction.category ?? '-'}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{transaction.description ?? '-'}</td>
+                                                <td
+                                                    className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                                                        (transaction.amount ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'
                                                     }`}
                                                 >
-                                                    {transaction.type ?? '-'}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{transaction.category ?? '-'}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{transaction.description ?? '-'}</td>
-                                            <td
-                                                className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
-                                                    (transaction.amount ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'
-                                                }`}
-                                            >
-                                                {formatCurrency(transaction.amount ?? 0)}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                <div className="flex items-center gap-4">
-                                                    <button 
-                                                        onClick={() => handleEdit(transaction)}
-                                                        className="text-blue-600 hover:text-blue-900 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
-                                                        disabled={deletingId === transaction.id}
-                                                    >
-                                                        Edit
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleDelete(transaction.id)}
-                                                        disabled={deletingId === transaction.id}
-                                                        className="text-red-600 hover:text-red-900 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
-                                                    >
-                                                        {deletingId === transaction.id ? 'Deleting...' : 'Delete'}
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
+                                                    {formatCurrency(transaction.amount ?? 0)}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" onClick={(e) => e.stopPropagation()}>
+                                                    <div className="flex items-center gap-4">
+                                                        <button 
+                                                            onClick={() => handleEdit(transaction)}
+                                                            className="text-blue-600 hover:text-blue-900 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
+                                                            disabled={deletingId === transaction.id}
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleDelete(transaction.id)}
+                                                            disabled={deletingId === transaction.id}
+                                                            className="text-red-600 hover:text-red-900 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
+                                                        >
+                                                            {deletingId === transaction.id ? 'Deleting...' : 'Delete'}
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {/* Expandable Details Row */}
+                                            {expandedId === transaction.id && (
+                                                <tr className="bg-gray-50">
+                                                    <td colSpan="6" className="px-6 py-4">
+                                                        <div className="animate-slide-down">
+                                                            {loadingDetails[transaction.id] ? (
+                                                                <div className="text-center text-gray-500 py-4">
+                                                                    Loading details...
+                                                                </div>
+                                                            ) : transactionDetails[transaction.id]?.length > 0 ? (
+                                                                <div className="space-y-2">
+                                                                    <h4 className="font-semibold text-gray-700 mb-3">Transaction Items:</h4>
+                                                                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                                                                        <table className="min-w-full divide-y divide-gray-200">
+                                                                            <thead className="bg-gray-100">
+                                                                                <tr>
+                                                                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">Item Name</th>
+                                                                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">Quantity</th>
+                                                                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">Price</th>
+                                                                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">Subtotal</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody className="divide-y divide-gray-200">
+                                                                                {transactionDetails[transaction.id].map((detail, idx) => (
+                                                                                    <tr key={detail.id || idx} className="hover:bg-gray-50">
+                                                                                        <td className="px-4 py-3 text-sm text-gray-700">{detail.item_name}</td>
+                                                                                        <td className="px-4 py-3 text-sm text-gray-600">{detail.quantity}</td>
+                                                                                        <td className="px-4 py-3 text-sm text-gray-600">{formatCurrency(detail.item_price)}</td>
+                                                                                        <td className="px-4 py-3 text-sm font-medium text-gray-700">{formatCurrency(detail.subtotal)}</td>
+                                                                                    </tr>
+                                                                                ))}
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="text-center text-gray-500 py-4">
+                                                                    No itemized details for this transaction
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </React.Fragment>
                                     ))}
                                 </tbody>
                             </table>
@@ -386,53 +525,101 @@ export default function History({ auth }) {
                         {/* Tablet & Mobile Card View - Shown below lg breakpoint */}
                         <div className="lg:hidden divide-y divide-gray-200">
                             {filteredTransactions.map((transaction) => (
-                                <div key={transaction.id} className="p-4 sm:p-5 md:p-6 hover:bg-gray-50">
-                                    {/* Header: Date and Type Badge */}
-                                    <div className="flex justify-between items-start mb-3 md:mb-4">
-                                        <span className="text-xs sm:text-sm md:text-base text-gray-500">{transaction.date ?? '-'}</span>
-                                        <span
-                                            className={`px-2 md:px-3 py-1 text-xs md:text-sm font-semibold rounded-full ${
-                                                transaction.type === 'Income'
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : 'bg-red-100 text-red-800'
-                                            }`}
-                                        >
-                                            {transaction.type ?? '-'}
-                                        </span>
-                                    </div>
-
-                                    {/* Category and Description */}
-                                    <div className="mb-3 md:mb-4">
-                                        <p className="text-sm md:text-base font-medium text-gray-900">{transaction.category ?? '-'}</p>
-                                        <p className="text-xs md:text-sm text-gray-600 mt-1">{transaction.description ?? '-'}</p>
-                                    </div>
-
-                                    {/* Amount and Actions */}
-                                    <div className="flex justify-between items-center">
-                                        <span
-                                            className={`text-base md:text-lg font-bold ${
-                                                (transaction.amount ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'
-                                            }`}
-                                        >
-                                            {formatCurrency(transaction.amount ?? 0)}
-                                        </span>
-                                        <div className="flex items-center gap-3 md:gap-4">
-                                            <button 
-                                                onClick={() => handleEdit(transaction)}
-                                                className="text-sm md:text-base text-blue-600 hover:text-blue-900 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
-                                                disabled={deletingId === transaction.id}
+                                <div key={transaction.id} className="hover:bg-gray-50">
+                                    <div 
+                                        className="p-4 sm:p-5 md:p-6 cursor-pointer"
+                                        onClick={() => toggleExpand(transaction.id)}
+                                    >
+                                        {/* Header: Date and Type Badge */}
+                                        <div className="flex justify-between items-start mb-3 md:mb-4">
+                                            <div className="flex items-center gap-2">
+                                                <svg 
+                                                    className={`w-4 h-4 transition-transform ${expandedId === transaction.id ? 'rotate-90' : ''}`} 
+                                                    fill="currentColor" 
+                                                    viewBox="0 0 20 20"
+                                                >
+                                                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                                                </svg>
+                                                <span className="text-xs sm:text-sm md:text-base text-gray-500">{transaction.date ?? '-'}</span>
+                                            </div>
+                                            <span
+                                                className={`px-2 md:px-3 py-1 text-xs md:text-sm font-semibold rounded-full ${
+                                                    transaction.type === 'Income'
+                                                        ? 'bg-green-100 text-green-800'
+                                                        : 'bg-red-100 text-red-800'
+                                                }`}
                                             >
-                                                Edit
-                                            </button>
-                                            <button 
-                                                onClick={() => handleDelete(transaction.id)}
-                                                disabled={deletingId === transaction.id}
-                                                className="text-sm md:text-base text-red-600 hover:text-red-900 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
+                                                {transaction.type ?? '-'}
+                                            </span>
+                                        </div>
+
+                                        {/* Category and Description */}
+                                        <div className="mb-3 md:mb-4">
+                                            <p className="text-sm md:text-base font-medium text-gray-900">{transaction.category ?? '-'}</p>
+                                            <p className="text-xs md:text-sm text-gray-600 mt-1">{transaction.description ?? '-'}</p>
+                                        </div>
+
+                                        {/* Amount and Actions */}
+                                        <div className="flex justify-between items-center">
+                                            <span
+                                                className={`text-base md:text-lg font-bold ${
+                                                    (transaction.amount ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                                                }`}
                                             >
-                                                {deletingId === transaction.id ? 'Deleting...' : 'Delete'}
-                                            </button>
+                                                {formatCurrency(transaction.amount ?? 0)}
+                                            </span>
+                                            <div className="flex items-center gap-3 md:gap-4" onClick={(e) => e.stopPropagation()}>
+                                                <button 
+                                                    onClick={() => handleEdit(transaction)}
+                                                    className="text-sm md:text-base text-blue-600 hover:text-blue-900 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
+                                                    disabled={deletingId === transaction.id}
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDelete(transaction.id)}
+                                                    disabled={deletingId === transaction.id}
+                                                    className="text-sm md:text-base text-red-600 hover:text-red-900 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
+                                                >
+                                                    {deletingId === transaction.id ? 'Deleting...' : 'Delete'}
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
+                                    
+                                    {/* Expandable Details */}
+                                    {expandedId === transaction.id && (
+                                        <div className="px-4 sm:px-5 md:px-6 pb-4 sm:pb-5 md:pb-6 bg-gray-50 animate-slide-down">
+                                            {loadingDetails[transaction.id] ? (
+                                                <div className="text-center text-gray-500 py-4 text-sm">
+                                                    Loading details...
+                                                </div>
+                                            ) : transactionDetails[transaction.id]?.length > 0 ? (
+                                                <div className="space-y-2">
+                                                    <h4 className="font-semibold text-gray-700 mb-3 text-sm md:text-base">Transaction Items:</h4>
+                                                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                                                        {transactionDetails[transaction.id].map((detail, idx) => (
+                                                            <div key={detail.id || idx} className="p-3 border-b last:border-b-0 hover:bg-gray-50">
+                                                                <div className="flex justify-between items-start mb-2">
+                                                                    <span className="text-sm md:text-base font-medium text-gray-700">{detail.item_name}</span>
+                                                                    <span className="text-sm md:text-base font-semibold text-gray-900">{formatCurrency(detail.subtotal)}</span>
+                                                                </div>
+                                                                <div className="flex gap-4 text-xs md:text-sm text-gray-600">
+                                                                    <span>Qty: {detail.quantity}</span>
+                                                                    <span>×</span>
+                                                                    <span>{formatCurrency(detail.item_price)}</span>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="text-center text-gray-500 py-4 text-xs md:text-sm">
+                                                    No itemized details for this transaction
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>

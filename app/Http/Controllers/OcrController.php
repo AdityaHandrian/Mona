@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Services\GeminiAIService;
+use App\Models\Transaction;
+use App\Models\Category;
+use Illuminate\Support\Facades\DB;
 use Exception;
 
 class OcrController extends Controller
@@ -29,7 +32,7 @@ class OcrController extends Controller
     }
 
     /**
-     * Process receipt for both Blade and React components
+     * Process receipt and extract data (without creating transaction)
      * This method works with your existing /process-receipt route
      */
     public function processReceipt(Request $request)
@@ -38,20 +41,53 @@ class OcrController extends Controller
         
         try {
             $imageFile = $request->file('image');
-            $response = $this->geminiAI->extractReceiptData($imageFile);
+            $ocrData = $this->geminiAI->extractReceiptData($imageFile);
             
-            // Format response for both Blade and React compatibility
+            // Map category name to category ID
+            $categoryName = $ocrData['category'] ?? 'Other Expense';
+            $category = Category::where('category_name', $categoryName)->first();
+            
+            // If category not found, try to find a default category
+            if (!$category) {
+                $type = ($ocrData['type'] ?? 'expense') === 'income' ? 'income' : 'expense';
+                $defaultCategoryName = $type === 'income' ? 'Other Income' : 'Other Expense';
+                $category = Category::where('category_name', $defaultCategoryName)->first();
+            }
+            
+            // If still not found, get any category of the correct type
+            if (!$category) {
+                $type = ($ocrData['type'] ?? 'expense') === 'income' ? 'income' : 'expense';
+                $category = Category::where('type', $type)->first();
+            }
+            
+            // Final fallback - get any category
+            if (!$category) {
+                $category = Category::first();
+            }
+            
+            if (!$category) {
+                throw new Exception('No categories found in database. Please create categories first.');
+            }
+            
+            // Format response for frontend (WITHOUT creating transaction)
             $formattedResponse = [
-                'type' => 'expense', // Default type for Blade compatibility
-                'amount' => $response['amount'] ?? '',
-                'date' => $response['date'] ?? date('Y-m-d'),
-                'description' => $response['description'] ?? 'Receipt transaction',
-                'category' => $response['category'] ?? 'Other'
+                'success' => true,
+                'message' => 'Receipt data extracted successfully',
+                'amount' => $ocrData['amount'] ?? 0,
+                'date' => $ocrData['date'] ?? date('Y-m-d'),
+                'description' => $ocrData['description'] ?? 'Receipt transaction',
+                'category' => $category->category_name,
+                'category_id' => $category->id,
+                'items' => $ocrData['items'] ?? [],
             ];
             
-            return response()->json($formattedResponse);
+            return response()->json($formattedResponse, 200);
+            
         } catch (Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 }

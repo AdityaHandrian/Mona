@@ -19,7 +19,7 @@ class Transaction extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
-        'transaction_date' => 'date',
+        'transaction_date' => 'datetime',
     ];
 
     public function user()
@@ -30,5 +30,10 @@ class Transaction extends Model
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function transactionDetails()
+    {
+        return $this->hasMany(TransactionDetail::class);
     }
 }

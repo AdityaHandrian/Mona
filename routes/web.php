@@ -64,6 +64,10 @@ Route::get('/testing', function () {
     return view('testing');
 })->name('testing');
 
+Route::get('/dashboard-api-test', function () {
+    return view('dashboard-api-test');
+})->name('dashboard-api-test');
+
 Route::post('/process-receipt', [OcrController::class, 'processReceipt']);
 Route::post('/process-receipt-ai', [DocumentAIController::class, 'processReceipt']);
 
@@ -103,15 +107,24 @@ Route::middleware(['auth'])->group(function () {
     
     // History page routes (original methods)
     Route::get('/api/transactions', [\App\Http\Controllers\TransactionController::class, 'index']);
+    
+    // Transaction.jsx routes (must be before {id} route)
+    Route::post('/api/transactions/add', [\App\Http\Controllers\TransactionController::class, 'apiStore']);
+    Route::get('/api/transactions/monthly-stats', [\App\Http\Controllers\TransactionController::class, 'monthlyStats']);
+    
+    // Specific ID routes (must be after named routes)
+    Route::get('/api/transactions/{id}', [\App\Http\Controllers\TransactionController::class, 'show']);
     Route::post('/api/transactions', [\App\Http\Controllers\TransactionController::class, 'store']);
     Route::put('/api/transactions/{id}', [\App\Http\Controllers\TransactionController::class, 'update']);
     Route::delete('/api/transactions/{id}', [\App\Http\Controllers\TransactionController::class, 'destroy']);
     
-    // Transaction.jsx routes
-    Route::post('/api/transactions/add', [\App\Http\Controllers\TransactionController::class, 'apiStore']);
-    Route::get('/api/transactions/monthly-stats', [\App\Http\Controllers\TransactionController::class, 'monthlyStats']);
-    
     // ScanReceipt.jsx routes
     Route::post('/api/transactions/quick-add', [\App\Http\Controllers\TransactionController::class, 'quickAdd']);
+    
+    // Dashboard API routes
+    Route::get('/api/dashboard/monthly-stats', [\App\Http\Controllers\DashboardController::class, 'monthlyStats']);
+    Route::get('/api/dashboard/financial-overview', [\App\Http\Controllers\DashboardController::class, 'financialOverview']);
+    Route::get('/api/dashboard/expense-categories', [\App\Http\Controllers\DashboardController::class, 'expenseCategories']);
+    Route::get('/api/dashboard/complete', [\App\Http\Controllers\DashboardController::class, 'completeData']);
 });
 require __DIR__.'/auth.php';

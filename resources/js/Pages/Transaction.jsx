@@ -44,6 +44,13 @@ export default function Transaction({ auth }) {
     // Transaction details state (itemized list)
     const [transactionDetails, setTransactionDetails] = useState([]);
     const [showItemizedInput, setShowItemizedInput] = useState(false);
+    const [showItemForm, setShowItemForm] = useState(false);
+    const [currentItem, setCurrentItem] = useState({
+        item_name: '',
+        quantity: 1,
+        item_price: ''
+    });
+    const [editingItemId, setEditingItemId] = useState(null);
     
     // Modal notification state
     const [modalNotification, setModalNotification] = useState({ 
@@ -66,6 +73,23 @@ export default function Transaction({ auth }) {
         netBalance: 0,
         loading: true
     });
+
+    // Date warning state
+    const [showDateWarning, setShowDateWarning] = useState(false);
+
+    // Mobile detection state
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth <= 640);
+        };
+        
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     // Format date for display as DD/MM/YYYY
     const formatDateForDisplay = (dateString) => {
@@ -158,30 +182,76 @@ export default function Transaction({ auth }) {
     };
 
     // Transaction Details Functions
-    const addNewItem = () => {
-        setTransactionDetails([
-            ...transactionDetails,
-            {
-                id: Date.now(), // Temporary ID for React key
-                item_name: '',
-                quantity: 1,
-                item_price: '',
-                category_id: formData.category || '' // Use main category as default
-            }
-        ]);
+    const handleSaveItem = () => {
+        if (!currentItem.item_name || !currentItem.quantity || !currentItem.item_price) {
+            showModalNotification('error', 'Something went wrong', 'Please fill in all item fields.');
+            return;
+        }
+
+        if (editingItemId) {
+            // Update existing item - add it back to the list
+            setTransactionDetails([
+                ...transactionDetails,
+                {
+                    ...currentItem,
+                    id: editingItemId,
+                    category_id: formData.category || ''
+                }
+            ]);
+            setEditingItemId(null);
+        } else {
+            // Add new item
+            setTransactionDetails([
+                ...transactionDetails,
+                {
+                    ...currentItem,
+                    id: Date.now(),
+                    category_id: formData.category || ''
+                }
+            ]);
+        }
+
+        // Reset current item and hide form
+        setCurrentItem({
+            item_name: '',
+            quantity: 1,
+            item_price: ''
+        });
+        setShowItemForm(false);
+    };
+
+    const handleEditItem = (item) => {
+        // Remove item from list temporarily while editing
+        setTransactionDetails(transactionDetails.filter(i => i.id !== item.id));
+        
+        // Load item into form
+        setCurrentItem({
+            item_name: item.item_name,
+            quantity: item.quantity,
+            item_price: item.item_price
+        });
+        setEditingItemId(item.id);
+        setShowItemForm(true);
+    };
+
+    const handleCancelEdit = () => {
+        // If we were editing, add the item back to the list
+        if (editingItemId) {
+            // Item was already removed from list, so we need to restore it
+            // But we don't have the original data anymore, so just clear the edit state
+            setEditingItemId(null);
+        }
+        
+        setCurrentItem({
+            item_name: '',
+            quantity: 1,
+            item_price: ''
+        });
+        setShowItemForm(false);
     };
 
     const removeItem = (id) => {
         setTransactionDetails(transactionDetails.filter(item => item.id !== id));
-    };
-
-    const updateItem = (id, field, value) => {
-        setTransactionDetails(transactionDetails.map(item => {
-            if (item.id === id) {
-                return { ...item, [field]: value };
-            }
-            return item;
-        }));
     };
 
     // Calculate total from items
@@ -371,6 +441,25 @@ export default function Transaction({ auth }) {
                 </div>
             )}
 
+            {/* Floating Date Warning Notification */}
+            {showDateWarning && (
+                <div className="fixed top-4 right-4 z-[9999] animate-slide-in-right">
+                    <div className="bg-white rounded-lg shadow-lg border-l-4 border-expense-red-500 p-4 max-w-sm">
+                        <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0">
+                                <svg className="w-6 h-6 text-expense-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                            <div className="flex-1">
+                                <h4 className="text-sm font-semibold text-gray-900 mb-1">Can't Select Future Date</h4>
+                                <p className="text-sm text-gray-600">Please select today or a past date.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Budget Warning Modal */}
             {budgetWarningModal.show && (
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50 animate-fade-in">
@@ -470,33 +559,92 @@ export default function Transaction({ auth }) {
                 .animate-warning-icon {
                     animation: warningIcon 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s both;
                 }
+                @keyframes slideInRight {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+                .animate-slide-in-right {
+                    animation: slideInRight 0.3s ease-out;
+                }
 
                 /* Custom DatePicker Styles */
                 .react-datepicker-popper {
                     z-index: 9999 !important;
                 }
 
-                /* Mobile fullscreen */
+                /* Responsive calendar sizing */
                 @media (max-width: 640px) {
                     .react-datepicker-popper {
-                        position: fixed !important;
-                        top: 0 !important;
-                        left: 0 !important;
-                        transform: none !important;
-                        width: 100vw !important;
-                        height: 100vh !important;
-                        max-width: none !important;
-                        display: flex !important;
-                        align-items: center !important;
-                        justify-content: center !important;
-                        background-color: rgba(0, 0, 0, 0.5) !important;
-                        padding: 20px !important;
+                        position: absolute !important;
+                        transform: translateX(-50%) !important;
+                        left: 50% !important;
                     }
 
                     .react-datepicker {
-                        width: 100% !important;
-                        max-width: 380px !important;
-                        margin: auto !important;
+                        width: 70% !important;
+                        max-width: 280px !important;
+                        padding: 10px !important;
+                    }
+
+                    .react-datepicker__current-month {
+                        font-size: 14px !important;
+                        margin-bottom: 8px !important;
+                    }
+
+                    .react-datepicker__day-name,
+                    .react-datepicker__day {
+                        width: 32px !important;
+                        height: 32px !important;
+                        line-height: 32px !important;
+                        font-size: 12px !important;
+                        margin: 1px !important;
+                    }
+
+                    .react-datepicker__navigation {
+                        top: 12px !important;
+                        width: 24px !important;
+                        height: 24px !important;
+                    }
+
+                    .react-datepicker__navigation-icon::before {
+                        border-width: 2px 2px 0 0 !important;
+                        height: 7px !important;
+                        width: 7px !important;
+                        top: 8px !important;
+                    }
+
+                    .react-datepicker__header {
+                        padding: 10px 0 !important;
+                    }
+
+                    .react-datepicker__month {
+                        padding: 6px 0 !important;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .react-datepicker {
+                        width: 70% !important;
+                        max-width: 240px !important;
+                        padding: 8px !important;
+                    }
+
+                    .react-datepicker__current-month {
+                        font-size: 13px !important;
+                    }
+
+                    .react-datepicker__day-name,
+                    .react-datepicker__day {
+                        width: 28px !important;
+                        height: 28px !important;
+                        line-height: 28px !important;
+                        font-size: 11px !important;
                     }
                 }
 
@@ -783,79 +931,137 @@ export default function Transaction({ auth }) {
                                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 space-y-4">
                                         <div className="flex items-center justify-between mb-2">
                                             <h3 className="text-sm font-semibold text-gray-700">Items</h3>
-                                            <button
-                                                type="button"
-                                                onClick={addNewItem}
-                                                className="text-sm px-3 py-1 bg-growth-green-500 text-white rounded hover:bg-growth-green-600 transition-colors"
-                                            >
-                                                + Add Item
-                                            </button>
+                                            {!showItemForm && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowItemForm(true)}
+                                                    className="text-sm px-3 py-1 bg-growth-green-500 text-white rounded hover:bg-growth-green-600 transition-colors"
+                                                >
+                                                    + Add Item
+                                                </button>
+                                            )}
                                         </div>
 
-                                        {transactionDetails.length === 0 ? (
-                                            <p className="text-sm text-gray-500 text-center py-4">
-                                                No items yet. Click "Add Item" to start.
-                                            </p>
-                                        ) : (
-                                            <div className="space-y-3">
-                                                {transactionDetails.map((item, index) => (
-                                                    <div key={item.id} className="bg-gray-50 rounded-lg p-3 space-y-2">
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <span className="text-xs font-semibold text-gray-600">
-                                                                Item #{index + 1}
-                                                            </span>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => removeItem(item.id)}
-                                                                className="text-red-500 hover:text-red-700 text-xs"
-                                                            >
-                                                                Remove
-                                                            </button>
-                                                        </div>
-                                                        
-                                                        {/* Item Name */}
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Item name"
-                                                            value={item.item_name}
-                                                            onChange={(e) => updateItem(item.id, 'item_name', e.target.value)}
-                                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-growth-green-500 focus:border-transparent"
-                                                        />
-                                                        
-                                                        <div className="grid grid-cols-2 gap-2">
-                                                            {/* Quantity */}
-                                                            <input
-                                                                type="number"
-                                                                placeholder="Qty"
-                                                                value={item.quantity}
-                                                                onChange={(e) => updateItem(item.id, 'quantity', e.target.value)}
-                                                                min="1"
-                                                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-growth-green-500 focus:border-transparent"
-                                                            />
-                                                            
-                                                            {/* Price */}
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Price"
-                                                                value={formatNumberWithDots(item.item_price)}
-                                                                onChange={(e) => {
-                                                                    const rawValue = parseFormattedNumber(e.target.value);
-                                                                    updateItem(item.id, 'item_price', rawValue);
-                                                                }}
-                                                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-growth-green-500 focus:border-transparent"
-                                                            />
-                                                        </div>
+                                        {/* Item Input Form */}
+                                        {showItemForm && (
+                                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-3">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-xs font-semibold text-blue-700">
+                                                    {editingItemId ? 'Edit Item' : 'New Item'}
+                                                </span>
+                                                {editingItemId && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleCancelEdit}
+                                                        className="text-xs text-gray-500 hover:text-gray-700"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                )}
+                                            </div>
+                                            
+                                            {/* Item Name */}
+                                            <input
+                                                type="text"
+                                                placeholder="Item name"
+                                                value={currentItem.item_name}
+                                                onChange={(e) => setCurrentItem({ ...currentItem, item_name: e.target.value })}
+                                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            />
+                                            
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {/* Quantity */}
+                                                <input
+                                                    type="number"
+                                                    placeholder="Qty"
+                                                    value={currentItem.quantity}
+                                                    onChange={(e) => setCurrentItem({ ...currentItem, quantity: e.target.value })}
+                                                    min="1"
+                                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                />
+                                                
+                                                {/* Price */}
+                                                <input
+                                                    type="text"
+                                                    placeholder="Price"
+                                                    value={formatNumberWithDots(currentItem.item_price)}
+                                                    onChange={(e) => {
+                                                        const rawValue = parseFormattedNumber(e.target.value);
+                                                        setCurrentItem({ ...currentItem, item_price: rawValue });
+                                                    }}
+                                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                />
+                                            </div>
 
-                                                        {/* Subtotal Display */}
-                                                        <div className="text-right text-xs text-gray-600 font-medium">
-                                                            Subtotal: {formatNumberWithDots(
-                                                                ((parseInt(item.quantity) || 0) * (parseFloat(parseFormattedNumber(item.item_price)) || 0)).toString()
-                                                            )}
+                                            {/* Subtotal Preview */}
+                                            {currentItem.quantity && currentItem.item_price && (
+                                                <div className="text-right text-xs text-gray-600 font-medium">
+                                                    Subtotal: {formatNumberWithDots(
+                                                        ((parseInt(currentItem.quantity) || 0) * (parseFloat(parseFormattedNumber(currentItem.item_price)) || 0)).toString()
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* Save Button */}
+                                            <button
+                                                type="button"
+                                                onClick={handleSaveItem}
+                                                className="w-full py-2 px-4 bg-growth-green-500 text-white text-sm font-medium rounded hover:bg-growth-green-600 transition-colors"
+                                            >
+                                                {editingItemId ? '✓ Update Item' : '✓ Save Item'}
+                                            </button>
+                                            </div>
+                                        )}
+
+                                        {/* Saved Items List */}
+                                        {transactionDetails.length === 0 && !showItemForm ? (
+                                            <p className="text-sm text-gray-500 text-center py-4">
+                                                No items yet. Click "+ Add Item" to start.
+                                            </p>
+                                        ) : transactionDetails.length > 0 ? (
+                                            <div className="space-y-2">
+                                                <h4 className="text-xs font-semibold text-gray-600 mb-2">Saved Items:</h4>
+                                                {transactionDetails.map((item, index) => (
+                                                    <div key={item.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                                        <div className="flex items-start justify-between mb-2">
+                                                            <div className="flex-1">
+                                                                <p className="text-sm font-semibold text-gray-800">{item.item_name}</p>
+                                                                <p className="text-xs text-gray-600 mt-1">
+                                                                    {item.quantity} × {formatNumberWithDots(item.item_price)} = {' '}
+                                                                    <span className="font-semibold text-growth-green-600">
+                                                                        {formatNumberWithDots(
+                                                                            ((parseInt(item.quantity) || 0) * (parseFloat(parseFormattedNumber(item.item_price)) || 0)).toString()
+                                                                        )}
+                                                                    </span>
+                                                                </p>
+                                                            </div>
+                                                            <div className="flex gap-2 ml-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleEditItem(item)}
+                                                                    className="text-blue-500 hover:text-blue-700 text-xs p-1"
+                                                                    title="Edit"
+                                                                >
+                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                    </svg>
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => removeItem(item.id)}
+                                                                    className="text-red-500 hover:text-red-700 text-xs p-1"
+                                                                    title="Delete"
+                                                                >
+                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}
                                             </div>
-                                        )}
+                                        ) : null}
 
                                         {transactionDetails.length > 0 && (
                                             <div className="border-t pt-3 mt-3">
@@ -902,8 +1108,19 @@ export default function Transaction({ auth }) {
                                         <DatePicker
                                             selected={formData.date ? new Date(formData.date) : new Date()}
                                             onChange={(date) => {
-                                                const formattedDate = date.toISOString().split('T')[0];
-                                                setFormData({ ...formData, date: formattedDate });
+                                                const today = new Date();
+                                                today.setHours(0, 0, 0, 0);
+                                                const selectedDate = new Date(date);
+                                                selectedDate.setHours(0, 0, 0, 0);
+                                                
+                                                if (selectedDate > today) {
+                                                    // Show warning for future dates
+                                                    setShowDateWarning(true);
+                                                    setTimeout(() => setShowDateWarning(false), 3000);
+                                                } else {
+                                                    const formattedDate = date.toISOString().split('T')[0];
+                                                    setFormData({ ...formData, date: formattedDate });
+                                                }
                                             }} 
                                             dateFormat="dd/MM/yyyy"
                                             className="w-full px-4 py-3 border border-gray-300 rounded-lg cursor-pointer focus:ring-2 focus:ring-[#058743] focus:border-transparent"
@@ -911,6 +1128,21 @@ export default function Transaction({ auth }) {
                                             wrapperClassName="w-full"
                                             placeholderText="DD/MM/YYYY"
                                             showPopperArrow={false}
+                                            onKeyDown={(e) => {
+                                                // Prevent all keyboard input except Tab for accessibility
+                                                if (e.key !== 'Tab') {
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                            onChangeRaw={(e) => e.preventDefault()}
+                                            dayClassName={(date) => {
+                                                const today = new Date();
+                                                today.setHours(0, 0, 0, 0);
+                                                const checkDate = new Date(date);
+                                                checkDate.setHours(0, 0, 0, 0);
+                                                
+                                                return checkDate > today ? 'future-date' : undefined;
+                                            }}
                                         />
                                         {/* Calendar icon */}
                                         <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none">

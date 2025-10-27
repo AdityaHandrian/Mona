@@ -33,12 +33,22 @@ export default function ScanReceipt({ auth }) {
     const [loadingCategories, setLoadingCategories] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
+    const [showDateWarning, setShowDateWarning] = useState(false);
+
+    // Itemized items state - for editing OCR items only
+    const [editingItemIndex, setEditingItemIndex] = useState(null);
+    const [editedItems, setEditedItems] = useState([]);
+
+    // Mobile detection state
+    const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
         const handleResize = () => {
             setWindowWidth(window.innerWidth);
+            setIsMobile(window.innerWidth <= 640);
         };
 
+        handleResize(); // Initial check
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
@@ -70,6 +80,56 @@ export default function ScanReceipt({ auth }) {
     const showMessage = (type, text) => {
         setMessage({ type, text });
         setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+    };
+
+    // Initialize edited items from OCR results
+    useEffect(() => {
+        if (ocrResults?.items && ocrResults.items.length > 0) {
+            setEditedItems(ocrResults.items.map((item, index) => ({
+                ...item,
+                id: index
+            })));
+        }
+    }, [ocrResults]);
+
+    // OCR Items Edit Functions
+    const handleEditOcrItem = (index) => {
+        setEditingItemIndex(index);
+    };
+
+    const handleSaveOcrItem = (index, updatedItem) => {
+        const newEditedItems = [...editedItems];
+        newEditedItems[index] = {
+            ...updatedItem,
+            id: index
+        };
+        setEditedItems(newEditedItems);
+        setEditingItemIndex(null);
+        
+        // Recalculate total
+        const newTotal = newEditedItems.reduce((total, item) => {
+            const itemTotal = (parseInt(item.quantity) || 1) * (parseFloat(item.item_price) || 0);
+            return total + itemTotal;
+        }, 0);
+        
+        setFormData(prev => ({ ...prev, amount: newTotal.toString() }));
+    };
+
+    const handleCancelEditOcr = () => {
+        setEditingItemIndex(null);
+    };
+
+    const handleDeleteOcrItem = (index) => {
+        const newEditedItems = editedItems.filter((_, i) => i !== index);
+        setEditedItems(newEditedItems);
+        
+        // Recalculate total
+        const newTotal = newEditedItems.reduce((total, item) => {
+            const itemTotal = (parseInt(item.quantity) || 1) * (parseFloat(item.item_price) || 0);
+            return total + itemTotal;
+        }, 0);
+        
+        setFormData(prev => ({ ...prev, amount: newTotal.toString() }));
     };
 
     // Image compression function to speed up camera photos
@@ -388,9 +448,9 @@ export default function ScanReceipt({ auth }) {
                 transaction_date: formData.date
             };
 
-            // Add transaction details (items) if they exist from OCR
-            if (ocrResults?.items && ocrResults.items.length > 0) {
-                transactionData.transaction_details = ocrResults.items.map(item => ({
+            // Add transaction details (items) if they exist from OCR (use edited items)
+            if (editedItems && editedItems.length > 0) {
+                transactionData.transaction_details = editedItems.map(item => ({
                     item_name: item.item_name,
                     quantity: parseInt(item.quantity) || 1,
                     item_price: parseFloat(item.item_price),
@@ -401,7 +461,7 @@ export default function ScanReceipt({ auth }) {
             const response = await axios.post('/api/transactions/add', transactionData);
 
             if (response.data.status === 'success') {
-                const itemCount = ocrResults?.items?.length || 0;
+                const itemCount = editedItems?.length || 0;
                 const successMsg = itemCount > 0 
                     ? `Transaction with ${itemCount} item${itemCount > 1 ? 's' : ''} added successfully!`
                     : 'Transaction added successfully from receipt!';
@@ -415,6 +475,7 @@ export default function ScanReceipt({ auth }) {
                     description: ''
                 });
                 setOcrResults(null);
+                setEditedItems([]);
                 setSelectedFile(null);
                 
                 // Clear file input
@@ -539,16 +600,48 @@ export default function ScanReceipt({ auth }) {
                         transform: translateY(0);
                     }
                 }
+                @keyframes slideInRight {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
                 .animate-fade-in {
                     animation: fadeIn 0.3s ease-out;
                 }
                 .animate-fade-in-up {
                     animation: fadeInUp 0.8s ease-out forwards;
                 }
+                .animate-slide-in-right {
+                    animation: slideInRight 0.3s ease-out;
+                }
                 .delay-100 { animation-delay: 0.1s; opacity: 0; }
                 .delay-200 { animation-delay: 0.2s; opacity: 0; }
                 .delay-300 { animation-delay: 0.3s; opacity: 0; }
             `}</style>
+
+            {/* Floating Date Warning Notification */}
+            {showDateWarning && (
+                <div className="fixed top-4 right-4 z-[9999] animate-slide-in-right">
+                    <div className="bg-white rounded-lg shadow-lg border-l-4 border-expense-red-500 p-4 max-w-sm">
+                        <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0">
+                                <svg className="w-6 h-6 text-expense-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                            <div className="flex-1">
+                                <h4 className="text-sm font-semibold text-gray-900 mb-1">Can't Select Future Date</h4>
+                                <p className="text-sm text-gray-600">Please select today or a past date.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Page Content */}
             <div className="overflow-x-hidden">
@@ -803,8 +896,19 @@ export default function ScanReceipt({ auth }) {
                                             <DatePicker
                                                 selected={formData.date ? new Date(formData.date) : null}
                                                 onChange={(date) => {
-                                                    const formattedDate = date ? date.toISOString().split('T')[0] : '';
-                                                    handleInputChange('date', formattedDate);
+                                                    const today = new Date();
+                                                    today.setHours(0, 0, 0, 0);
+                                                    const selectedDate = new Date(date);
+                                                    selectedDate.setHours(0, 0, 0, 0);
+                                                    
+                                                    if (selectedDate > today) {
+                                                        // Show warning for future dates
+                                                        setShowDateWarning(true);
+                                                        setTimeout(() => setShowDateWarning(false), 3000);
+                                                    } else {
+                                                        const formattedDate = date ? date.toISOString().split('T')[0] : '';
+                                                        handleInputChange('date', formattedDate);
+                                                    }
                                                 }} 
                                                 dateFormat="dd/MM/yyyy"
                                                 className="w-full px-3 py-2 border border-light-gray rounded text-charcoal bg-gray-100 cursor-pointer focus:ring-2 focus:ring-[#058743] focus:border-transparent"
@@ -817,6 +921,15 @@ export default function ScanReceipt({ auth }) {
                                                     if (e.key !== 'Tab') {
                                                         e.preventDefault();
                                                     }
+                                                }}
+                                                onChangeRaw={(e) => e.preventDefault()}
+                                                dayClassName={(date) => {
+                                                    const today = new Date();
+                                                    today.setHours(0, 0, 0, 0);
+                                                    const checkDate = new Date(date);
+                                                    checkDate.setHours(0, 0, 0, 0);
+                                                    
+                                                    return checkDate > today ? 'future-date' : undefined;
                                                 }}
                                             />
                                             {/* Calendar icon */}
@@ -841,36 +954,153 @@ export default function ScanReceipt({ auth }) {
                                         />
                                     </div>
 
-                                    {/* Itemized Details (Read-only display) */}
-                                    {ocrResults.items && ocrResults.items.length > 0 && (
+                                    {/* OCR Detected Items - Editable */}
+                                    {ocrResults?.items && ocrResults.items.length > 0 && editedItems.length > 0 && (
                                         <div className="border-t border-gray-200 pt-4 mt-4">
-                                            <label className="block text-charcoal font-medium mb-3">
-                                                Itemized Details ({ocrResults.items.length} items)
-                                            </label>
-                                            <p className="text-xs text-gray-500 mb-3">Extracted from receipt - these items were already saved</p>
-                                            <div className="space-y-2 max-h-64 overflow-y-auto">
-                                                {ocrResults.items.map((item, index) => (
-                                                    <div key={index} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                                                        <div className="flex justify-between items-start mb-1">
-                                                            <span className="font-medium text-sm text-gray-800">
-                                                                {item.item_name}
-                                                            </span>
-                                                            <span className="text-sm font-semibold text-growth-green-500">
-                                                                {formatNumberWithDots(item.subtotal?.toString() || ((item.quantity || 1) * (item.item_price || 0)).toString())}
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex justify-between items-center text-xs text-gray-600">
-                                                            <span>Qty: {item.quantity || 1}</span>
-                                                            <span>@ {formatNumberWithDots(item.item_price?.toString() || '0')}</span>
-                                                        </div>
+                                            <div className="mb-3">
+                                                <label className="block text-charcoal font-medium mb-1">
+                                                    Receipt Items ({editedItems.length} items)
+                                                </label>
+                                                <p className="text-xs text-gray-500">
+                                                    Edit items to fix any OCR reading errors
+                                                </p>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                {editedItems.map((item, index) => (
+                                                    <div key={index}>
+                                                        {editingItemIndex === index ? (
+                                                            /* Edit Mode */
+                                                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-3">
+                                                                <div className="flex items-center justify-between mb-2">
+                                                                    <span className="text-xs font-semibold text-blue-700">
+                                                                        Edit Item
+                                                                    </span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={handleCancelEditOcr}
+                                                                        className="text-xs text-gray-500 hover:text-gray-700"
+                                                                    >
+                                                                        Cancel
+                                                                    </button>
+                                                                </div>
+                                                                
+                                                                {/* Item Name */}
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Item name"
+                                                                    defaultValue={item.item_name}
+                                                                    onChange={(e) => {
+                                                                        const newItems = [...editedItems];
+                                                                        newItems[index] = { ...newItems[index], item_name: e.target.value };
+                                                                        setEditedItems(newItems);
+                                                                    }}
+                                                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                                />
+                                                                
+                                                                <div className="grid grid-cols-2 gap-2">
+                                                                    {/* Quantity */}
+                                                                    <input
+                                                                        type="number"
+                                                                        placeholder="Qty"
+                                                                        defaultValue={item.quantity || 1}
+                                                                        onChange={(e) => {
+                                                                            const newItems = [...editedItems];
+                                                                            newItems[index] = { ...newItems[index], quantity: e.target.value };
+                                                                            setEditedItems(newItems);
+                                                                        }}
+                                                                        min="1"
+                                                                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                                    />
+                                                                    
+                                                                    {/* Price */}
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder="Price"
+                                                                        defaultValue={formatNumberWithDots(item.item_price?.toString() || '0')}
+                                                                        onChange={(e) => {
+                                                                            const rawValue = parseFormattedNumber(e.target.value);
+                                                                            const newItems = [...editedItems];
+                                                                            newItems[index] = { ...newItems[index], item_price: rawValue };
+                                                                            setEditedItems(newItems);
+                                                                        }}
+                                                                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                                    />
+                                                                </div>
+
+                                                                {/* Subtotal Preview */}
+                                                                <div className="text-right text-xs text-gray-600 font-medium">
+                                                                    Subtotal: {formatNumberWithDots(
+                                                                        ((parseInt(item.quantity) || 1) * (parseFloat(item.item_price) || 0)).toString()
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Save Button */}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleSaveOcrItem(index, editedItems[index])}
+                                                                    className="w-full py-2 px-4 bg-growth-green-500 text-white text-sm font-medium rounded hover:bg-growth-green-600 transition-colors"
+                                                                >
+                                                                    ✓ Save Changes
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            /* View Mode */
+                                                            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                                                <div className="flex items-start justify-between mb-2">
+                                                                    <div className="flex-1">
+                                                                        <p className="text-sm font-semibold text-gray-800">{item.item_name}</p>
+                                                                        <p className="text-xs text-gray-600 mt-1">
+                                                                            {item.quantity || 1} × {formatNumberWithDots(item.item_price?.toString() || '0')} = {' '}
+                                                                            <span className="font-semibold text-growth-green-600">
+                                                                                {formatNumberWithDots(
+                                                                                    ((parseInt(item.quantity) || 1) * (parseFloat(item.item_price) || 0)).toString()
+                                                                                )}
+                                                                            </span>
+                                                                        </p>
+                                                                    </div>
+                                                                    <div className="flex gap-2 ml-2">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleEditOcrItem(index)}
+                                                                            className="text-blue-500 hover:text-blue-700 text-xs p-1"
+                                                                            title="Edit"
+                                                                        >
+                                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                            </svg>
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleDeleteOcrItem(index)}
+                                                                            className="text-red-500 hover:text-red-700 text-xs p-1"
+                                                                            title="Delete"
+                                                                        >
+                                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                            </svg>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ))}
                                             </div>
-                                            <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between items-center font-semibold text-gray-800">
-                                                <span>Items Total:</span>
-                                                <span className="text-lg text-growth-green-500">
-                                                    {formatNumberWithDots(ocrResults.amount?.toString() || '')}
-                                                </span>
+
+                                            {/* Total Amount */}
+                                            <div className="mt-3 pt-3 border-t border-gray-200">
+                                                <div className="flex justify-between items-center font-semibold text-gray-700">
+                                                    <span>Total:</span>
+                                                    <span className="text-lg text-growth-green-500">
+                                                        {formatNumberWithDots(
+                                                            editedItems.reduce((total, item) => {
+                                                                const itemTotal = (parseInt(item.quantity) || 1) * (parseFloat(item.item_price) || 0);
+                                                                return total + itemTotal;
+                                                            }, 0).toString()
+                                                        )}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
@@ -983,27 +1213,73 @@ export default function ScanReceipt({ auth }) {
                             z-index: 9999 !important;
                         }
 
-                        /* Mobile fullscreen */
+                        /* Responsive calendar sizing */
                         @media (max-width: 640px) {
                             .react-datepicker-popper {
-                                position: fixed !important;
-                                top: 0 !important;
-                                left: 0 !important;
-                                transform: none !important;
-                                width: 100vw !important;
-                                height: 100vh !important;
-                                max-width: none !important;
-                                display: flex !important;
-                                align-items: center !important;
-                                justify-content: center !important;
-                                background-color: rgba(0, 0, 0, 0.5) !important;
-                                padding: 20px !important;
+                                position: absolute !important;
+                                transform: translateX(-50%) !important;
+                                left: 50% !important;
                             }
 
                             .react-datepicker {
-                                width: 100% !important;
-                                max-width: 380px !important;
-                                margin: auto !important;
+                                width: 70% !important;
+                                max-width: 280px !important;
+                                padding: 10px !important;
+                            }
+
+                            .react-datepicker__current-month {
+                                font-size: 14px !important;
+                                margin-bottom: 8px !important;
+                            }
+
+                            .react-datepicker__day-name,
+                            .react-datepicker__day {
+                                width: 32px !important;
+                                height: 32px !important;
+                                line-height: 32px !important;
+                                font-size: 12px !important;
+                                margin: 1px !important;
+                            }
+
+                            .react-datepicker__navigation {
+                                top: 12px !important;
+                                width: 24px !important;
+                                height: 24px !important;
+                            }
+
+                            .react-datepicker__navigation-icon::before {
+                                border-width: 2px 2px 0 0 !important;
+                                height: 7px !important;
+                                width: 7px !important;
+                                top: 8px !important;
+                            }
+
+                            .react-datepicker__header {
+                                padding: 10px 0 !important;
+                            }
+
+                            .react-datepicker__month {
+                                padding: 6px 0 !important;
+                            }
+                        }
+
+                        @media (max-width: 480px) {
+                            .react-datepicker {
+                                width: 70% !important;
+                                max-width: 240px !important;
+                                padding: 8px !important;
+                            }
+
+                            .react-datepicker__current-month {
+                                font-size: 13px !important;
+                            }
+
+                            .react-datepicker__day-name,
+                            .react-datepicker__day {
+                                width: 28px !important;
+                                height: 28px !important;
+                                line-height: 28px !important;
+                                font-size: 11px !important;
                             }
                         }
 
@@ -1111,15 +1387,13 @@ export default function ScanReceipt({ auth }) {
                             font-weight: 600 !important;
                         }
 
-                        .react-datepicker__day--outside-month {
-                            color: #d0d0d0 !important;
-                        }
+                .react-datepicker__day--outside-month {
+                    color: #d0d0d0 !important;
+                }
 
-                        .react-datepicker__navigation {
-                            top: 20px !important;
-                        }
-
-                        .react-datepicker__navigation-icon::before {
+                .react-datepicker__navigation {
+                    top: 20px !important;
+                }                        .react-datepicker__navigation-icon::before {
                             border-color: #666 !important;
                             border-width: 2px 2px 0 0 !important;
                         }

@@ -175,7 +175,31 @@ export default function Budget() {
     { value: '12', label: 'December' }
   ];
 
-  const years = Array.from({ length: 10 }, (_, i) => safeCurrentYear + i);
+  // Generate years from 5 years ago to current year
+  const years = Array.from({ length: 6 }, (_, i) => safeCurrentYear - 5 + i).reverse();
+
+  // Get available months based on selected year
+  const getAvailableMonths = (selectedYear) => {
+    const currentMonthNum = parseInt(safeCurrentMonth);
+    
+    if (parseInt(selectedYear) === safeCurrentYear) {
+      // For current year, only show months up to current month
+      return months.filter(m => parseInt(m.value) <= currentMonthNum);
+    }
+    // For past years, show all months
+    return months;
+  };
+
+  // Auto-adjust month if it becomes invalid when year changes
+  useEffect(() => {
+    const availableMonths = getAvailableMonths(viewYear);
+    const isMonthAvailable = availableMonths.some(m => m.value === viewMonth);
+    
+    if (!isMonthAvailable && availableMonths.length > 0) {
+      // Set to the last available month
+      setViewMonth(availableMonths[availableMonths.length - 1].value);
+    }
+  }, [viewYear]);
 
   // Validation function for date
   const isDateValid = (month, year) => {
@@ -337,38 +361,73 @@ export default function Budget() {
               )}
             </div>
 
-            {/* Month/Year Selector */}
-            <div className="animate-fade-in-up delay-100 bg-white rounded-xl p-3 sm:p-4 shadow-sm mb-6 sm:mb-8">
-              <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
-                <label className="text-xs sm:text-sm font-medium text-gray-700">View Budget for:</label>
-                <select
-                  value={viewMonth}
-                  onChange={(e) => setViewMonth(e.target.value)}
-                  className="px-2 sm:px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                >
-                  {months.map((month) => (
-                    <option key={month.value} value={month.value}>
-                      {month.label}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={viewYear}
-                  onChange={(e) => setViewYear(parseInt(e.target.value))}
-                  className="px-2 sm:px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent min-w-[100px]"
-                >
-                  {years.map((year) => (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleMonthYearChange}
-                  className="px-3 sm:px-4 py-2 text-sm sm:text-base bg-black text-white rounded-lg hover:bg-gray-800 font-medium"
-                >
-                  View
-                </button>
+            {/* Month/Year Selector - Modern Design */}
+            <div className="animate-fade-in-up delay-100 bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-2xl p-4 sm:p-6 shadow-sm border border-slate-200/60 mb-6 sm:mb-8">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                {/* Label Section */}
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-white rounded-xl shadow-sm">
+                    <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-700">Period Filter</h3>
+                    <p className="text-xs text-slate-500">Select month and year to view</p>
+                  </div>
+                </div>
+
+                {/* Selectors */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <div className="relative">
+                    <select
+                      value={viewMonth}
+                      onChange={(e) => setViewMonth(e.target.value)}
+                      className="appearance-none w-full sm:w-auto pl-4 pr-10 py-2.5 text-sm font-medium bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-growth-green-500 focus:border-growth-green-500 transition-all cursor-pointer hover:border-slate-300"
+                    >
+                      {getAvailableMonths(viewYear).map((month) => (
+                        <option key={month.value} value={month.value}>
+                          {month.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <select
+                      value={viewYear}
+                      onChange={(e) => setViewYear(parseInt(e.target.value))}
+                      className="appearance-none w-full sm:w-auto pl-4 pr-10 py-2.5 text-sm font-medium bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-growth-green-500 focus:border-growth-green-500 transition-all cursor-pointer hover:border-slate-300"
+                    >
+                      {years.map((year) => (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleMonthYearChange}
+                    className="group relative px-6 py-2.5 bg-gradient-to-r from-growth-green-500 to-growth-green-600 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg hover:from-growth-green-600 hover:to-growth-green-700 transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    <span>View Budget</span>
+                  </button>
+                </div>
               </div>
             </div>
 

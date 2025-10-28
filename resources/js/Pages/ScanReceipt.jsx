@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import axios from 'axios';
 import DatePicker from 'react-datepicker';
@@ -41,6 +41,12 @@ export default function ScanReceipt({ auth }) {
 
     // Mobile detection state
     const [isMobile, setIsMobile] = useState(false);
+
+    // Camera modal state
+    const [showCameraModal, setShowCameraModal] = useState(false);
+    const [cameraStream, setCameraStream] = useState(null);
+    const videoRef = useRef(null);
+    const canvasRef = useRef(null);
 
     useEffect(() => {
         const handleResize = () => {
@@ -503,14 +509,15 @@ export default function ScanReceipt({ auth }) {
     const openCameraOrFile = () => {
         // Check if device has camera capability
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            // Show options for camera or file
-            const choice = confirm("Choose an option:\nOK = Take Photo with Camera\nCancel = Select from Files");
-            if (choice) {
-                // Open camera
+            // Detect if mobile device
+            const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (isMobileDevice) {
+                // Mobile: Use native camera input with capture attribute
                 document.getElementById('camera-input').click();
             } else {
-                // Open file picker
-                document.getElementById('receipt-file').click();
+                // Desktop: Open camera modal with webcam preview
+                openCameraModal();
             }
         } else {
             // No camera available, just open file picker
@@ -519,11 +526,123 @@ export default function ScanReceipt({ auth }) {
     };
 
     const handleCameraClick = () => {
-        // Force environment (back) camera by setting capture attribute dynamically
-        const cameraInput = document.getElementById('camera-input');
-        cameraInput.setAttribute('capture', 'environment');
-        cameraInput.click();
+        // Test camera availability first before opening
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            // Check for camera availability
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(() => {
+                    // Camera is available, proceed to open camera
+                    showMessage('success', 'Opening camera...');
+                    setTimeout(() => {
+                        openCameraOrFile();
+                    }, 500); // Small delay to show message
+                })
+                .catch(() => {
+                    // Camera not available/denied, fallback to file picker
+                    showMessage('warning', 'No camera detected or permission denied. Opening file picker instead...');
+                    setTimeout(() => {
+                        document.getElementById('receipt-file').click();
+                    }, 1000); // Show message longer before opening file picker
+                });
+        } else {
+            // Browser doesn't support camera API
+            showMessage('warning', 'Camera not supported on this browser. Opening file picker...');
+            setTimeout(() => {
+                document.getElementById('receipt-file').click();
+            }, 1000);
+        }
     };
+
+    // Open camera modal for desktop
+    const openCameraModal = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    facingMode: 'environment', // Prefer back camera
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                } 
+            });
+            setCameraStream(stream);
+            setShowCameraModal(true);
+            
+            // Wait for modal to render, then set video source
+            setTimeout(() => {
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                }
+            }, 100);
+        } catch (error) {
+            console.error('Error accessing camera:', error);
+            alert('Unable to access camera. Please check permissions or use file upload instead.');
+        }
+    };
+
+    // Close camera modal and stop stream
+    const closeCameraModal = () => {
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(track => track.stop());
+            setCameraStream(null);
+        }
+        setShowCameraModal(false);
+    };
+
+    // Capture photo from video stream
+    const capturePhoto = async () => {
+        if (!videoRef.current || !canvasRef.current) return;
+
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        
+        // Set canvas dimensions to match video
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        // Draw current video frame to canvas
+        const context = canvas.getContext('2d');
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Convert canvas to blob
+        canvas.toBlob(async (blob) => {
+            if (blob) {
+                // Create a File object from the blob
+                const file = new File([blob], `camera-capture-${Date.now()}.jpg`, { 
+                    type: 'image/jpeg' 
+                });
+                
+                // Compress if needed
+                const needsCompression = file.size > 1024 * 1024;
+                if (needsCompression) {
+                    try {
+                        console.log(`Compressing captured image: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+                        const compressedFile = await compressImage(file);
+                        console.log(`Compressed to: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+                        setSelectedFile(compressedFile);
+                    } catch (error) {
+                        console.error('Compression failed, using original:', error);
+                        setSelectedFile(file);
+                    }
+                } else {
+                    setSelectedFile(file);
+                }
+                
+                // Reset results when new file is captured
+                setOcrResults(null);
+                
+                // Close modal
+                closeCameraModal();
+            }
+        }, 'image/jpeg', 0.92);
+    };
+
+    // Cleanup camera stream on unmount
+    useEffect(() => {
+        return () => {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+            }
+        };
+    }, [cameraStream]);
 
     // Drag and drop handlers
     const handleDragEnter = (e) => {
@@ -1446,6 +1565,59 @@ export default function ScanReceipt({ auth }) {
                             }
                         }
                     `}</style>
+
+            {/* Camera Modal for Desktop */}
+            {showCameraModal && (
+                <div 
+                    className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
+                    onClick={closeCameraModal}
+                >
+                    <div 
+                        className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-semibold text-gray-800">Take Photo</h3>
+                            <button
+                                onClick={closeCameraModal}
+                                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                            >
+                                ×
+                            </button>
+                        </div>
+                        
+                        <div className="relative bg-black rounded-lg overflow-hidden">
+                            <video
+                                ref={videoRef}
+                                autoPlay
+                                playsInline
+                                className="w-full h-auto"
+                            />
+                        </div>
+                        
+                        <div className="mt-4 flex justify-center gap-4">
+                            <button
+                                onClick={capturePhoto}
+                                className="px-6 py-3 bg-[#28a745] text-white rounded-lg hover:bg-[#218838] transition-colors font-medium flex items-center gap-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                                </svg>
+                                Capture Photo
+                            </button>
+                            <button
+                                onClick={closeCameraModal}
+                                className="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                        
+                        {/* Hidden canvas for capturing photo */}
+                        <canvas ref={canvasRef} style={{ display: 'none' }} />
+                    </div>
+                </div>
+            )}
             </div>
             </div>
         </AppLayout>

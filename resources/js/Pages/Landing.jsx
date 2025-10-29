@@ -73,7 +73,7 @@ export default function Landing({ auth }) {
                                     const el = document.getElementById('features');
                                     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                 }}
-                                className="animate-fade-in-up delay-300 inline-block border border-growth-green-200 text-[#2C2C2C] hover:text-growth-green-500 hover:border-growth-green-500 px-6 py-4 max-[425px]:py-3 rounded-lg text-lg max-[425px]:text-base font-medium transition-colors duration-200"
+                                className="bg-white animate-fade-in-up delay-300 inline-block border border-growth-green-200 text-[#2C2C2C] hover:text-growth-green-500 hover:border-growth-green-500 px-6 py-4 max-[425px]:py-3 rounded-lg text-lg max-[425px]:text-base font-medium transition-colors duration-200"
                             >
                                 Learn More
                             </a>

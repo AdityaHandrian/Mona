@@ -19,6 +19,15 @@ Route::get('/', function (Request $request) {
     ]);
 });
 
+// route terms
+Route::get('/terms-of-service', function () {
+    return Inertia::render('TermsOfService');
+})->name('terms.show');
+// route privacy policy
+Route::get('/privacy-policy', function () {
+    return Inertia::render('PrivacyPolicy');
+})->name('policy.show');
+
 Route::get('/dashboard', function (Request $request) {
     return Inertia::render('Dashboard', [
         'auth' => [

@@ -190,7 +190,7 @@ export default function Register() {
                                     )}
                                 </div>
 
-                                {/* Terms Checkbox */}
+                                 {/* Terms Checkbox */}
                                 <div className="flex items-center mt-5 max-[768px]:mt-4 max-[425px]:mt-3 max-[375px]:mt-2.5 max-[320px]:mt-2">
                                     <div className="flex items-start max-[375px]:items-center">
                                         <input
@@ -203,10 +203,28 @@ export default function Register() {
                                             required
                                         />
                                         <label htmlFor="terms" className="ml-3 max-[768px]:ml-2 max-[425px]:ml-1.5 max-[375px]:ml-1 max-[320px]:ml-1 text-sm max-[768px]:text-xs max-[425px]:text-xs max-[375px]:text-xs max-[320px]:text-xs text-[#757575] font-medium cursor-pointer">
-                                            I agree to the <a href="#" className="text-[#058743] hover:text-[#046837] underline">Terms of Service</a> and <a href="#" className="text-[#058743] hover:text-[#046837] underline">Privacy Policy</a>
+                                            I agree to the{' '}
+                                            <Link // terms of service link
+                                                href={route('terms.show')} 
+                                                className="text-[#058743] hover:text-[#046837] underline"
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                            >
+                                                Terms of Service
+                                            </Link>{' '}
+                                            and{' '} 
+                                            <Link // privacy policy link
+                                                href={route('policy.show')} 
+                                                className="text-[#058743] hover:text-[#046837] underline"
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                            >
+                                                Privacy Policy
+                                            </Link>
                                         </label>
                                     </div>
                                 </div>
+                                
                                 {errors.terms && (
                                     <div className="mt-2 text-sm text-[#D9534F] font-medium">
                                         {errors.terms}

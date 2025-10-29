@@ -573,79 +573,9 @@ export default function Transaction({ auth }) {
                     animation: slideInRight 0.3s ease-out;
                 }
 
-                /* Custom DatePicker Styles */
+                /* Base DatePicker Styles */
                 .react-datepicker-popper {
                     z-index: 9999 !important;
-                }
-
-                /* Responsive calendar sizing */
-                @media (max-width: 640px) {
-                    .react-datepicker-popper {
-                        position: absolute !important;
-                        transform: translateX(-50%) !important;
-                        left: 50% !important;
-                    }
-
-                    .react-datepicker {
-                        width: 70% !important;
-                        max-width: 280px !important;
-                        padding: 10px !important;
-                    }
-
-                    .react-datepicker__current-month {
-                        font-size: 14px !important;
-                        margin-bottom: 8px !important;
-                    }
-
-                    .react-datepicker__day-name,
-                    .react-datepicker__day {
-                        width: 32px !important;
-                        height: 32px !important;
-                        line-height: 32px !important;
-                        font-size: 12px !important;
-                        margin: 1px !important;
-                    }
-
-                    .react-datepicker__navigation {
-                        top: 12px !important;
-                        width: 24px !important;
-                        height: 24px !important;
-                    }
-
-                    .react-datepicker__navigation-icon::before {
-                        border-width: 2px 2px 0 0 !important;
-                        height: 7px !important;
-                        width: 7px !important;
-                        top: 8px !important;
-                    }
-
-                    .react-datepicker__header {
-                        padding: 10px 0 !important;
-                    }
-
-                    .react-datepicker__month {
-                        padding: 6px 0 !important;
-                    }
-                }
-
-                @media (max-width: 480px) {
-                    .react-datepicker {
-                        width: 70% !important;
-                        max-width: 240px !important;
-                        padding: 8px !important;
-                    }
-
-                    .react-datepicker__current-month {
-                        font-size: 13px !important;
-                    }
-
-                    .react-datepicker__day-name,
-                    .react-datepicker__day {
-                        width: 28px !important;
-                        height: 28px !important;
-                        line-height: 28px !important;
-                        font-size: 11px !important;
-                    }
                 }
 
                 .react-datepicker {
@@ -772,44 +702,29 @@ export default function Transaction({ auth }) {
                 /* Mobile adjustments */
                 @media (max-width: 640px) {
                     .react-datepicker {
-                        padding: 24px !important;
+                        width: 100% !important;
                         max-width: none !important;
-                        width: calc(100vw - 40px) !important;
-                    }
-
-                    .react-datepicker__header {
-                        padding: 20px 0 16px 0 !important;
+                        padding: 8px !important;
                     }
 
                     .react-datepicker__current-month {
-                        font-size: 20px !important;
-                        margin-bottom: 16px !important;
+                        font-size: 13px !important;
                     }
 
+                    .react-datepicker__day-name,
                     .react-datepicker__day {
-                        width: calc((100vw - 120px) / 7) !important;
-                        height: calc((100vw - 120px) / 7) !important;
-                        line-height: calc((100vw - 120px) / 7) !important;
-                        font-size: 16px !important;
-                        margin: 3px !important;
+                        width: 28px !important;
+                        height: 28px !important;
+                        line-height: 28px !important;
+                        font-size: 11px !important;
                     }
 
-                    .react-datepicker__day-name {
-                        width: calc((100vw - 120px) / 7) !important;
-                        line-height: calc((100vw - 120px) / 7) !important;
-                        font-size: 14px !important;
+                    .react-datepicker__header {
+                        padding: 10px 0 !important;
                     }
 
-                    .react-datepicker__navigation {
-                        top: 24px !important;
-                        width: 32px !important;
-                        height: 32px !important;
-                    }
-
-                    .react-datepicker__navigation-icon::before {
-                        border-width: 3px 3px 0 0 !important;
-                        width: 10px !important;
-                        height: 10px !important;
+                    .react-datepicker__month {
+                        padding: 6px 0 !important;
                     }
                 }
             `}</style>

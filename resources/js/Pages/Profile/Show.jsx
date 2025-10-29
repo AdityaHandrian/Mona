@@ -7,8 +7,13 @@ export default function Show({ auth }) {
     const user = auth.user;
 
     const formattedDate = user.date_of_birth
-        ? new Date(user.date_of_birth).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
-        : 'N/A';
+    ? (user.date_of_birth.includes('/')   // dd/mm/yyyy dari accessor
+        ? user.date_of_birth
+        : new Date(user.date_of_birth).toLocaleDateString('en-GB', {
+            day: '2-digit', month: '2-digit', year: 'numeric'
+            }))
+    : 'N/A';
+
     
     const avatarUrl = user.profile_photo_path 
         ? `/storage/${user.profile_photo_path}` 
@@ -103,7 +108,7 @@ export default function Show({ auth }) {
                     </div>
 
                     {/* Box Preferences */}
-                    <div className="animate-fade-in-up delay-200 p-8 bg-white shadow-md rounded-2xl">
+                    {/* <div className="animate-fade-in-up delay-200 p-8 bg-white shadow-md rounded-2xl">
                         <div className="flex items-start space-x-4">
                             <AdjustmentsHorizontalIcon className="h-8 w-8 text-gray-500"/>
                             <div>
@@ -121,7 +126,7 @@ export default function Show({ auth }) {
                                 <p className="text-gray-900 font-medium">Indonesia/Jakarta</p>
                             </div>
                         </div>
-                    </div>
+                    </div> */}
 
                     {/* 🔹 Tombol Logout align kanan bawah */}
                     <div className="animate-fade-in-up delay-300 flex justify-end">

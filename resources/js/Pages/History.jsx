@@ -40,6 +40,10 @@ export default function History({ auth }) {
     const [expandedId, setExpandedId] = useState(null);
     const [transactionDetails, setTransactionDetails] = useState({});
     const [loadingDetails, setLoadingDetails] = useState({});
+    
+    // State for delete confirmation modal
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [transactionToDelete, setTransactionToDelete] = useState(null);
 
     // Category dropdown
     let availableCategories = [];
@@ -199,13 +203,19 @@ export default function History({ auth }) {
     };
 
     const handleDelete = async (transactionId) => {
-        if (!confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
-            return;
-        }
+        // Show custom modal instead of browser confirm
+        setTransactionToDelete(transactionId);
+        setShowDeleteModal(true);
+    };
 
-        setDeletingId(transactionId);
+    const confirmDelete = async () => {
+        if (!transactionToDelete) return;
+
+        setDeletingId(transactionToDelete);
+        setShowDeleteModal(false);
+        
         try {
-            const response = await axios.delete(`/api/transactions/${transactionId}`, {
+            const response = await axios.delete(`/api/transactions/${transactionToDelete}`, {
                 headers: { 
                     'Accept': 'application/json', 
                     'X-Requested-With': 'XMLHttpRequest' 
@@ -230,7 +240,13 @@ export default function History({ auth }) {
             }
         } finally {
             setDeletingId(null);
+            setTransactionToDelete(null);
         }
+    };
+
+    const cancelDelete = () => {
+        setShowDeleteModal(false);
+        setTransactionToDelete(null);
     };
 
     const handleEdit = (transaction) => {
@@ -457,17 +473,33 @@ export default function History({ auth }) {
                                                     <div className="flex items-center gap-4">
                                                         <button 
                                                             onClick={() => handleEdit(transaction)}
-                                                            className="text-blue-600 hover:text-blue-900 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
+                                                            className="disabled:opacity-40 disabled:cursor-not-allowed transition-opacity hover:opacity-70"
                                                             disabled={deletingId === transaction.id}
+                                                            title="Edit transaction"
                                                         >
-                                                            Edit
+                                                            <img 
+                                                                src="/images/icons/edit-icon.svg" 
+                                                                alt="Edit" 
+                                                                className="h-5 w-5"
+                                                                style={{ filter: 'invert(38%) sepia(91%) saturate(1951%) hue-rotate(201deg) brightness(97%) contrast(101%)' }}
+                                                            />
                                                         </button>
                                                         <button 
                                                             onClick={() => handleDelete(transaction.id)}
                                                             disabled={deletingId === transaction.id}
-                                                            className="text-red-600 hover:text-red-900 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
+                                                            className="disabled:opacity-40 disabled:cursor-not-allowed transition-opacity hover:opacity-70"
+                                                            title="Delete transaction"
                                                         >
-                                                            {deletingId === transaction.id ? 'Deleting...' : 'Delete'}
+                                                            {deletingId === transaction.id ? (
+                                                                <div className="animate-spin h-5 w-5 border-2 border-gray-400 border-t-transparent rounded-full"></div>
+                                                            ) : (
+                                                                <img 
+                                                                    src="/images/icons/delete-icon.svg" 
+                                                                    alt="Delete" 
+                                                                    className="h-5 w-5"
+                                                                    style={{ filter: 'invert(27%) sepia(94%) saturate(4601%) hue-rotate(352deg) brightness(94%) contrast(93%)' }}
+                                                                />
+                                                            )}
                                                         </button>
                                                     </div>
                                                 </td>
@@ -571,17 +603,33 @@ export default function History({ auth }) {
                                             <div className="flex items-center gap-3 md:gap-4" onClick={(e) => e.stopPropagation()}>
                                                 <button 
                                                     onClick={() => handleEdit(transaction)}
-                                                    className="text-sm md:text-base text-blue-600 hover:text-blue-900 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
+                                                    className="disabled:opacity-40 disabled:cursor-not-allowed transition-opacity hover:opacity-70"
                                                     disabled={deletingId === transaction.id}
+                                                    title="Edit transaction"
                                                 >
-                                                    Edit
+                                                    <img 
+                                                        src="/images/icons/edit-icon.svg" 
+                                                        alt="Edit" 
+                                                        className="h-5 w-5 md:h-6 md:w-6"
+                                                        style={{ filter: 'invert(38%) sepia(91%) saturate(1951%) hue-rotate(201deg) brightness(97%) contrast(101%)' }}
+                                                    />
                                                 </button>
                                                 <button 
                                                     onClick={() => handleDelete(transaction.id)}
                                                     disabled={deletingId === transaction.id}
-                                                    className="text-sm md:text-base text-red-600 hover:text-red-900 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
+                                                    className="disabled:opacity-40 disabled:cursor-not-allowed transition-opacity hover:opacity-70"
+                                                    title="Delete transaction"
                                                 >
-                                                    {deletingId === transaction.id ? 'Deleting...' : 'Delete'}
+                                                    {deletingId === transaction.id ? (
+                                                        <div className="animate-spin h-5 w-5 md:h-6 md:w-6 border-2 border-gray-400 border-t-transparent rounded-full"></div>
+                                                    ) : (
+                                                        <img 
+                                                            src="/images/icons/delete-icon.svg" 
+                                                            alt="Delete" 
+                                                            className="h-5 w-5 md:h-6 md:w-6"
+                                                            style={{ filter: 'invert(27%) sepia(94%) saturate(4601%) hue-rotate(352deg) brightness(94%) contrast(93%)' }}
+                                                        />
+                                                    )}
                                                 </button>
                                             </div>
                                         </div>
@@ -625,6 +673,37 @@ export default function History({ auth }) {
                         </div>
                     </div>
                 </div>
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 animate-fade-in">
+                        <div className="text-center">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                                Are you sure you want to delete this transaction?
+                            </h3>
+                            <p className="text-sm text-red-600 font-medium mb-6">
+                                THIS ACTION CANNOT BE UNDONE
+                            </p>
+                            
+                            <div className="flex gap-3 justify-center">
+                                <button
+                                    onClick={confirmDelete}
+                                    className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                                >
+                                    Yes, I'm Sure
+                                </button>
+                                <button
+                                    onClick={cancelDelete}
+                                    className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Edit Transaction Modal */}
             {showEditModal && editingTransaction && (

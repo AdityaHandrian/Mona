@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 // Helper functions for number formatting
 const formatNumberWithDots = (value) => {
@@ -27,6 +29,7 @@ export default function EditTransaction({ transaction, onClose, onUpdate }) {
     const [submitting, setSubmitting] = useState(false);
     const [notification, setNotification] = useState({ message: "", type: "" });
     const [showNotification, setShowNotification] = useState(false);
+    const [showDateWarning, setShowDateWarning] = useState(false);
     const [formData, setFormData] = useState({
         amount: "",
         category: "",
@@ -337,8 +340,8 @@ export default function EditTransaction({ transaction, onClose, onUpdate }) {
     if (!transaction) return null;
 
     return (
-        <div
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+        <div 
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-hidden"
             onClick={handleBackdropClick}
         >
             {/* Floating Notification (bottom left, animated) */}
@@ -367,7 +370,26 @@ export default function EditTransaction({ transaction, onClose, onUpdate }) {
                 </div>
             )}
 
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            {/* Floating Date Warning Notification (top right) */}
+            {showDateWarning && (
+                <div className="fixed top-4 right-4 z-[9999] animate-slide-in-right">
+                    <div className="bg-white rounded-lg shadow-lg border-l-4 border-red-500 p-4 max-w-sm">
+                        <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0">
+                                <svg className="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                            <div className="flex-1">
+                                <h4 className="text-sm font-semibold text-gray-900 mb-1">Can't Select Future Date</h4>
+                                <p className="text-sm text-gray-600">Please select today or a past date.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto overflow-x-hidden flex flex-col">
                 {/* Header - Sticky */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-white rounded-t-lg sticky top-0 z-10">
                     <h2 className="text-xl font-semibold text-gray-900">
@@ -668,65 +690,54 @@ export default function EditTransaction({ transaction, onClose, onUpdate }) {
                                 </select>
                             </div>
 
-                            {/* Date */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Date*
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        value={formatDateForDisplay(
-                                            formData.date
-                                        )}
-                                        placeholder="DD/MM/YYYY"
-                                        readOnly
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 cursor-pointer focus:ring-2 focus:ring-[#058743] focus:border-transparent"
-                                        onClick={() =>
-                                            document
-                                                .getElementById(
-                                                    "edit-transaction-date-picker"
-                                                )
-                                                .showPicker()
+                        {/* Date */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Date*
+                            </label>
+                            <div className="relative">
+                                <DatePicker
+                                    selected={formData.date ? new Date(formData.date) : null}
+                                    onChange={(date) => {
+                                        const today = new Date();
+                                        today.setHours(0, 0, 0, 0);
+                                        const selectedDate = new Date(date);
+                                        selectedDate.setHours(0, 0, 0, 0);
+                                        
+                                        if (selectedDate > today) {
+                                            // Show warning for future dates
+                                            setShowDateWarning(true);
+                                            setTimeout(() => setShowDateWarning(false), 3000);
+                                        } else {
+                                            const year = date.getFullYear();
+                                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                                            const day = String(date.getDate()).padStart(2, '0');
+                                            setFormData({ ...formData, date: `${year}-${month}-${day}` });
                                         }
-                                    />
-                                    <input
-                                        id="edit-transaction-date-picker"
-                                        type="date"
-                                        value={formData.date}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                date: e.target.value,
-                                            })
+                                    }}
+                                    dateFormat="dd/MM/yyyy"
+                                    placeholderText="DD/MM/YYYY"
+                                    className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#058743] focus:border-transparent cursor-pointer"
+                                    calendarClassName="custom-calendar"
+                                    wrapperClassName="w-full"
+                                    showPopperArrow={false}
+                                    required
+                                    onChangeRaw={(e) => e.preventDefault()}
+                                    onKeyDown={(e) => {
+                                        // Prevent all keyboard input except Tab for accessibility
+                                        if (e.key !== 'Tab') {
+                                            e.preventDefault();
                                         }
-                                        className="absolute opacity-0 pointer-events-none"
-                                        required
-                                    />
-                                    <div
-                                        className="absolute inset-y-0 right-0 flex items-center px-4 cursor-pointer"
-                                        onClick={() =>
-                                            document
-                                                .getElementById(
-                                                    "edit-transaction-date-picker"
-                                                )
-                                                .showPicker()
-                                        }
-                                    >
-                                        <svg
-                                            className="w-5 h-5 text-gray-400"
-                                            fill="currentColor"
-                                            viewBox="0 0 20 20"
-                                        >
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
-                                                clipRule="evenodd"
-                                            />
-                                        </svg>
-                                    </div>
+                                    }}
+                                />
+                                {/* Calendar icon */}
+                                <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none">
+                                    <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                                    </svg>
                                 </div>
                             </div>
+                        </div>
 
                             {/* Description */}
                             <div>
@@ -761,7 +772,7 @@ export default function EditTransaction({ transaction, onClose, onUpdate }) {
                         Cancel
                     </button>
                     <button
-                        type="submit"
+                        type="button"
                         onClick={handleSubmit}
                         disabled={submitting || loadingDetails}
                         className={`flex-1 px-6 py-3 rounded-lg font-medium transition-colors ${
@@ -774,6 +785,222 @@ export default function EditTransaction({ transaction, onClose, onUpdate }) {
                     </button>
                 </div>
             </div>
+            
+            {/* DatePicker Custom Styles */}
+            <style>{`
+                @keyframes slideInRight {
+                    from {
+                        opacity: 0;
+                        transform: translateX(100%);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateX(0);
+                    }
+                }
+                .animate-slide-in-right {
+                    animation: slideInRight 0.3s ease-out;
+                }
+                
+                /* Base DatePicker Styles */
+                .react-datepicker {
+                    font-family: inherit !important;
+                    border: none !important;
+                    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
+                    border-radius: 16px !important;
+                    padding: 16px !important;
+                    background-color: white !important;
+                }
+
+                .react-datepicker__header {
+                    background-color: white !important;
+                    border-bottom: 1px solid #f0f0f0 !important;
+                    padding: 16px 0 !important;
+                    border-top-left-radius: 16px !important;
+                    border-top-right-radius: 16px !important;
+                }
+
+                .react-datepicker__current-month {
+                    font-size: 18px !important;
+                    font-weight: 700 !important;
+                    color: #1a1a1a !important;
+                    margin-bottom: 12px !important;
+                }
+
+                .react-datepicker__day-names {
+                    display: flex !important;
+                    justify-content: space-between !important;
+                    margin-top: 12px !important;
+                }
+
+                .react-datepicker__day-name {
+                    color: #666 !important;
+                    font-weight: 600 !important;
+                    font-size: 13px !important;
+                    width: 40px !important;
+                    line-height: 40px !important;
+                    margin: 0 !important;
+                }
+
+                .react-datepicker__month {
+                    margin: 0 !important;
+                    padding: 8px 0 !important;
+                }
+
+                .react-datepicker__week {
+                    display: flex !important;
+                    justify-content: space-between !important;
+                }
+
+                .react-datepicker__day {
+                    width: 40px !important;
+                    height: 40px !important;
+                    line-height: 40px !important;
+                    margin: 2px !important;
+                    border-radius: 8px !important;
+                    color: #1a1a1a !important;
+                    font-weight: 500 !important;
+                    transition: all 0.2s ease !important;
+                }
+
+                .react-datepicker__day:hover {
+                    background-color: #f5f5f5 !important;
+                    border-radius: 8px !important;
+                }
+
+                /* Selected date - Growth Green background with white text */
+                .react-datepicker__day--selected {
+                    background-color: #058743 !important;
+                    color: white !important;
+                    font-weight: 600 !important;
+                }
+
+                .react-datepicker__day--selected:hover {
+                    background-color: #046d36 !important;
+                }
+
+                /* Remove keyboard-selected state to avoid "half pressed" appearance */
+                .react-datepicker__day--keyboard-selected {
+                    background-color: transparent !important;
+                    color: inherit !important;
+                }
+
+                .react-datepicker__day--keyboard-selected:hover {
+                    background-color: #f5f5f5 !important;
+                }
+
+                /* Today's date - Growth Green color with light background */
+                .react-datepicker__day--today {
+                    font-weight: 600 !important;
+                    color: #058743 !important;
+                    background-color: #d4eadf !important;
+                }
+
+                .react-datepicker__day--today:hover {
+                    background-color: #c0e0cb !important;
+                }
+
+                /* Selected date overrides today styling - solid growth green */
+                .react-datepicker__day--selected.react-datepicker__day--today {
+                    background-color: #058743 !important;
+                    color: white !important;
+                    font-weight: 600 !important;
+                }
+
+                .react-datepicker__day--outside-month {
+                    color: #d0d0d0 !important;
+                }
+
+                .react-datepicker__navigation {
+                    top: 20px !important;
+                }
+
+                .react-datepicker__navigation-icon::before {
+                    border-color: #666 !important;
+                    border-width: 2px 2px 0 0 !important;
+                }
+
+                .react-datepicker__navigation:hover *::before {
+                    border-color: #058743 !important;
+                }
+
+                /* Mobile adjustments */
+                @media (max-width: 640px) {
+                    .react-datepicker-popper {
+                        transform: translateX(-50%) !important;
+                        left: 50% !important;
+                    }
+                    
+                    .react-datepicker {
+                        padding: 24px !important;
+                        max-width: none !important;
+                        width: calc(100vw - 40px) !important;
+                    }
+
+                    .react-datepicker__header {
+                        padding: 20px 0 16px 0 !important;
+                    }
+
+                    .react-datepicker__current-month {
+                        font-size: 20px !important;
+                        margin-bottom: 16px !important;
+                    }
+
+                    .react-datepicker__day {
+                        width: calc((100vw - 120px) / 7) !important;
+                        height: calc((100vw - 120px) / 7) !important;
+                        line-height: calc((100vw - 120px) / 7) !important;
+                        font-size: 16px !important;
+                        margin: 3px !important;
+                    }
+
+                    .react-datepicker__day-name {
+                        width: calc((100vw - 120px) / 7) !important;
+                        line-height: calc((100vw - 120px) / 7) !important;
+                        font-size: 14px !important;
+                    }
+
+                    .react-datepicker__navigation {
+                        top: 24px !important;
+                        width: 32px !important;
+                        height: 32px !important;
+                    }
+
+                    .react-datepicker__navigation-icon::before {
+                        border-width: 3px 3px 0 0 !important;
+                        width: 10px !important;
+                        height: 10px !important;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .react-datepicker {
+                        width: 70% !important;
+                        max-width: 240px !important;
+                        padding: 8px !important;
+                    }
+
+                    .react-datepicker__current-month {
+                        font-size: 13px !important;
+                    }
+
+                    .react-datepicker__day-name,
+                    .react-datepicker__day {
+                        width: 28px !important;
+                        height: 28px !important;
+                        line-height: 28px !important;
+                        font-size: 11px !important;
+                    }
+
+                    .react-datepicker__header {
+                        padding: 10px 0 !important;
+                    }
+
+                    .react-datepicker__month {
+                        padding: 6px 0 !important;
+                    }
+                }
+            `}</style>
         </div>
     );
 }

@@ -6,44 +6,46 @@ import 'react-datepicker/dist/react-datepicker.css';
 // Helper functions for number formatting
 const formatNumberWithDots = (value) => {
     // Handle empty or undefined values
-    if (!value) return '';
+    if (!value) return "";
     // Remove all non-digits
-    const digits = String(value).replace(/\D/g, '');
-    
+    const digits = String(value).replace(/\D/g, "");
+
     // Add dots every 3 digits from right to left
-    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 };
 
 const parseFormattedNumber = (formattedValue) => {
     // Remove dots to get raw number
-    return formattedValue.replace(/\./g, '');
+    return formattedValue.replace(/\./g, "");
 };
 
 export default function EditTransaction({ transaction, onClose, onUpdate }) {
     // Initialize with the transaction's type if available, otherwise default to 'expense'
     const [transactionType, setTransactionType] = useState(
-        transaction?.type ? transaction.type.toLowerCase() : 'expense'
+        transaction?.type ? transaction.type.toLowerCase() : "expense"
     );
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [notification, setNotification] = useState({ message: '', type: '' });
+    const [notification, setNotification] = useState({ message: "", type: "" });
     const [showNotification, setShowNotification] = useState(false);
     const [showDateWarning, setShowDateWarning] = useState(false);
     const [formData, setFormData] = useState({
-        amount: '',
-        category: '',
-        date: '',
-        description: ''
+        amount: "",
+        category: "",
+        date: "",
+        description: "",
     });
+    const [transactionDetails, setTransactionDetails] = useState([]);
+    const [loadingDetails, setLoadingDetails] = useState(false);
 
     // Format date for display as DD/MM/YYYY
     const formatDateForDisplay = (dateString) => {
-        if (!dateString) return '';
+        if (!dateString) return "";
         const date = new Date(dateString);
-        if (isNaN(date.getTime())) return '';
-        const day = date.getDate().toString().padStart(2, '0');
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        if (isNaN(date.getTime())) return "";
+        const day = date.getDate().toString().padStart(2, "0");
+        const month = (date.getMonth() + 1).toString().padStart(2, "0");
         const year = date.getFullYear();
         return `${day}/${month}/${year}`;
     };
@@ -52,18 +54,67 @@ export default function EditTransaction({ transaction, onClose, onUpdate }) {
     useEffect(() => {
         if (transaction) {
             // Determine transaction type based on amount or type field
-            const type = transaction.type ? transaction.type.toLowerCase() : 
-                        (transaction.amount < 0 ? 'expense' : 'income');
-            
+            const type = transaction.type
+                ? transaction.type.toLowerCase()
+                : transaction.amount < 0
+                ? "expense"
+                : "income";
+
             setTransactionType(type);
             setFormData({
                 amount: Math.abs(transaction.amount || 0).toString(), // Always positive in form
-                category: transaction.category_id || '',
-                date: transaction.transaction_date ? transaction.transaction_date.split('T')[0] : '',
-                description: transaction.description || ''
+                category: transaction.category_id || "",
+                date: transaction.transaction_date
+                    ? transaction.transaction_date.split("T")[0]
+                    : "",
+                description: transaction.description || "",
             });
+
+            // Fetch full transaction details including items
+            fetchTransactionDetails();
         }
     }, [transaction]);
+
+    // Fetch transaction details from API
+    const fetchTransactionDetails = async () => {
+        if (!transaction?.id) return;
+
+        setLoadingDetails(true);
+        try {
+            const response = await axios.get(
+                `/api/transactions/${transaction.id}`,
+                {
+                    headers: {
+                        Accept: "application/json",
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    withCredentials: true,
+                }
+            );
+
+            if (
+                response.data.status === "success" &&
+                response.data.data.details
+            ) {
+                // Format the details for editing
+                const details = response.data.data.details.map((detail) => ({
+                    id: detail.id,
+                    item_name: detail.item_name || "",
+                    quantity: detail.quantity || 1,
+                    item_price: detail.item_price?.toString() || "",
+                    category_id:
+                        detail.category_id || transaction.category_id || "",
+                }));
+                setTransactionDetails(details);
+            }
+        } catch (error) {
+            console.error("Error fetching transaction details:", error);
+            // If no details exist, that's okay - start with empty array
+            setTransactionDetails([]);
+        } finally {
+            setLoadingDetails(false);
+        }
+    };
 
     // Fetch categories from API based on transaction type
     const fetchCategories = async (type) => {
@@ -72,7 +123,7 @@ export default function EditTransaction({ transaction, onClose, onUpdate }) {
             const response = await axios.get(`/api/categories?type=${type}`);
             setCategories(response.data);
         } catch (error) {
-            console.error('Error fetching categories:', error);
+            console.error("Error fetching categories:", error);
             setCategories([]);
         } finally {
             setLoading(false);
@@ -91,66 +142,189 @@ export default function EditTransaction({ transaction, onClose, onUpdate }) {
         if (notification.message) {
             setShowNotification(true);
             const timer = setTimeout(() => setShowNotification(false), 2700);
-            const timer2 = setTimeout(() => setNotification({ message: '', type: '' }), 3000);
-            return () => { clearTimeout(timer); clearTimeout(timer2); };
+            const timer2 = setTimeout(
+                () => setNotification({ message: "", type: "" }),
+                3000
+            );
+            return () => {
+                clearTimeout(timer);
+                clearTimeout(timer2);
+            };
         }
     }, [notification]);
 
+    // Add new transaction detail item
+    const addDetailItem = () => {
+        setTransactionDetails([
+            ...transactionDetails,
+            {
+                item_name: "",
+                quantity: 1,
+                item_price: "",
+                category_id: formData.category || "",
+            },
+        ]);
+    };
+
+    // Update a specific detail item
+    const updateDetailItem = (index, field, value) => {
+        const updatedDetails = [...transactionDetails];
+        updatedDetails[index][field] = value;
+        setTransactionDetails(updatedDetails);
+    };
+
+    // Remove a detail item
+    const removeDetailItem = (index) => {
+        const updatedDetails = transactionDetails.filter((_, i) => i !== index);
+        setTransactionDetails(updatedDetails);
+    };
+
+    // Calculate total from detail items
+    const calculateTotalFromDetails = () => {
+        return transactionDetails.reduce((total, detail) => {
+            const quantity = Number(detail.quantity) || 0;
+            const price = Number(parseFormattedNumber(detail.item_price)) || 0;
+            return total + quantity * price;
+        }, 0);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
-        const rawAmount = Number(formData.amount);
-        if (Number.isNaN(rawAmount) || rawAmount <= 0) {
-            setNotification({ message: 'Amount must be a valid positive number.', type: 'error' });
-            return;
+
+        // If there are transaction details, use the calculated total
+        let finalAmount;
+        if (transactionDetails.length > 0) {
+            finalAmount = calculateTotalFromDetails();
+
+            // Validate all detail items
+            for (let i = 0; i < transactionDetails.length; i++) {
+                const detail = transactionDetails[i];
+                if (!detail.item_name?.trim()) {
+                    setNotification({
+                        message: `Item ${i + 1}: Item name is required.`,
+                        type: "error",
+                    });
+                    return;
+                }
+                const quantity = Number(detail.quantity);
+                if (Number.isNaN(quantity) || quantity <= 0) {
+                    setNotification({
+                        message: `Item ${
+                            i + 1
+                        }: Quantity must be a positive number.`,
+                        type: "error",
+                    });
+                    return;
+                }
+                const price = Number(parseFormattedNumber(detail.item_price));
+                if (Number.isNaN(price) || price <= 0) {
+                    setNotification({
+                        message: `Item ${
+                            i + 1
+                        }: Price must be a positive number.`,
+                        type: "error",
+                    });
+                    return;
+                }
+            }
+
+            if (finalAmount <= 0) {
+                setNotification({
+                    message: "Total amount must be greater than zero.",
+                    type: "error",
+                });
+                return;
+            }
+        } else {
+            // Use the manual amount if no details
+            finalAmount = Number(formData.amount);
+            if (Number.isNaN(finalAmount) || finalAmount <= 0) {
+                setNotification({
+                    message: "Amount must be a valid positive number.",
+                    type: "error",
+                });
+                return;
+            }
         }
 
         if (!formData.category) {
-            setNotification({ message: 'Please select a category.', type: 'error' });
+            setNotification({
+                message: "Please select a category.",
+                type: "error",
+            });
             return;
         }
 
         if (!formData.date) {
-            setNotification({ message: 'Please select a date.', type: 'error' });
+            setNotification({
+                message: "Please select a date.",
+                type: "error",
+            });
             return;
         }
 
         setSubmitting(true);
         try {
+            const requestData = {
+                category_id: Number(formData.category),
+                amount: finalAmount,
+                description: formData.description || null,
+                transaction_date: formData.date,
+            };
+
+            // Add transaction details if they exist
+            if (transactionDetails.length > 0) {
+                requestData.transaction_details = transactionDetails.map(
+                    (detail) => ({
+                        item_name: detail.item_name,
+                        quantity: Number(detail.quantity),
+                        item_price: Number(
+                            parseFormattedNumber(detail.item_price)
+                        ),
+                        category_id: Number(
+                            detail.category_id || formData.category
+                        ),
+                    })
+                );
+            }
+
             // Use PUT method for updating
             const response = await axios.put(
                 `/api/transactions/${transaction.id}`,
+                requestData,
                 {
-                    category_id: Number(formData.category),
-                    amount: formData.amount,
-                    description: formData.description || null,
-                    transaction_date: formData.date,
-                },
-                {
-                    headers: { 
-                        'Content-Type': 'application/json', 
-                        'X-Requested-With': 'XMLHttpRequest' 
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-Requested-With": "XMLHttpRequest",
                     },
                     withCredentials: true,
                 }
             );
 
-            console.log('Transaction updated:', response.data);
-            setNotification({ message: 'Transaction successfully updated!', type: 'success' });
-            
+            console.log("Transaction updated:", response.data);
+            setNotification({
+                message: "Transaction successfully updated!",
+                type: "success",
+            });
+
             // Call onUpdate callback to refresh the parent component
             if (onUpdate) {
                 onUpdate();
             }
-            
+
             // Close modal after a short delay to show success message
             setTimeout(() => {
                 onClose();
             }, 1500);
-            
         } catch (err) {
-            setNotification({ message: 'Failed to update transaction.', type: 'error' });
-            console.error('Failed to update transaction:', err?.response?.data || err.message);
+            setNotification({
+                message: "Failed to update transaction.",
+                type: "error",
+            });
+            console.error(
+                "Failed to update transaction:",
+                err?.response?.data || err.message
+            );
         } finally {
             setSubmitting(false);
         }
@@ -174,9 +348,17 @@ export default function EditTransaction({ transaction, onClose, onUpdate }) {
             {notification.message && (
                 <div
                     className={`fixed bottom-8 left-8 z-[9999] px-6 py-3 rounded-lg shadow-lg transition-all duration-300
-                        ${notification.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}
-                        ${showNotification ? 'animate-fade-in' : 'animate-fade-out'}`}
-                    style={{ pointerEvents: 'none' }}
+                        ${
+                            notification.type === "success"
+                                ? "bg-green-500 text-white"
+                                : "bg-red-500 text-white"
+                        }
+                        ${
+                            showNotification
+                                ? "animate-fade-in"
+                                : "animate-fade-out"
+                        }`}
+                    style={{ pointerEvents: "none" }}
                 >
                     <style>{`
                         @keyframes fadeInNotif { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
@@ -207,89 +389,306 @@ export default function EditTransaction({ transaction, onClose, onUpdate }) {
                 </div>
             )}
 
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto overflow-x-hidden">
-                {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                    <h2 className="text-xl font-semibold text-gray-900">Edit Transaction</h2>
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto overflow-x-hidden flex flex-col">
+                {/* Header - Sticky */}
+                <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-white rounded-t-lg sticky top-0 z-10">
+                    <h2 className="text-xl font-semibold text-gray-900">
+                        Edit Transaction
+                    </h2>
                     <button
                         onClick={onClose}
                         className="text-gray-400 hover:text-gray-600 transition-colors"
                     >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        <svg
+                            className="w-6 h-6"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                            />
                         </svg>
                     </button>
                 </div>
 
-                {/* Form Content */}
-                <div className="p-6">
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Income/Expense Buttons */}
-                        <div className="flex gap-4">
-                            <button
-                                type="button"
-                                onClick={() => setTransactionType('income')}
-                                className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${
-                                    transactionType === 'income'
-                                        ? 'bg-[#058743] text-white'
-                                        : 'bg-[#D4EADF] text-[#058743] hover:bg-[#C0E0CB]'
-                                }`}
-                            >
-                                + Income
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setTransactionType('expense')}
-                                className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${
-                                    transactionType === 'expense'
-                                        ? 'bg-[#DC3545] text-white'
-                                        : 'bg-[#F9E4E3] text-[#DC3545] hover:bg-[#F5D2D0]'
-                                }`}
-                            >
-                                - Expense
-                            </button>
+                {/* Form Content - Scrollable */}
+                <div className="p-6 overflow-y-auto flex-1">
+                    {loadingDetails ? (
+                        <div className="text-center text-gray-500 py-8">
+                            Loading transaction details...
                         </div>
+                    ) : (
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            {/* Income/Expense Buttons */}
+                            <div className="flex gap-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setTransactionType("income")}
+                                    className={`flex-1 py-3 px-6 rounded-lg text-sm font-medium transition-colors ${
+                                        transactionType === "income"
+                                            ? "bg-[#058743] text-white"
+                                            : "bg-[#D4EADF] text-[#058743] hover:bg-[#C0E0CB]"
+                                    }`}
+                                >
+                                    + Income
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setTransactionType("expense")
+                                    }
+                                    className={`flex-1 py-3 px-6 rounded-lg text-sm font-medium transition-colors ${
+                                        transactionType === "expense"
+                                            ? "bg-[#DC3545] text-white"
+                                            : "bg-[#F9E4E3] text-[#DC3545] hover:bg-[#F5D2D0]"
+                                    }`}
+                                >
+                                    - Expense
+                                </button>
+                            </div>
 
-                        {/* Amount */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Amount*
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="0"
-                                value={formatNumberWithDots(formData.amount)}
-                                onChange={(e) => {
-                                    const rawValue = parseFormattedNumber(e.target.value);
-                                    setFormData({ ...formData, amount: rawValue });
-                                }}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#058743] focus:border-transparent"
-                                required
-                            />
-                        </div>
+                            {/* Transaction Details Section */}
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        Transaction Items{" "}
+                                        {transactionDetails.length > 0 &&
+                                            `(${transactionDetails.length})`}
+                                    </label>
+                                    <button
+                                        type="button"
+                                        onClick={addDetailItem}
+                                        className="text-sm text-[#058743] hover:text-[#046635] font-medium flex items-center gap-1"
+                                    >
+                                        <svg
+                                            className="w-4 h-4"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M12 4v16m8-8H4"
+                                            />
+                                        </svg>
+                                        Add Item
+                                    </button>
+                                </div>
 
-                        {/* Category */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Category*
-                            </label>
-                            <select
-                                value={formData.category}
-                                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#058743] focus:border-transparent"
-                                disabled={loading}
-                                required
-                            >
-                                <option value="">
-                                    {loading ? 'Loading categories...' : 'Select a category'}
-                                </option>
-                                {categories.map((category) => (
-                                    <option key={category.id} value={category.id}>
-                                        {category.category_name}
+                                {transactionDetails.length > 0 && (
+                                    <div className="space-y-3">
+                                        {transactionDetails.map(
+                                            (detail, index) => (
+                                                <div
+                                                    key={index}
+                                                    className="p-4 border border-gray-200 rounded-lg bg-gray-50 space-y-3"
+                                                >
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="text-sm font-medium text-gray-700">
+                                                            Item {index + 1}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                removeDetailItem(
+                                                                    index
+                                                                )
+                                                            }
+                                                            className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                                        >
+                                                            Remove
+                                                        </button>
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                                                            Item Name*
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="e.g., Coffee, Notebook"
+                                                            value={
+                                                                detail.item_name
+                                                            }
+                                                            onChange={(e) =>
+                                                                updateDetailItem(
+                                                                    index,
+                                                                    "item_name",
+                                                                    e.target
+                                                                        .value
+                                                                )
+                                                            }
+                                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#058743] focus:border-transparent"
+                                                        />
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                                                                Quantity*
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                placeholder="1"
+                                                                value={
+                                                                    detail.quantity
+                                                                }
+                                                                onChange={(e) =>
+                                                                    updateDetailItem(
+                                                                        index,
+                                                                        "quantity",
+                                                                        e.target
+                                                                            .value
+                                                                    )
+                                                                }
+                                                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#058743] focus:border-transparent"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                                                                Price*
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="0"
+                                                                value={formatNumberWithDots(
+                                                                    detail.item_price
+                                                                )}
+                                                                onChange={(
+                                                                    e
+                                                                ) => {
+                                                                    const rawValue =
+                                                                        parseFormattedNumber(
+                                                                            e
+                                                                                .target
+                                                                                .value
+                                                                        );
+                                                                    updateDetailItem(
+                                                                        index,
+                                                                        "item_price",
+                                                                        rawValue
+                                                                    );
+                                                                }}
+                                                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#058743] focus:border-transparent"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="pt-2 border-t border-gray-300">
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-xs text-gray-600">
+                                                                Subtotal:
+                                                            </span>
+                                                            <span className="text-sm font-semibold text-gray-900">
+                                                                Rp
+                                                                {formatNumberWithDots(
+                                                                    (Number(
+                                                                        detail.quantity
+                                                                    ) || 0) *
+                                                                        (Number(
+                                                                            parseFormattedNumber(
+                                                                                detail.item_price
+                                                                            )
+                                                                        ) || 0)
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )
+                                        )}
+
+                                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-gray-700">
+                                                    Total Amount:
+                                                </span>
+                                                <span className="text-lg font-bold text-[#058743]">
+                                                    Rp
+                                                    {formatNumberWithDots(
+                                                        calculateTotalFromDetails()
+                                                    )}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {transactionDetails.length === 0 && (
+                                    <div className="text-center py-6 text-gray-500 text-sm bg-gray-50 rounded-lg border border-gray-200">
+                                        No items added. Click "Add Item" to add
+                                        transaction details.
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Amount (only show if no details) */}
+                            {transactionDetails.length === 0 && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Amount*
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="0"
+                                        value={formatNumberWithDots(
+                                            formData.amount
+                                        )}
+                                        onChange={(e) => {
+                                            const rawValue =
+                                                parseFormattedNumber(
+                                                    e.target.value
+                                                );
+                                            setFormData({
+                                                ...formData,
+                                                amount: rawValue,
+                                            });
+                                        }}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#058743] focus:border-transparent"
+                                        required
+                                    />
+                                </div>
+                            )}
+
+                            {/* Category */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Category*
+                                </label>
+                                <select
+                                    value={formData.category}
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            category: e.target.value,
+                                        })
+                                    }
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#058743] focus:border-transparent"
+                                    disabled={loading}
+                                    required
+                                >
+                                    <option value="">
+                                        {loading
+                                            ? "Loading categories..."
+                                            : "Select a category"}
                                     </option>
-                                ))}
-                            </select>
-                        </div>
+                                    {categories.map((category) => (
+                                        <option
+                                            key={category.id}
+                                            value={category.id}
+                                        >
+                                            {category.category_name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
 
                         {/* Date */}
                         <div>
@@ -340,43 +739,50 @@ export default function EditTransaction({ transaction, onClose, onUpdate }) {
                             </div>
                         </div>
 
-                        {/* Description */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Description
-                            </label>
-                            <textarea
-                                placeholder="Optional description..."
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                rows={4}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#058743] focus:border-transparent resize-none"
-                            />
-                        </div>
+                            {/* Description */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Description
+                                </label>
+                                <textarea
+                                    placeholder="Optional description..."
+                                    value={formData.description}
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            description: e.target.value,
+                                        })
+                                    }
+                                    rows={4}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#058743] focus:border-transparent resize-none"
+                                />
+                            </div>
+                        </form>
+                    )}
+                </div>
 
-                        {/* Action Buttons */}
-                        <div className="flex gap-4 pt-4">
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                                disabled={submitting}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={submitting}
-                                className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
-                                    submitting
-                                        ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                                        : 'bg-[#058743] text-white hover:bg-[#046635]'
-                                }`}
-                            >
-                                {submitting ? 'Updating...' : 'Update Transaction'}
-                            </button>
-                        </div>
-                    </form>
+                {/* Footer - Sticky */}
+                <div className="flex gap-4 p-6 border-t border-gray-200 bg-white rounded-b-lg sticky bottom-0 z-10">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                        disabled={submitting}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleSubmit}
+                        disabled={submitting || loadingDetails}
+                        className={`flex-1 px-6 py-3 rounded-lg font-medium transition-colors ${
+                            submitting || loadingDetails
+                                ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+                                : "bg-[#058743] text-white hover:bg-[#046635]"
+                        }`}
+                    >
+                        {submitting ? "Updating..." : "Update Transaction"}
+                    </button>
                 </div>
             </div>
             

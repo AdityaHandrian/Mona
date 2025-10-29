@@ -50,6 +50,7 @@ export default function Edit({ mustVerifyEmail, status }) {
         
         // Combine first and last name
         const fullName = `${profileData.first_name} ${profileData.last_name}`.trim();
+        const token = document.head.querySelector('meta[name="csrf-token"]')?.content;
         
         // Prepare form data ensuring all required fields are present
         const formData = {
@@ -57,7 +58,8 @@ export default function Edit({ mustVerifyEmail, status }) {
             email: profileData.email,
             phone: profileData.phone || '',
             date_of_birth: profileData.date_of_birth || '',
-            _method: 'PATCH'
+            _method: 'PATCH',
+            _token: token,
         };
         
         // Only add profile_photo if it exists
@@ -67,6 +69,7 @@ export default function Edit({ mustVerifyEmail, status }) {
         
         // Use router.post for file uploads with multipart data
         router.post(route('profile.update'), formData, {
+            forceFormData: true,
             onSuccess: () => {
                 window.location.href = route('profile.show');
             },
@@ -187,8 +190,10 @@ export default function Edit({ mustVerifyEmail, status }) {
             
             // If user has existing photo, send request to remove it
             if (user.profile_photo_path) {
+                const token = document.head.querySelector('meta[name="csrf-token"]')?.content;
                 router.post(route('profile.remove-photo'), {
-                    _method: 'DELETE'
+                    _method: 'DELETE',
+                    _token: token,
                 }, {
                     onSuccess: () => {
                         window.location.reload();
@@ -319,7 +324,8 @@ export default function Edit({ mustVerifyEmail, status }) {
                                     <InputLabel htmlFor="date_of_birth" value="Date of Birth" />
                                     <TextInput
                                         id="date_of_birth"
-                                        type="date"
+                                        type="text"
+                                        placeholder="dd/mm/yyyy"
                                         className="mt-1 block w-full"
                                         value={profileData.date_of_birth}
                                         onChange={(e) => setProfileData('date_of_birth', e.target.value)}

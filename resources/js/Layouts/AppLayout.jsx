@@ -11,13 +11,15 @@ export default function AppLayout({ children, title, auth, navigation }) {
         { name: 'Transaction', route: 'transaction' }, 
         { name: 'Scan Receipt', route: 'scan-receipt' },
         { name: 'Budget', route: 'budget' },
-        { name: 'History', route: 'history' }
+        { name: 'History', route: 'history' },
+        { name: 'About', route: 'about' } 
     ];
 
     const isActive = (routeName) => {
         return url.includes(routeName) || 
                (routeName === 'scan-receipt' && url.includes('scan')) ||
-               (routeName === 'dashboard' && (url === '/' || url === '/dashboard'));
+               (routeName === 'dashboard' && (url === '/' || url === '/dashboard')) ||
+               (routeName === 'about' && url === '/about');
     };
 
     return (

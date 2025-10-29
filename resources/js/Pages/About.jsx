@@ -92,95 +92,97 @@ export default function About({ auth }) {
                             </p>
                         </div>
 
+                        {/* AI-Powered Features Grid (7 cards in 2-3-2 layout) */}
                         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-[768px]:gap-6 max-[425px]:gap-4">
                             {/* Smart Dashboard */}
-                            <div className="card-hover animate-fade-in-up delay-200 bg-white rounded-2xl p-8 max-[768px]:p-6 max-[425px]:p-4 border border-[#E0E0E0] hover:shadow-lg transition-shadow duration-200">
-                                <div className="w-12 h-12 bg-[#058743] bg-opacity-10 rounded-lg flex items-center justify-center mb-6 max-[425px]:mb-4">
-                                    <svg className="w-6 h-6 text-[#058743]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="card-hover animate-fade-in-up delay-200 bg-white rounded-2xl p-8 max-[768px]:p-6 max-[425px]:p-4 border border-[#E0E0E0]">
+                                <div className="w-12 h-12 bg-growth-green-500/10 rounded-lg flex items-center justify-center mb-6 max-[425px]:mb-4">
+                                    <svg className="w-6 h-6 text-growth-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                     </svg>
                                 </div>
-                                <h3 className="text-xl max-[425px]:text-lg font-bold text-[#2C2C2C] mb-3 max-[425px]:mb-2">
-                                    Smart Dashboard
-                                </h3>
+                                <h3 className="text-xl max-[425px]:text-lg font-bold text-[#2C2C2C] mb-3">AI-Powered Smart Dashboard</h3>
                                 <p className="text-[#2C2C2C] max-[425px]:text-sm leading-relaxed">
-                                    Get real-time insights into your financial health with interactive charts, balance tracking, and personalized recommendations.
+                                    Real-time financial insights powered by advanced data analytics and machine learning algorithms. Get personalized spending recommendations and predictive budgeting suggestions.
                                 </p>
                             </div>
 
-                            {/* Receipt Scanner */}
-                            <div className="card-hover animate-fade-in-up delay-300 bg-white rounded-2xl p-8 max-[768px]:p-6 max-[425px]:p-4 border border-[#E0E0E0] hover:shadow-lg transition-shadow duration-200">
-                                <div className="w-12 h-12 bg-[#058743] bg-opacity-10 rounded-lg flex items-center justify-center mb-6 max-[425px]:mb-4">
-                                    <svg className="w-6 h-6 text-[#058743]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            {/* Smart Expense Tracking */}
+                            <div className="card-hover animate-fade-in-up delay-200 bg-white rounded-2xl p-8 max-[768px]:p-6 max-[425px]:p-4 border border-[#E0E0E0]">
+                                <div className="w-12 h-12 bg-growth-green-500/10 rounded-lg flex items-center justify-center mb-6 max-[425px]:mb-4">
+                                    <svg className="w-6 h-6 text-growth-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                                    </svg>
+                                </div>
+                                <h3 className="text-xl max-[425px]:text-lg font-bold text-[#2C2C2C] mb-3">AI-Driven Expense Tracking</h3>
+                                <p className="text-[#2C2C2C] max-[425px]:text-sm leading-relaxed">
+                                    Automatically categorize transactions using Natural Language Processing and machine learning. Smart detection of spending patterns and anomaly alerts for unusual expenses.
+                                </p>
+                            </div>
+
+                            {/* Smart Budgeting */}
+                            <div className="card-hover animate-fade-in-up delay-300 bg-white rounded-2xl p-8 max-[768px]:p-6 max-[425px]:p-4 border border-[#E0E0E0]">
+                                <div className="w-12 h-12 bg-growth-green-500/10 rounded-lg flex items-center justify-center mb-6 max-[425px]:mb-4">
+                                    <svg className="w-6 h-6 text-growth-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <h3 className="text-xl max-[425px]:text-lg font-bold text-[#2C2C2C] mb-3">Smart Budgeting System</h3>
+                                <p className="text-[#2C2C2C] max-[425px]:text-sm leading-relaxed">
+                                    Create adaptive budgets that learn from your spending habits. AI-powered notifications and recommendations help you stay on track with your financial goals.
+                                </p>
+                            </div>
+
+                            {/* Advanced Receipt Scanner */}
+                            <div className="card-hover animate-fade-in-up delay-300 bg-white rounded-2xl p-8 max-[768px]:p-6 max-[425px]:p-4 border border-[#E0E0E0]">
+                                <div className="w-12 h-12 bg-growth-green-500/10 rounded-lg flex items-center justify-center mb-6">
+                                    <svg className="w-6 h-6 text-growth-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                                     </svg>
                                 </div>
-                                <h3 className="text-xl max-[425px]:text-lg font-bold text-[#2C2C2C] mb-3 max-[425px]:mb-2">
-                                    Receipt Scanner
-                                </h3>
+                                <h3 className="text-xl font-bold text-[#2C2C2C] mb-3">AI Receipt Scanner</h3>
                                 <p className="text-[#2C2C2C] max-[425px]:text-sm leading-relaxed">
-                                    Simply snap a photo of your receipts and let AI automatically extract and categorize your expenses for seamless tracking.
+                                    Advanced Optical Character Recognition (OCR) technology with 99%+ accuracy. Instantly extracts merchant names, amounts, dates, and tax information from any receipt format or quality.
                                 </p>
                             </div>
 
-                            {/* Budget Management */}
-                            <div className="card-hover animate-fade-in-up delay-400 bg-white rounded-2xl p-8 max-[768px]:p-6 max-[425px]:p-4 border border-[#E0E0E0] hover:shadow-lg transition-shadow duration-200">
-                                <div className="w-12 h-12 bg-[#058743] bg-opacity-10 rounded-lg flex items-center justify-center mb-6 max-[425px]:mb-4">
-                                    <svg className="w-6 h-6 text-[#058743]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                    </svg>
-                                </div>
-                                <h3 className="text-xl max-[425px]:text-lg font-bold text-[#2C2C2C] mb-3 max-[425px]:mb-2">
-                                    Budget Management
-                                </h3>
-                                <p className="text-[#2C2C2C] max-[425px]:text-sm leading-relaxed">
-                                    Create flexible budgets, set spending limits, and receive smart alerts to keep your finances on track throughout the month.
-                                </p>
-                            </div>
-
-                            {/* Transaction History */}
-                            <div className="card-hover animate-fade-in-up delay-500 bg-white rounded-2xl p-8 max-[768px]:p-6 max-[425px]:p-4 border border-[#E0E0E0] hover:shadow-lg transition-shadow duration-200">
-                                <div className="w-12 h-12 bg-[#058743] bg-opacity-10 rounded-lg flex items-center justify-center mb-6 max-[425px]:mb-4">
-                                    <svg className="w-6 h-6 text-[#058743]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            {/* Intelligent Transaction History */}
+                            <div className="card-hover animate-fade-in-up delay-400 bg-white rounded-2xl p-8 max-[768px]:p-6 max-[425px]:p-4 border border-[#E0E0E0]">
+                                <div className="w-12 h-12 bg-growth-green-500/10 rounded-lg flex items-center justify-center mb-6">
+                                    <svg className="w-6 h-6 text-growth-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                 </div>
-                                <h3 className="text-xl max-[425px]:text-lg font-bold text-[#2C2C2C] mb-3 max-[425px]:mb-2">
-                                    Transaction History
-                                </h3>
+                                <h3 className="text-xl font-bold text-[#2C2C2C] mb-3">Smart Transaction History</h3>
                                 <p className="text-[#2C2C2C] max-[425px]:text-sm leading-relaxed">
-                                    Access detailed transaction records with powerful search and filtering capabilities to analyze your spending patterns.
+                                    Intelligent search and filtering powered by natural language queries. Find transactions using descriptions like "coffee last week" or "groceries this month."
                                 </p>
                             </div>
 
-                            {/* Smart Analytics */}
-                            <div className="card-hover animate-fade-in-up delay-600 bg-white rounded-2xl p-8 max-[768px]:p-6 max-[425px]:p-4 border border-[#E0E0E0] hover:shadow-lg transition-shadow duration-200">
-                                <div className="w-12 h-12 bg-[#058743] bg-opacity-10 rounded-lg flex items-center justify-center mb-6 max-[425px]:mb-4">
-                                    <svg className="w-6 h-6 text-[#058743]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            {/* Advanced Analytics */}
+                            <div className="card-hover animate-fade-in-up delay-400 bg-white rounded-2xl p-8 max-[768px]:p-6 max-[425px]:p-4 border border-[#E0E0E0]">
+                                <div className="w-12 h-12 bg-growth-green-500/10 rounded-lg flex items-center justify-center mb-6">
+                                    <svg className="w-6 h-6 text-growth-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
                                 </div>
-                                <h3 className="text-xl max-[425px]:text-lg font-bold text-[#2C2C2C] mb-3 max-[425px]:mb-2">
-                                    Smart Analytics
-                                </h3>
+                                <h3 className="text-xl font-bold text-[#2C2C2C] mb-3">AI-Powered Analytics</h3>
                                 <p className="text-[#2C2C2C] max-[425px]:text-sm leading-relaxed">
-                                    Visualize your financial trends with beautiful charts and receive actionable insights to improve your money management.
+                                    Generate actionable financial insights using advanced data science algorithms. Predictive modeling helps forecast future expenses and identify saving opportunities.
                                 </p>
                             </div>
 
-                            {/* Secure & Private */}
-                            <div className="card-hover animate-fade-in-up delay-700 bg-white rounded-2xl p-8 max-[768px]:p-6 max-[425px]:p-4 border border-[#E0E0E0] hover:shadow-lg transition-shadow duration-200">
-                                <div className="w-12 h-12 bg-[#058743] bg-opacity-10 rounded-lg flex items-center justify-center mb-6 max-[425px]:mb-4">
-                                    <svg className="w-6 h-6 text-[#058743]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            {/* AI Assistant - New Feature */}
+                            <div className="card-hover animate-fade-in-up delay-400 bg-white rounded-2xl p-8 max-[768px]:p-6 max-[425px]:p-4 border border-[#E0E0E0] md:col-span-2 lg:col-span-1 lg:col-start-2">
+                                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-6">
+                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                                     </svg>
                                 </div>
-                                <h3 className="text-xl max-[425px]:text-lg font-bold text-[#2C2C2C] mb-3 max-[425px]:mb-2">
-                                    Secure & Private
-                                </h3>
+                                <h3 className="text-xl font-bold text-[#2C2C2C] mb-3">AI Financial Assistant</h3>
                                 <p className="text-[#2C2C2C] max-[425px]:text-sm leading-relaxed">
-                                    Your financial data is protected with bank-level security and encryption. We never share your personal information.
+                                    Your personal AI financial advisor that answers questions, provides spending insights, and offers personalized financial guidance through natural conversation.
                                 </p>
                             </div>
                         </div>
@@ -271,26 +273,6 @@ export default function About({ auth }) {
                                 <div className="text-3xl max-[425px]:text-2xl font-bold mb-2">24/7</div>
                                 <p className="text-sm max-[425px]:text-xs opacity-90">Support</p>
                             </div>
-                        </div>
-                    </div>
-                </section>
-
-                {/* CTA Section */}
-                <section className="py-20 max-[768px]:py-16 max-[425px]:py-12 text-center">
-                    <div className="max-w-[1500px] mx-auto px-6 max-[425px]:px-4">
-                        <div className="max-w-2xl mx-auto">
-                            <h2 className="animate-fade-in-up text-3xl md:text-4xl max-[425px]:text-2xl font-bold text-[#2C2C2C] mb-6 max-[425px]:mb-4">
-                                Ready to Take Control?
-                            </h2>
-                            <p className="animate-fade-in-up delay-100 text-lg max-[425px]:text-base text-[#2C2C2C] mb-8 max-[425px]:mb-6">
-                                Start your journey to financial freedom today. No credit card required.
-                            </p>
-                            <Link
-                                href={route('register')}
-                                className="animate-fade-in-up delay-200 inline-block bg-[#058743] text-white px-10 max-[425px]:px-6 py-4 max-[425px]:py-3 rounded-lg text-xl max-[425px]:text-lg font-semibold hover:bg-[#046635] transition-colors duration-200"
-                            >
-                                Get Started Free
-                            </Link>
                         </div>
                     </div>
                 </section>

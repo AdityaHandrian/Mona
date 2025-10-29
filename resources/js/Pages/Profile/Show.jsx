@@ -7,8 +7,13 @@ export default function Show({ auth }) {
     const user = auth.user;
 
     const formattedDate = user.date_of_birth
-        ? new Date(user.date_of_birth).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
-        : 'N/A';
+    ? (user.date_of_birth.includes('/')   // dd/mm/yyyy dari accessor
+        ? user.date_of_birth
+        : new Date(user.date_of_birth).toLocaleDateString('en-GB', {
+            day: '2-digit', month: '2-digit', year: 'numeric'
+            }))
+    : 'N/A';
+
     
     const avatarUrl = user.profile_photo_path 
         ? `/storage/${user.profile_photo_path}` 

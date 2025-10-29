@@ -67,6 +67,7 @@ export default function Edit({ mustVerifyEmail, status }) {
         
         // Use router.post for file uploads with multipart data
         router.post(route('profile.update'), formData, {
+            forceFormData: true,
             onSuccess: () => {
                 window.location.href = route('profile.show');
             },
@@ -319,7 +320,8 @@ export default function Edit({ mustVerifyEmail, status }) {
                                     <InputLabel htmlFor="date_of_birth" value="Date of Birth" />
                                     <TextInput
                                         id="date_of_birth"
-                                        type="date"
+                                        type="text"
+                                        placeholder="dd/mm/yyyy"
                                         className="mt-1 block w-full"
                                         value={profileData.date_of_birth}
                                         onChange={(e) => setProfileData('date_of_birth', e.target.value)}

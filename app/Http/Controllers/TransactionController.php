@@ -590,4 +590,200 @@ class TransactionController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * GET /api/transactions/history - Historical transactions with enhanced filtering
+     */
+    public function history(Request $request)
+    {
+        $validated = $request->validate([
+            'type'            => ['nullable', 'in:income,expense'],
+            'category_id'     => ['nullable', 'integer'],
+            'search'          => ['nullable', 'string', 'max:255'],
+            'date_from'       => ['nullable', 'date'],
+            'date_to'         => ['nullable', 'date'],
+            'per_page'        => ['nullable', 'integer', 'min:1', 'max:100'],
+            'include_details' => ['nullable', 'boolean'],
+            'sort_by'         => ['nullable', 'in:date,amount,category'],
+            'sort_order'      => ['nullable', 'in:asc,desc'],
+            'year'            => ['nullable', 'integer', 'min:2020', 'max:2050'],
+            'month'           => ['nullable', 'integer', 'min:1', 'max:12'],
+        ]);
+
+        $userId         = $request->user()->id;
+        $type           = $validated['type']            ?? null;
+        $categoryId     = $validated['category_id']     ?? null;
+        $search         = $validated['search']          ?? null;
+        $dateFrom       = $validated['date_from']       ?? null;
+        $dateTo         = $validated['date_to']         ?? null;
+        $perPage        = $validated['per_page']        ?? 20;
+        $includeDetails = $validated['include_details'] ?? false;
+        $sortBy         = $validated['sort_by']         ?? 'date';
+        $sortOrder      = $validated['sort_order']      ?? 'desc';
+        $year           = $validated['year']            ?? null;
+        $month          = $validated['month']           ?? null;
+
+        try {
+            // Build the base query with eager loading
+            $query = Transaction::with(['category', 'user'])
+                ->where('user_id', $userId);
+
+            // Apply category_id filter if provided
+            if ($categoryId !== null) {
+                $query->where('category_id', $categoryId);
+            }
+
+            // Apply type filter (via category relationship)
+            if ($type !== null) {
+                $query->whereHas('category', function($q) use ($type) {
+                    $q->where('type', $type);
+                });
+            }
+
+            // Apply search filter (description and category name)
+            if ($search !== null) {
+                $query->where(function($q) use ($search) {
+                    $q->where('description', 'like', "%{$search}%")
+                      ->orWhereHas('category', function($categoryQuery) use ($search) {
+                          $categoryQuery->where('category_name', 'like', "%{$search}%");
+                      });
+                });
+            }
+
+            // Apply date range filters
+            if ($dateFrom !== null) {
+                $query->whereDate('transaction_date', '>=', $dateFrom);
+            }
+            if ($dateTo !== null) {
+                $query->whereDate('transaction_date', '<=', $dateTo);
+            }
+
+            // Apply year/month filters for historical analysis
+            if ($year !== null) {
+                $query->whereYear('transaction_date', $year);
+            }
+            if ($month !== null) {
+                $query->whereMonth('transaction_date', $month);
+            }
+
+            // Include transaction details if requested
+            if ($includeDetails) {
+                $query->with(['transactionDetails']);
+            }
+
+            // Apply sorting
+            switch ($sortBy) {
+                case 'amount':
+                    $query->orderBy('amount', $sortOrder);
+                    break;
+                case 'category':
+                    $query->join('categories', 'transactions.category_id', '=', 'categories.id')
+                          ->orderBy('categories.category_name', $sortOrder)
+                          ->select('transactions.*'); // Ensure we only select transaction fields
+                    break;
+                case 'date':
+                default:
+                    $query->orderBy('transaction_date', $sortOrder);
+                    break;
+            }
+
+            // Secondary sort by ID for consistency
+            $query->orderBy('id', 'desc');
+
+            // Paginate results
+            $page = $query->paginate($perPage);
+
+            // Transform the data with historical context
+            $items = $page->getCollection()->map(function ($trx) use ($includeDetails) {
+                $date = $trx->transaction_date ? $trx->transaction_date->format('j/n/Y') : null;
+                $isoDate = $trx->transaction_date ? $trx->transaction_date->toISOString() : null;
+                $typeLabel = $trx->category ? ucfirst($trx->category->type) : null;
+                $categoryName = $trx->category ? $trx->category->category_name : null;
+                
+                // Make expense amounts negative for frontend display
+                $amount = (float) $trx->amount;
+                $originalAmount = $amount; // Keep original for calculations
+                if ($trx->category && $trx->category->type === 'expense') {
+                    $amount = -$amount;
+                }
+
+                $item = [
+                    'id'              => (int) $trx->id,
+                    'date'            => $date,
+                    'iso_date'        => $isoDate,
+                    'type'            => $typeLabel,
+                    'category'        => $categoryName,
+                    'category_id'     => $trx->category_id,
+                    'description'     => $trx->description,
+                    'amount'          => $amount,
+                    'original_amount' => $originalAmount,
+                    'year'            => $trx->transaction_date ? $trx->transaction_date->year : null,
+                    'month'           => $trx->transaction_date ? $trx->transaction_date->month : null,
+                    'created_at'      => $trx->created_at ? $trx->created_at->toISOString() : null,
+                ];
+
+                // Include transaction details if requested
+                if ($includeDetails && $trx->transactionDetails) {
+                    $item['details'] = $trx->transactionDetails->map(function ($detail) {
+                        return [
+                            'id'         => $detail->id,
+                            'item_name'  => $detail->item_name,
+                            'quantity'   => $detail->quantity,
+                            'item_price' => (float) $detail->item_price,
+                            'subtotal'   => (float) $detail->subtotal,
+                        ];
+                    });
+                }
+
+                return $item;
+            });
+
+            // Calculate summary statistics for the filtered results
+            $totalIncome = $page->getCollection()
+                ->filter(fn($trx) => $trx->category && $trx->category->type === 'income')
+                ->sum('amount');
+            
+            $totalExpense = $page->getCollection()
+                ->filter(fn($trx) => $trx->category && $trx->category->type === 'expense')
+                ->sum('amount');
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Transaction history retrieved successfully',
+                'data'    => $items,
+                'summary' => [
+                    'total_income'      => (float) $totalIncome,
+                    'total_expense'     => (float) $totalExpense,
+                    'net_amount'        => (float) ($totalIncome - $totalExpense),
+                    'transaction_count' => $page->total(),
+                ],
+                'meta'    => [
+                    'current_page' => $page->currentPage(),
+                    'last_page'    => $page->lastPage(),
+                    'per_page'     => $page->perPage(),
+                    'total'        => $page->total(),
+                    'from'         => $page->firstItem(),
+                    'to'          => $page->lastItem(),
+                ],
+                'filters' => [
+                    'category_id' => $categoryId,
+                    'type'        => $type,
+                    'search'      => $search,
+                    'date_from'   => $dateFrom,
+                    'date_to'     => $dateTo,
+                    'year'        => $year,
+                    'month'       => $month,
+                    'sort_by'     => $sortBy,
+                    'sort_order'  => $sortOrder,
+                ],
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to fetch transaction history',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

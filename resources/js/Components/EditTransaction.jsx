@@ -926,57 +926,9 @@ export default function EditTransaction({ transaction, onClose, onUpdate }) {
 
                 /* Mobile adjustments */
                 @media (max-width: 640px) {
-                    .react-datepicker-popper {
-                        transform: translateX(-50%) !important;
-                        left: 50% !important;
-                    }
-                    
                     .react-datepicker {
-                        padding: 24px !important;
+                        width: 100% !important;
                         max-width: none !important;
-                        width: calc(100vw - 40px) !important;
-                    }
-
-                    .react-datepicker__header {
-                        padding: 20px 0 16px 0 !important;
-                    }
-
-                    .react-datepicker__current-month {
-                        font-size: 20px !important;
-                        margin-bottom: 16px !important;
-                    }
-
-                    .react-datepicker__day {
-                        width: calc((100vw - 120px) / 7) !important;
-                        height: calc((100vw - 120px) / 7) !important;
-                        line-height: calc((100vw - 120px) / 7) !important;
-                        font-size: 16px !important;
-                        margin: 3px !important;
-                    }
-
-                    .react-datepicker__day-name {
-                        width: calc((100vw - 120px) / 7) !important;
-                        line-height: calc((100vw - 120px) / 7) !important;
-                        font-size: 14px !important;
-                    }
-
-                    .react-datepicker__navigation {
-                        top: 24px !important;
-                        width: 32px !important;
-                        height: 32px !important;
-                    }
-
-                    .react-datepicker__navigation-icon::before {
-                        border-width: 3px 3px 0 0 !important;
-                        width: 10px !important;
-                        height: 10px !important;
-                    }
-                }
-
-                @media (max-width: 480px) {
-                    .react-datepicker {
-                        width: 70% !important;
-                        max-width: 240px !important;
                         padding: 8px !important;
                     }
 

@@ -73,6 +73,14 @@ Route::get('/testing', function () {
     return view('testing');
 })->name('testing');
 
+Route::get('/about', function (Request $request) {
+    return Inertia::render('About', [
+        'auth' => [
+            'user' => $request->user(),
+        ],
+    ]);
+})->middleware(['auth', 'verified'])->name('about');
+
 Route::get('/dashboard-api-test', function () {
     return view('dashboard-api-test');
 })->name('dashboard-api-test');

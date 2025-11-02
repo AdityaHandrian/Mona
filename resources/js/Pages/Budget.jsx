@@ -81,6 +81,7 @@ export default function Budget() {
     isCurrentMonth = true, 
     currentMonth, 
     currentYear,
+    alerts = [], // Add alerts prop
     flash = {}
   } = props;
 
@@ -432,6 +433,102 @@ export default function Budget() {
               </div>
             </div>
 
+            {/* Budget Alerts Section */}
+            {isCurrentMonth && alerts && alerts.length > 0 && (
+              <div className="animate-fade-in-up delay-150 mb-6 sm:mb-8">
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-4 sm:p-6 border-2 border-amber-200 shadow-md">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="p-2 bg-amber-100 rounded-lg">
+                      <Icon.Warning className="w-5 h-5 text-amber-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-amber-900 mb-1">Budget Alerts</h3>
+                      <p className="text-sm text-amber-700">
+                        {alerts.length} {alerts.length === 1 ? 'category has' : 'categories have'} reached or exceeded the alert threshold (85%)
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {alerts.map((alert, index) => (
+                      <div 
+                        key={alert.budget_id}
+                        className={`bg-white rounded-xl p-4 border-l-4 ${
+                          alert.alert_level === 'critical' 
+                            ? 'border-red-500' 
+                            : alert.alert_level === 'high'
+                            ? 'border-orange-500'
+                            : 'border-yellow-500'
+                        } shadow-sm`}
+                      >
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-gray-900">{alert.category_name}</h4>
+                            <p className={`text-sm mt-1 ${
+                              alert.alert_level === 'critical' 
+                                ? 'text-red-700' 
+                                : alert.alert_level === 'high'
+                                ? 'text-orange-700'
+                                : 'text-yellow-700'
+                            }`}>
+                              {alert.message}
+                            </p>
+                          </div>
+                          <div className={`px-3 py-1 rounded-full text-xs font-bold ${
+                            alert.alert_level === 'critical' 
+                              ? 'bg-red-100 text-red-800' 
+                              : alert.alert_level === 'high'
+                              ? 'bg-orange-100 text-orange-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {alert.percentage.toFixed(0)}%
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <span className="text-gray-600">Budget:</span>
+                            <span className="ml-2 font-semibold text-gray-900">
+                              {formatIDR(alert.budget_amount)}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Spent:</span>
+                            <span className="ml-2 font-semibold text-gray-900">
+                              {formatIDR(alert.spent_amount)}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {!alert.is_exceeded && (
+                          <div className="mt-2 text-sm">
+                            <span className="text-gray-600">Remaining:</span>
+                            <span className="ml-2 font-semibold text-green-700">
+                              {formatIDR(alert.remaining)}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Progress bar */}
+                        <div className="mt-3 bg-gray-200 rounded-full h-2 overflow-hidden">
+                          <div 
+                            className={`h-full transition-all duration-500 ${
+                              alert.alert_level === 'critical' 
+                                ? 'bg-red-500' 
+                                : alert.alert_level === 'high'
+                                ? 'bg-orange-500'
+                                : 'bg-yellow-500'
+                            }`}
+                            style={{ width: `${Math.min(alert.percentage, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Error messages */}
             {errors && Object.keys(errors).length > 0 && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
@@ -482,14 +579,17 @@ export default function Budget() {
                   const pct = percent(b.spent, b.budget);
                   const isOver = b.spent > b.budget;
                   const remaining = b.budget - b.spent;
-                  const statusColor = isOver ? 'text-red-600' : pct >= 80 ? 'text-orange-500' : 'text-green-600';
+                  const isWarning = pct >= 85; // Warning at 85% threshold
+                  const statusColor = isOver ? 'text-red-600' : isWarning ? 'text-orange-500' : 'text-green-600';
                   
                   // Calculate staggered delay for each card
                   const delayClass = `delay-${Math.min((index + 5) * 100, 900)}`;
 
                   return (
                     // group enables child elements to react to hover
-                    <div key={b.id} className={`animate-fade-in-up ${delayClass} group bg-white rounded-xl p-4 sm:p-5 md:p-6 shadow-sm transform transition-all duration-200 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-lg`}>
+                    <div key={b.id} className={`animate-fade-in-up ${delayClass} group bg-white rounded-xl p-4 sm:p-5 md:p-6 shadow-sm transform transition-all duration-200 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-lg ${
+                      isWarning && !isOver ? 'ring-2 ring-orange-200' : isOver ? 'ring-2 ring-red-200' : ''
+                    }`}>
                       <div className="flex justify-between items-start">
                         <div className="flex-1 min-w-0">
                           <h3 className="text-base sm:text-lg md:text-xl font-semibold truncate">{b.category || b.title}</h3>
@@ -503,13 +603,13 @@ export default function Budget() {
                             className={`p-1 rounded-full border transition-colors duration-200 ${
                               isOver 
                                 ? 'border-red-200 text-red-600 bg-red-50' 
-                                : pct >= 80 
+                                : isWarning 
                                   ? 'border-orange-200 text-orange-500 bg-orange-50' 
                                   : 'border-green-200 text-green-600 bg-green-50'
                             }`}
-                            title={isOver ? 'Over budget' : pct >= 80 ? 'Warning' : 'Healthy'}
+                            title={isOver ? 'Over budget' : isWarning ? 'Warning: 85% reached' : 'Healthy'}
                           >
-                            {isOver ? <Icon.Warning className="w-3 h-3 sm:w-4 sm:h-4" /> : pct >= 80 ? <Icon.Warning className="w-3 h-3 sm:w-4 sm:h-4" /> : <Icon.Check className="w-3 h-3 sm:w-4 sm:h-4" />}
+                            {isOver ? <Icon.Warning className="w-3 h-3 sm:w-4 sm:h-4" /> : isWarning ? <Icon.Warning className="w-3 h-3 sm:w-4 sm:h-4" /> : <Icon.Check className="w-3 h-3 sm:w-4 sm:h-4" />}
                           </div>
 
                           {isCurrentMonth && (

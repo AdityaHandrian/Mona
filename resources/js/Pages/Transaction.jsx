@@ -295,8 +295,23 @@ export default function Transaction({ auth }) {
     const saveTransaction = async (transactionData) => {
         try {
             // Use /api/transactions/add to avoid conflict with History page
-            await axios.post('/api/transactions/add', transactionData);
+            const response = await axios.post('/api/transactions/add', transactionData);
             showModalNotification('success', 'Success', 'Transaction added Successfully!');
+
+            // Check for budget alert in response
+            if (response.data.budget_alert) {
+                const alert = response.data.budget_alert;
+                const alertMessage = `${alert.message} (${alert.percentage.toFixed(0)}% of budget used)`;
+                
+                // Show budget alert notification
+                setTimeout(() => {
+                    showModalNotification(
+                        alert.alert_level === 'critical' ? 'error' : 'warning',
+                        'Budget Alert',
+                        alertMessage
+                    );
+                }, 1500); // Delay to show after success message
+            }
 
             // Reset form
             setFormData({

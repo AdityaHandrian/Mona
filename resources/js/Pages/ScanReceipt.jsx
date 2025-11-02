@@ -473,6 +473,20 @@ export default function ScanReceipt({ auth }) {
                     : 'Transaction added successfully from receipt!';
                 showMessage('success', successMsg);
                 
+                // Check for budget alert in response
+                if (response.data.budget_alert) {
+                    const alert = response.data.budget_alert;
+                    const alertMessage = `Budget Alert: ${alert.message} (${alert.percentage.toFixed(0)}% of budget used)`;
+                    
+                    // Show budget alert notification after success message
+                    setTimeout(() => {
+                        showMessage(
+                            alert.alert_level === 'critical' ? 'error' : 'warning',
+                            alertMessage
+                        );
+                    }, 2000);
+                }
+                
                 // Reset form and clear selected file
                 setFormData({
                     amount: '',

@@ -446,6 +446,66 @@ export default function Dashboard({ auth }) {
                                                 let cumulativePercentage = 0;
                                                 return dashboardData.expenseCategories.map(
                                                     (category, index) => {
+                                                        // Special case: if this is the only category with 100%, draw a full circle
+                                                        if (
+                                                            category.percentage >=
+                                                                99.9 &&
+                                                            dashboardData
+                                                                .expenseCategories
+                                                                .length === 1
+                                                        ) {
+                                                            const isHovered =
+                                                                hoveredCategory ===
+                                                                index;
+                                                            const stroke =
+                                                                isHovered
+                                                                    ? "#111827"
+                                                                    : "none";
+                                                            const strokeWidth =
+                                                                isHovered
+                                                                    ? 0.8
+                                                                    : 0;
+
+                                                            return (
+                                                                <circle
+                                                                    key={index}
+                                                                    cx="50"
+                                                                    cy="50"
+                                                                    r="40"
+                                                                    fill={
+                                                                        category.color
+                                                                    }
+                                                                    className="transition-all cursor-pointer"
+                                                                    style={{
+                                                                        transformOrigin:
+                                                                            "50% 50%",
+                                                                        transform:
+                                                                            isHovered
+                                                                                ? "scale(1.06)"
+                                                                                : "scale(1)",
+                                                                        transition:
+                                                                            "transform 160ms ease",
+                                                                    }}
+                                                                    onMouseEnter={() =>
+                                                                        setHoveredCategory(
+                                                                            index
+                                                                        )
+                                                                    }
+                                                                    onMouseLeave={() =>
+                                                                        setHoveredCategory(
+                                                                            null
+                                                                        )
+                                                                    }
+                                                                    stroke={
+                                                                        stroke
+                                                                    }
+                                                                    strokeWidth={
+                                                                        strokeWidth
+                                                                    }
+                                                                />
+                                                            );
+                                                        }
+
                                                         const startAngle =
                                                             cumulativePercentage *
                                                             3.6;

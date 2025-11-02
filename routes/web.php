@@ -62,10 +62,16 @@ Route::get('/budget', function (Request $request) {
 })->middleware(['auth', 'verified'])->name('budget');
 
 Route::get('/history', function (Request $request) {
+    $categories = \App\Models\Category::select('id', 'category_name', 'type')
+        ->orderBy('type')
+        ->orderBy('category_name')
+        ->get();
+
     return Inertia::render('History', [
         'auth' => [
             'user' => $request->user(),
         ],
+        'categories' => $categories,
     ]);
 })->middleware(['auth', 'verified'])->name('history');
 

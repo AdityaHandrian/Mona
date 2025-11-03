@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\OcrController;
 use App\Http\Controllers\DocumentAIController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\RagEngineController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
@@ -116,6 +118,9 @@ Route::middleware('auth')->prefix('api')->group(function () {
     Route::post('/transactions', [TransactionController::class, 'store']);
     Route::put('/transactions/{id}', [TransactionController::class, 'update']);
     Route::delete('/transactions/{id}', [TransactionController::class, 'destroy']);
+
+    // RAG Engine route for financial advice
+    Route::post('/rag/advice', [RagEngineController::class, 'getAdvice']);
 });
 
 Route::middleware(['auth'])->group(function () {
@@ -151,4 +156,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/api/dashboard/expense-categories', [\App\Http\Controllers\DashboardController::class, 'expenseCategories']);
     Route::get('/api/dashboard/complete', [\App\Http\Controllers\DashboardController::class, 'completeData']);
 });
+
+Route::get('/financial-advisor', function (Request $request) {
+    return Inertia::render('FinancialAdvisor', [
+        'auth' => [
+            'user' => $request->user(),
+        ],
+    ]);
+})->middleware(['auth', 'verified'])->name('financial-advisor');
+
 require __DIR__.'/auth.php';

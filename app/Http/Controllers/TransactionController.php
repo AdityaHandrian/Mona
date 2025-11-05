@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreTransactionRequest;
 use App\Models\Transaction;
+use App\Services\BudgetAlertService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -47,6 +48,10 @@ class TransactionController extends Controller
             return $transaction->load('transactionDetails');
         });
         
+        // Check for budget alerts after transaction is created
+        $budgetAlertService = new BudgetAlertService();
+        $budgetAlert = $budgetAlertService->checkCategoryBudget($request->user()->id, $trx->category_id);
+        
         return response()->json([
             'status' => 'success',
             'data'   => [
@@ -65,6 +70,7 @@ class TransactionController extends Controller
                     'subtotal' => (float) $d->subtotal,
                 ]),
             ],
+            'budget_alert' => $budgetAlert, // Include budget alert in response
         ], 201);
     }
 
@@ -484,6 +490,10 @@ class TransactionController extends Controller
             return $transaction->load('transactionDetails');
         });
 
+        // Check for budget alerts after transaction is created
+        $budgetAlertService = new BudgetAlertService();
+        $budgetAlert = $budgetAlertService->checkCategoryBudget($request->user()->id, $transaction->category_id);
+
         return response()->json([
             'status' => 'success',
             'message' => 'Transaction created successfully',
@@ -502,7 +512,8 @@ class TransactionController extends Controller
                     'item_price' => (float) $d->item_price,
                     'subtotal' => (float) $d->subtotal,
                 ]),
-            ]
+            ],
+            'budget_alert' => $budgetAlert, // Include budget alert in response
         ], 201);
     }
 
@@ -559,6 +570,10 @@ class TransactionController extends Controller
                 return $transaction->load('category', 'transactionDetails');
             });
 
+            // Check for budget alerts after transaction is created
+            $budgetAlertService = new BudgetAlertService();
+            $budgetAlert = $budgetAlertService->checkCategoryBudget($request->user()->id, $transaction->category_id);
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Transaction added successfully from receipt',
@@ -579,7 +594,8 @@ class TransactionController extends Controller
                         'item_price' => (float) $d->item_price,
                         'subtotal' => (float) $d->subtotal,
                     ]),
-                ]
+                ],
+                'budget_alert' => $budgetAlert, // Include budget alert in response
             ], 201);
 
         } catch (\Exception $e) {

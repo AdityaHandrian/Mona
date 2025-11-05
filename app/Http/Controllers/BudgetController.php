@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Services\BudgetAlertService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
@@ -37,12 +38,17 @@ class BudgetController extends Controller
                     ->whereBetween('transaction_date', [$startDate, $endDate])
                     ->sum('amount');
                 
+                $spentAmount = (float) abs($spent);
+                $budgetAmount = (float) $budget->amount;
+                $percentage = $budgetAmount > 0 ? ($spentAmount / $budgetAmount) * 100 : 0;
+                
                 return [
                     'id' => $budget->id,
                     'title' => $budget->category->category_name,
                     'category' => $budget->category->category_name,
-                    'budget' => (float) $budget->amount,
-                    'spent' => (float) abs($spent),
+                    'budget' => $budgetAmount,
+                    'spent' => $spentAmount,
+                    'percentage' => round($percentage, 2),
                     'month' => $budget->start_date->format('m'),
                     'year' => (int) $budget->start_date->year,
                 ];
@@ -53,6 +59,15 @@ class BudgetController extends Controller
             ->values()
             ->toArray();
         
+        // Get budget alerts for current month
+        $budgetAlertService = new BudgetAlertService();
+        $alerts = [];
+        
+        // Only get alerts if viewing current month
+        if ($startDate->isSameMonth($now)) {
+            $alerts = $budgetAlertService->checkBudgetAlerts($userId);
+        }
+        
         return Inertia::render('Budget', [
             'budgets' => $budgets,
             'categories' => $categories,
@@ -61,6 +76,7 @@ class BudgetController extends Controller
             'isCurrentMonth' => $startDate->isSameMonth($now),
             'currentMonth' => $now->format('m'),
             'currentYear' => (int) $now->year,
+            'alerts' => $alerts,
         ]);
     }
     
@@ -181,6 +197,47 @@ class BudgetController extends Controller
 
         return response()->json([
             'has_budget' => $budgetExists,
+        ]);
+    }
+
+    /**
+     * Get budget alerts for the current user
+     * GET /api/budgets/alerts
+     */
+    public function getAlerts(Request $request)
+    {
+        $budgetAlertService = new BudgetAlertService();
+        $userId = Auth::id();
+        
+        $alerts = $budgetAlertService->checkBudgetAlerts($userId);
+        
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'alerts' => $alerts,
+                'count' => count($alerts),
+                'has_alerts' => !empty($alerts),
+            ],
+        ]);
+    }
+
+    /**
+     * Check specific category budget alert
+     * GET /api/budgets/alerts/{categoryId}
+     */
+    public function getCategoryAlert(Request $request, $categoryId)
+    {
+        $budgetAlertService = new BudgetAlertService();
+        $userId = Auth::id();
+        
+        $alert = $budgetAlertService->checkCategoryBudget($userId, $categoryId);
+        
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'alert' => $alert,
+                'has_alert' => $alert !== null,
+            ],
         ]);
     }
 }

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import axios from 'axios'; // <-- BARU: Impor axios
 
 export default function FloatingChatbot() {
     const [isOpen, setIsOpen] = useState(false);
@@ -11,6 +12,7 @@ export default function FloatingChatbot() {
         }
     ]);
     const [inputMessage, setInputMessage] = useState('');
+    const [loading, setLoading] = useState(false); // <-- BARU: State untuk loading
     const chatboxRef = useRef(null);
 
     const quickQuestions = [
@@ -42,42 +44,62 @@ export default function FloatingChatbot() {
         }, 290); // Match the longest animation duration
     };
 
-    const handleSendMessage = (e) => {
-        e.preventDefault();
-        if (!inputMessage.trim()) return;
+    // 1. Ini adalah SATU-SATUNYA fungsi yang memanggil API
+    const submitQuestion = async (question) => {
+        if (loading) return; // Jangan kirim jika sedang loading
 
-        // Add user message
-        const userMessage = {
-            id: Date.now(),
-            type: 'user',
-            content: inputMessage
-        };
-
-        // Add bot response (placeholder)
-        const botResponse = {
-            id: Date.now() + 1,
-            type: 'bot',
-            content: "I'm here to help with your questions! [This feature is coming soon with AI-powered responses.]"
-        };
-
-        setMessages(prev => [...prev, userMessage, botResponse]);
-        setInputMessage('');
-    };
-
-    const handleQuickQuestion = (question) => {
+        // Tambahkan pesan pengguna ke UI
         const userMessage = {
             id: Date.now(),
             type: 'user',
             content: question
         };
+        setMessages(prev => [...prev, userMessage]);
+        setLoading(true);
 
-        const botResponse = {
-            id: Date.now() + 1,
-            type: 'bot',
-            content: "That's a great question! [This feature is coming soon with AI-powered responses.]"
-        };
+        // Panggil backend RAG
+        try {
+            const response = await axios.post('/api/rag/advice', {
+                question: question,
+            });
 
-        setMessages(prev => [...prev, userMessage, botResponse]);
+            let botResponseContent = response.data.success 
+                ? response.data.generated_response
+                : (response.data.error || 'Failed to get advice.');
+
+            const botMessage = {
+                id: Date.now() + 1,
+                type: 'bot',
+                content: botResponseContent
+            };
+            setMessages(prev => [...prev, botMessage]);
+
+        } catch (err) {
+            const errorMessage = err.response?.data?.error || 'Failed to connect to RAG Engine';
+            const errorBotMessage = {
+                id: Date.now() + 1,
+                type: 'bot',
+                content: `Error: ${errorMessage}`
+            };
+            setMessages(prev => [...prev, errorBotMessage]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // 2. handleSendMessage HANYA bertugas mengambil teks input & memanggil submitQuestion
+    const handleSendMessage = (e) => {
+        e.preventDefault();
+        const question = inputMessage.trim();
+        if (!question) return;
+
+        submitQuestion(question); // Panggil fungsi utama
+        setInputMessage('');    // Kosongkan input
+    };
+
+    // 3. handleQuickQuestion HANYA bertugas memanggil submitQuestion
+    const handleQuickQuestion = (question) => {
+        submitQuestion(question); // Panggil fungsi utama
     };
 
     return (
@@ -241,7 +263,29 @@ export default function FloatingChatbot() {
                                         </div>
                                     </div>
                                 ))}
-                            </div>
+
+                                {/* ↓↓↓ TAMBAHKAN BLOK KODE INI ↓↓↓ */}
+                                {loading && (
+                                    <div className="flex items-start mb-4 max-[425px]:mb-3 max-[375px]:mb-2">
+                                        <div className="w-8 h-8 max-[768px]:w-6 max-[768px]:h-6 max-[425px]:w-5 max-[425px]:h-5 max-[375px]:w-4 max-[375px]:h-4 rounded-full bg-[#058743] flex items-center justify-center mr-3 max-[425px]:mr-2 max-[375px]:mr-1.5 flex-shrink-0">
+                                            <img 
+                                                src="/images/icons/ai_chatbot_profile.svg" 
+                                                alt="AI Assistant" 
+                                                className="w-5 h-5 max-[768px]:w-4 max-[768px]:h-4 max-[425px]:w-3 max-[425px]:h-3 max-[375px]:w-2.5 max-[375px]:h-2.5"
+                                            />
+                                        </div>
+                                        <div className="bg-[#E5E7EB] rounded-2xl max-[425px]:rounded-xl max-[375px]:rounded-lg rounded-tl-md px-3 max-[425px]:px-2 max-[375px]:px-1.5 py-2 max-[425px]:py-1.5 max-[375px]:py-1">
+                                            {/* Animasi titik-titik */}
+                                            <div className="flex space-x-1 p-1">
+                                                <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-pulse [animation-delay:-0.3s]"></div>
+                                                <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-pulse [animation-delay:-0.15s]"></div>
+                                                <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-pulse"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                {/* ↑↑↑ BATAS BLOK KODE TAMBAHAN ↑↑↑ */}
+                            </div> {/* <-- Div penutup area pesan */}
 
                             {/* Sticky Input at Bottom */}
                             <div className="border-t border-gray-200 p-4 max-[768px]:p-3 max-[425px]:p-2">
@@ -251,15 +295,22 @@ export default function FloatingChatbot() {
                                         value={inputMessage}
                                         onChange={(e) => setInputMessage(e.target.value)}
                                         placeholder="Ask me about your finance"
+                                        disabled={loading}
                                         className="flex-1 px-4 max-[768px]:px-3 max-[425px]:px-2 max-[375px]:px-1.5 py-3 max-[768px]:py-2.5 max-[425px]:py-2 max-[375px]:py-1.5 border border-gray-300 rounded-xl max-[425px]:rounded-lg max-[375px]:rounded-md text-sm max-[768px]:text-xs max-[425px]:text-xs max-[375px]:text-xs focus:outline-none focus:ring-2 focus:ring-[#058743] focus:border-transparent"
                                     />
                                     <button
                                         type="submit"
                                         className="bg-[#058743] text-white p-3 max-[768px]:p-2.5 max-[425px]:p-2 max-[375px]:p-1.5 rounded-xl max-[425px]:rounded-lg max-[375px]:rounded-md hover:bg-[#046635] transition-colors flex items-center justify-center"
                                     >
-                                        <svg className="w-5 h-5 max-[768px]:w-4 max-[768px]:h-4 max-[425px]:w-3.5 max-[425px]:h-3.5 max-[375px]:w-3 max-[375px]:h-3" fill="currentColor" viewBox="0 0 20 20">
-                                            <path d="M2 10l7-7 1.414 1.414L5.828 9H18v2H5.828l4.586 4.586L9 17l-7-7z" transform="rotate(180 10 10)"/>
-                                        </svg>
+                                        {/* ↓↓↓ GANTI BLOK SVG DENGAN BLOK KONDISIONAL INI ↓↓↓ */}
+                                        {loading ? (
+                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white max-[768px]:w-4 max-[768px]:h-4 max-[425px]:w-3.5 max-[425px]:h-3.5 max-[375px]:w-3 max-[375px]:h-3"></div>
+                                        ) : (
+                                            <svg className="w-5 h-5 max-[768px]:w-4 max-[768px]:h-4 max-[425px]:w-3.5 max-[425px]:h-3.5 max-[375px]:w-3 max-[375px]:h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M2 10l7-7 1.414 1.414L5.828 9H18v2H5.828l4.586 4.586L9 17l-7-7z" transform="rotate(180 10 10)"/>
+                                            </svg>
+                                        )}
+                                        {/* ↑↑↑ BATAS BLOK KODE PENGGANTI ↑↑↑ */}
                                     </button>
                                 </form>
                             </div>

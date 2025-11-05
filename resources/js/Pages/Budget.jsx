@@ -217,7 +217,7 @@ export default function Budget() {
     const [showToast, setShowToast] = useState(false);
     const [toastMessage, setToastMessage] = useState("");
     const [toastType, setToastType] = useState("success");
-    const [isAlertsExpanded, setIsAlertsExpanded] = useState(true); // State for alerts dropdown
+    const [isAlertsExpanded, setIsAlertsExpanded] = useState(false); // State for alerts dropdown - default closed
 
     // Debug - log everything we receive
     useEffect(() => {
@@ -681,7 +681,9 @@ export default function Budget() {
                             <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-200 shadow-md overflow-hidden">
                                 {/* Alert Header - Clickable */}
                                 <button
-                                    onClick={() => setIsAlertsExpanded(!isAlertsExpanded)}
+                                    onClick={() =>
+                                        setIsAlertsExpanded(!isAlertsExpanded)
+                                    }
                                     className="w-full p-4 sm:p-6 flex items-start gap-3 hover:bg-amber-100/30 transition-colors"
                                 >
                                     <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0">
@@ -703,7 +705,9 @@ export default function Budget() {
                                     <div className="flex-shrink-0">
                                         <Icon.ChevronDown
                                             className={`w-6 h-6 text-amber-700 transition-transform duration-200 ${
-                                                isAlertsExpanded ? "rotate-180" : ""
+                                                isAlertsExpanded
+                                                    ? "rotate-180"
+                                                    : ""
                                             }`}
                                         />
                                     </div>
@@ -716,7 +720,8 @@ export default function Budget() {
                                             <div
                                                 key={alert.budget_id}
                                                 className={`bg-white rounded-xl p-4 border-l-4 ${
-                                                    alert.alert_level === "critical"
+                                                    alert.alert_level ===
+                                                    "critical"
                                                         ? "border-red-500"
                                                         : alert.alert_level ===
                                                           "high"
@@ -727,7 +732,9 @@ export default function Budget() {
                                                 <div className="flex items-start justify-between gap-3 mb-2">
                                                     <div className="flex-1">
                                                         <h4 className="font-semibold text-gray-900">
-                                                            {alert.category_name}
+                                                            {
+                                                                alert.category_name
+                                                            }
                                                         </h4>
                                                         <p
                                                             className={`text-sm mt-1 ${

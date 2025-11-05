@@ -721,11 +721,11 @@ export default function Edit({ mustVerifyEmail, status }) {
                                             onLoad={(e) => {
                                                 const { naturalWidth, naturalHeight } = e.currentTarget;
                                                 
-                                                // Calculate crop size (70% of the smaller dimension)
-                                                const smallerDimension = Math.min(naturalWidth, naturalHeight);
-                                                const cropSize = smallerDimension * 0.7;
+                                                // Use the smaller dimension for a square crop
+                                                // This makes the crop as large as possible while maintaining 1:1 aspect
+                                                const cropSize = Math.min(naturalWidth, naturalHeight);
                                                 
-                                                // Calculate percentage-based crop
+                                                // Calculate percentage-based crop (100% of smaller dimension)
                                                 const cropWidthPercent = (cropSize / naturalWidth) * 100;
                                                 const cropHeightPercent = (cropSize / naturalHeight) * 100;
                                                 const cropXPercent = ((naturalWidth - cropSize) / 2 / naturalWidth) * 100;

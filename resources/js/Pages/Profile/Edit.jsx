@@ -1,5 +1,5 @@
 import { Head, useForm, usePage, Link, router } from "@inertiajs/react";
-import { UserIcon, KeyIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { UserIcon, KeyIcon, XMarkIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { PencilIcon } from "@heroicons/react/24/solid";
 import InputError from "@/Components/InputError";
 import InputLabel from "@/Components/InputLabel";
@@ -35,6 +35,16 @@ export default function Edit({ mustVerifyEmail, status }) {
     const [croppedImageUrl, setCroppedImageUrl] = useState(null);
     const [showMobileOptions, setShowMobileOptions] = useState(false);
     const imgRef = useRef(null);
+
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [modalContent, setModalContent] = useState({
+        title: '',
+        message: '',
+        confirmText: 'Confirm',
+        confirmColor: 'bg-growth-green-500 hover:bg-growth-green-600',
+    });
+    // State untuk 'profile', 'password', atau 'removePhoto'
+    const [actionToConfirm, setActionToConfirm] = useState(null);
 
     // Parse date_of_birth from user data
     const parseDateOfBirth = (dateString) => {
@@ -81,9 +91,7 @@ export default function Edit({ mustVerifyEmail, status }) {
         profile_photo: null,
     });
 
-    const submitProfile = (e) => {
-        e.preventDefault();
-
+    const handleActualProfileSave = () => {
         // Combine first and last name
         const fullName =
             `${profileData.first_name} ${profileData.last_name}`.trim();
@@ -141,6 +149,19 @@ export default function Edit({ mustVerifyEmail, status }) {
         });
     };
 
+    // 'submitProfile'
+    const submitProfile = (e) => {
+        e.preventDefault();
+        setModalContent({
+            title: 'Save Profile Changes?',
+            message: 'Are you sure you want to save your updated profile information?',
+            confirmText: 'Save',
+            confirmColor: 'bg-red-500 hover:bg-red-600',
+        });
+        setActionToConfirm('profile');
+        setIsConfirmModalOpen(true);
+    };
+
     // Handle date change
     const handleDateChange = (date) => {
         setSelectedDate(date);
@@ -168,12 +189,24 @@ export default function Edit({ mustVerifyEmail, status }) {
         password_confirmation: "",
     });
 
-    const submitPassword = (e) => {
-        e.preventDefault();
-        putPassword(route("password.update"), {
+    const handleActualPasswordSave = () => {
+        putPassword(route('password.update'), {
             preserveScroll: true,
             onSuccess: () => resetPassword(),
         });
+    };
+
+    // 'submitPassword'
+    const submitPassword = (e) => {
+        e.preventDefault();
+        setModalContent({
+            title: 'Update Password?',
+            message: 'Are you sure you want to update your password?',
+            confirmText: 'Update',
+            confirmColor: 'bg-red-500 hover:bg-red-600',
+        });
+        setActionToConfirm('password');
+        setIsConfirmModalOpen(true);
     };
 
     // Image cropping functions
@@ -270,21 +303,59 @@ export default function Edit({ mustVerifyEmail, status }) {
         }
     };
 
-    const handleRemovePhoto = () => {
-        if (confirm("Are you sure you want to remove your profile picture?")) {
-            setProfileData("profile_photo", null);
-            setCroppedImageUrl(null);
-
-            // If user has existing photo, send request to remove it
-            if (user.profile_photo_path) {
-                // Inertia automatically handles CSRF token
-                router.delete(route("profile.remove-photo"), {
-                    onSuccess: () => {
-                        window.location.reload();
-                    },
-                });
-            }
+    const handleActualRemovePhoto = () => {
+        setProfileData('profile_photo', null);
+        setCroppedImageUrl(null);
+        
+        // If user has existing photo, send request to remove it
+        if (user.profile_photo_path) {
+            const token = document.head.querySelector('meta[name="csrf-token"]')?.content;
+            router.post(route('profile.remove-photo'), {
+                _method: 'DELETE',
+                _token: token,
+            }, {
+                onSuccess: () => {
+                    window.location.reload();
+                }
+            });
         }
+    };
+
+    //  'handleRemovePhoto'
+    const handleRemovePhoto = () => {
+        setModalContent({
+            title: 'Remove Profile Picture?',
+            message: 'Are you sure you want to remove your profile picture?',
+            confirmText: 'Remove',
+            confirmColor: 'bg-red-600 hover:bg-red-700', 
+        });
+        setActionToConfirm('removePhoto');
+        setIsConfirmModalOpen(true);
+        setShowMobileOptions(false);
+    };
+
+    const handleModalClose = () => {
+        setIsConfirmModalOpen(false);
+        setTimeout(() => {
+            setActionToConfirm(null);
+            setModalContent({
+                title: '',
+                message: '',
+                confirmText: 'Confirm',
+                confirmColor: 'bg-growth-green-500 hover:bg-growth-green-600',
+            });
+        }, 300);
+    };
+
+    const handleModalConfirm = () => {
+        if (actionToConfirm === 'profile') {
+            handleActualProfileSave();
+        } else if (actionToConfirm === 'password') {
+            handleActualPasswordSave();
+        } else if (actionToConfirm === 'removePhoto') {
+            handleActualRemovePhoto();
+        }
+        handleModalClose();
     };
 
     return (
@@ -550,7 +621,6 @@ export default function Edit({ mustVerifyEmail, status }) {
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 handleRemovePhoto();
-                                                setShowMobileOptions(false);
                                             }}
                                             className="w-full py-3 px-4 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
                                         >
@@ -770,6 +840,56 @@ export default function Edit({ mustVerifyEmail, status }) {
                     </div>
                 </div>
             )}
+
+            {/*Konfirmasi */}
+            {isConfirmModalOpen && (
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black bg-opacity-50" onClick={handleModalClose} />
+                    
+                    {/* Konten Modal */}
+                    <div className="relative bg-white rounded-2xl p-6 md:p-8 w-full max-w-md shadow-xl transform transition-all">
+                        <div className="sm:flex sm:items-start">
+                            <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <ExclamationTriangleIcon className="h-6 w-6 text-red-600" aria-hidden="true" />
+                            </div>
+
+                            <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                <h3 className="text-lg md:text-xl font-semibold text-gray-900 leading-6">
+                                    {modalContent.title}
+                                </h3>
+                                <div className="mt-2">
+                                    <p className="text-sm text-gray-600">
+                                        {modalContent.message}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Tombol Modal  */}
+                        <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
+                            <button
+                                type="button"
+                                // Tombol konfirmasi
+                                className={`inline-flex w-full justify-center rounded-lg px-4 py-2 text-base font-medium text-white shadow-sm transition-colors sm:col-start-2 sm:text-sm ${modalContent.confirmColor} disabled:opacity-50`}
+                                onClick={handleModalConfirm}
+                                // Disable tombol jika ada form yang sedang diproses
+                                disabled={profileProcessing || passwordProcessing}
+                            >
+                                {modalContent.confirmText}
+                            </button>
+                            <button
+                                type="button"
+                                // Tombol cancel
+                                className="mt-3 inline-flex w-full justify-center rounded-lg bg-gray-200 px-4 py-2 text-base font-medium text-gray-800 shadow-sm hover:bg-gray-300 transition-colors sm:col-start-1 sm:mt-0 sm:text-sm"
+                                onClick={handleModalClose}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </AppLayout>
     );
 }

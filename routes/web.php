@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\OcrController;
 use App\Http\Controllers\DocumentAIController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\RagEngineController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
@@ -62,16 +64,30 @@ Route::get('/budget', function (Request $request) {
 })->middleware(['auth', 'verified'])->name('budget');
 
 Route::get('/history', function (Request $request) {
+    $categories = \App\Models\Category::select('id', 'category_name', 'type')
+        ->orderBy('type')
+        ->orderBy('category_name')
+        ->get();
+
     return Inertia::render('History', [
         'auth' => [
             'user' => $request->user(),
         ],
+        'categories' => $categories,
     ]);
 })->middleware(['auth', 'verified'])->name('history');
 
 Route::get('/testing', function () {
     return view('testing');
 })->name('testing');
+
+Route::get('/about', function (Request $request) {
+    return Inertia::render('About', [
+        'auth' => [
+            'user' => $request->user(),
+        ],
+    ]);
+})->middleware(['auth', 'verified'])->name('about');
 
 Route::get('/dashboard-api-test', function () {
     return view('dashboard-api-test');
@@ -102,6 +118,9 @@ Route::middleware('auth')->prefix('api')->group(function () {
     Route::post('/transactions', [TransactionController::class, 'store']);
     Route::put('/transactions/{id}', [TransactionController::class, 'update']);
     Route::delete('/transactions/{id}', [TransactionController::class, 'destroy']);
+
+    // RAG Engine route for financial advice
+    Route::post('/rag/advice', [RagEngineController::class, 'getAdvice']);
 });
 
 Route::middleware(['auth'])->group(function () {
@@ -137,4 +156,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/api/dashboard/expense-categories', [\App\Http\Controllers\DashboardController::class, 'expenseCategories']);
     Route::get('/api/dashboard/complete', [\App\Http\Controllers\DashboardController::class, 'completeData']);
 });
+
+Route::get('/financial-advisor', function (Request $request) {
+    return Inertia::render('FinancialAdvisor', [
+        'auth' => [
+            'user' => $request->user(),
+        ],
+    ]);
+})->middleware(['auth', 'verified'])->name('financial-advisor');
+
 require __DIR__.'/auth.php';

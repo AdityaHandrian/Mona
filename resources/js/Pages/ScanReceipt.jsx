@@ -555,99 +555,126 @@ export default function ScanReceipt({ auth }) {
 
     // Open camera modal for desktop
     const openCameraModal = async () => {
+        console.log('[Camera] Opening camera modal...');
         try {
+            console.log('[Camera] Requesting camera access with optimized settings...');
             const stream = await navigator.mediaDevices.getUserMedia({ 
                 video: { 
                     facingMode: 'environment', // Prefer back camera
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 }
+                    width: { ideal: 1280 },  // Reduced from 1920 for faster init
+                    height: { ideal: 720 }   // Reduced from 1080 for faster init
                 } 
             });
+            console.log('[Camera] Camera access granted, stream obtained');
             setCameraStream(stream);
             setShowCameraModal(true);
+            console.log('[Camera] Modal state set to true');
             
             // Wait for modal to render, then set video source
             setTimeout(() => {
                 if (videoRef.current) {
+                    console.log('[Camera] Setting video source...');
                     videoRef.current.srcObject = stream;
+                    console.log('[Camera] Video source set, camera ready');
                 }
             }, 100);
         } catch (error) {
-            console.error('Error accessing camera:', error);
+            console.error('[Camera] Error accessing camera:', error);
             alert('Unable to access camera. Please check permissions or use file upload instead.');
         }
     };
 
     // Close camera modal and stop stream
     const closeCameraModal = () => {
+        console.log('[Camera] Close button clicked');
+        
         // Stop all tracks immediately
         if (cameraStream) {
+            console.log('[Camera] Stopping camera tracks...');
             cameraStream.getTracks().forEach(track => {
                 track.stop();
             });
+            console.log('[Camera] All tracks stopped');
         }
         
         // Stop video element and clear source
         if (videoRef.current) {
+            console.log('[Camera] Clearing video element...');
             videoRef.current.srcObject = null;
             videoRef.current.pause();
+            console.log('[Camera] Video element cleared');
         }
         
         // Close modal first
+        console.log('[Camera] Setting modal state to false...');
         setShowCameraModal(false);
+        console.log('[Camera] Modal should be closing now');
         
         // Then reset states with a small delay to ensure clean closure
         setTimeout(() => {
+            console.log('[Camera] Resetting camera stream state');
             setCameraStream(null);
             if (videoRef.current) {
                 videoRef.current.load(); // Reset video element completely
             }
+            console.log('[Camera] Cleanup complete');
         }, 100);
     };
 
     // Capture photo from video stream
     const capturePhoto = async () => {
+        console.log('[Camera] Capture Photo button clicked');
         if (!videoRef.current || !canvasRef.current) return;
 
         const video = videoRef.current;
         const canvas = canvasRef.current;
         
+        console.log('[Camera] Setting canvas dimensions...');
         // Set canvas dimensions to match video
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         
+        console.log('[Camera] Drawing video frame to canvas...');
         // Draw current video frame to canvas
         const context = canvas.getContext('2d');
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        console.log('[Camera] Frame captured to canvas');
         
         // Convert canvas to blob
+        console.log('[Camera] Converting canvas to blob...');
         canvas.toBlob(async (blob) => {
             if (blob) {
+                console.log('[Camera] Blob created, creating file...');
                 // Create a File object from the blob
                 const file = new File([blob], `camera-capture-${Date.now()}.jpg`, { 
                     type: 'image/jpeg' 
                 });
                 
+                console.log('[Camera] File created, size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+                
                 // Compress if needed
                 const needsCompression = file.size > 1024 * 1024;
                 if (needsCompression) {
                     try {
-                        console.log(`Compressing captured image: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+                        console.log(`[Camera] Compressing captured image: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
                         const compressedFile = await compressImage(file);
-                        console.log(`Compressed to: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+                        console.log(`[Camera] Compressed to: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
                         setSelectedFile(compressedFile);
                     } catch (error) {
-                        console.error('Compression failed, using original:', error);
+                        console.error('[Camera] Compression failed, using original:', error);
                         setSelectedFile(file);
                     }
                 } else {
+                    console.log('[Camera] No compression needed, setting file...');
                     setSelectedFile(file);
                 }
                 
                 // Reset results when new file is captured
+                console.log('[Camera] Resetting OCR results...');
                 setOcrResults(null);
                 
                 // Close modal
+                console.log('[Camera] Calling closeCameraModal...');
                 closeCameraModal();
             }
         }, 'image/jpeg', 0.92);

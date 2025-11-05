@@ -183,7 +183,7 @@ export default function Edit({ mustVerifyEmail, status }) {
             const reader = new FileReader();
             reader.onload = () => {
                 setSelectedImage(reader.result);
-                // Reset crop to default when selecting new image
+                // Reset crop when selecting new image
                 setCrop({
                     unit: "%",
                     width: 80,
@@ -708,36 +708,6 @@ export default function Edit({ mustVerifyEmail, status }) {
                                         minWidth={100}
                                         minHeight={100}
                                         keepSelection
-                                        onImageLoaded={(img) => {
-                                            imgRef.current = img;
-                                            // Wait for next tick to ensure image is properly rendered
-                                            setTimeout(() => {
-                                                const {
-                                                    offsetWidth,
-                                                    offsetHeight,
-                                                } = img;
-                                                const size =
-                                                    Math.min(
-                                                        offsetWidth,
-                                                        offsetHeight
-                                                    ) * 0.7; // 70% of smaller displayed dimension
-                                                const centerX =
-                                                    (offsetWidth - size) / 2;
-                                                const centerY =
-                                                    (offsetHeight - size) / 2;
-
-                                                const newCrop = {
-                                                    unit: "px",
-                                                    width: size,
-                                                    height: size,
-                                                    x: centerX,
-                                                    y: centerY,
-                                                    aspect: 1,
-                                                };
-                                                setCrop(newCrop);
-                                                setCompletedCrop(newCrop);
-                                            }, 100);
-                                        }}
                                     >
                                         <img
                                             ref={imgRef}
@@ -747,6 +717,30 @@ export default function Edit({ mustVerifyEmail, status }) {
                                                 maxWidth: "100%",
                                                 maxHeight: "400px",
                                                 display: "block",
+                                            }}
+                                            onLoad={(e) => {
+                                                const { naturalWidth, naturalHeight } = e.currentTarget;
+                                                
+                                                // Use the smaller dimension for a square crop
+                                                // This makes the crop as large as possible while maintaining 1:1 aspect
+                                                const cropSize = Math.min(naturalWidth, naturalHeight);
+                                                
+                                                // Calculate percentage-based crop (100% of smaller dimension)
+                                                const cropWidthPercent = (cropSize / naturalWidth) * 100;
+                                                const cropHeightPercent = (cropSize / naturalHeight) * 100;
+                                                const cropXPercent = ((naturalWidth - cropSize) / 2 / naturalWidth) * 100;
+                                                const cropYPercent = ((naturalHeight - cropSize) / 2 / naturalHeight) * 100;
+
+                                                const newCrop = {
+                                                    unit: "%",
+                                                    width: cropWidthPercent,
+                                                    height: cropHeightPercent,
+                                                    x: cropXPercent,
+                                                    y: cropYPercent,
+                                                    aspect: 1,
+                                                };
+                                                
+                                                setCrop(newCrop);
                                             }}
                                         />
                                     </ReactCrop>

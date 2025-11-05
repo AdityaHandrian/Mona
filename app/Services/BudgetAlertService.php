@@ -50,17 +50,18 @@ class BudgetAlertService
 
                 // Alert if spending is at or above threshold
                 if ($percentage >= self::ALERT_THRESHOLD) {
-                    $alerts[] = [
+            $alerts[] = [
                         'budget_id' => $budget->id,
                         'category_id' => $budget->category_id,
                         'category_name' => $budget->category->category_name,
                         'budget_amount' => (float) $budgetAmount,
                         'spent_amount' => (float) $spentAmount,
-                        'percentage' => round($percentage, 2),
+                // Truncate percentage to 2 decimals (floor) to avoid showing 100.00 when slightly below
+                'percentage' => floor($percentage * 100) / 100,
                         'remaining' => (float) ($budgetAmount - $spentAmount),
                         'is_exceeded' => $percentage >= 100,
                         'alert_level' => $this->getAlertLevel($percentage),
-                        'message' => $this->getAlertMessage($budget->category->category_name, $percentage),
+                'message' => $this->getAlertMessage($budget->category->category_name, $percentage),
                     ];
                 }
             }
@@ -96,7 +97,8 @@ class BudgetAlertService
      */
     private function getAlertMessage($categoryName, $percentage)
     {
-        $roundedPercentage = round($percentage, 0);
+    // Use floor for displayed integer percentage so 99.9% does not become 100%
+    $roundedPercentage = intval(floor($percentage));
 
         if ($percentage >= 100) {
             return "You have exceeded your {$categoryName} budget by " . round($percentage - 100, 0) . "%!";

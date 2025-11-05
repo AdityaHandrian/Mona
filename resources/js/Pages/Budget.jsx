@@ -14,7 +14,8 @@ const formatIDR = (value) => {
 
 const percent = (value, total) => {
     if (total === 0) return 0;
-    return Math.round((value / total) * 100);
+    // Use floor to avoid showing 100% when spent is slightly less than budget
+    return Math.floor((value / total) * 100);
 };
 
 // Helper functions for number formatting
@@ -722,8 +723,8 @@ export default function Budget() {
                                                             : "bg-yellow-100 text-yellow-800"
                                                     }`}
                                                 >
-                                                    {alert.percentage.toFixed(
-                                                        0
+                                                    {Math.floor(
+                                                        alert.percentage
                                                     )}
                                                     %
                                                 </div>

@@ -110,7 +110,7 @@ export default function BudgetAlertBanner({
                             <span
                                 className={`px-3 py-1 rounded-full text-xs font-bold ${colors.badge}`}
                             >
-                                {alert.percentage.toFixed(0)}%
+                                {Math.floor(alert.percentage)}%
                             </span>
 
                             {onDismiss && (

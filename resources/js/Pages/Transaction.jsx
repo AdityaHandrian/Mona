@@ -333,9 +333,9 @@ export default function Transaction({ auth }) {
             // Check for budget alert in response
             if (response.data.budget_alert) {
                 const alert = response.data.budget_alert;
-                const alertMessage = `${
-                    alert.message
-                } (${alert.percentage.toFixed(0)}% of budget used)`;
+                const alertMessage = `${alert.message} (${Math.floor(
+                    alert.percentage
+                )}% of budget used)`;
 
                 // Show budget alert notification
                 setTimeout(() => {

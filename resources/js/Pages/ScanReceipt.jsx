@@ -600,7 +600,7 @@ export default function ScanReceipt({ auth }) {
                     const alert = response.data.budget_alert;
                     const alertMessage = `Budget Alert: ${
                         alert.message
-                    } (${alert.percentage.toFixed(0)}% of budget used)`;
+                    } (${Math.floor(alert.percentage)}% of budget used)`;
 
                     // Show budget alert notification after success message
                     setTimeout(() => {

@@ -580,11 +580,29 @@ export default function ScanReceipt({ auth }) {
 
     // Close camera modal and stop stream
     const closeCameraModal = () => {
+        // Stop all tracks immediately
         if (cameraStream) {
-            cameraStream.getTracks().forEach(track => track.stop());
-            setCameraStream(null);
+            cameraStream.getTracks().forEach(track => {
+                track.stop();
+            });
         }
+        
+        // Stop video element and clear source
+        if (videoRef.current) {
+            videoRef.current.srcObject = null;
+            videoRef.current.pause();
+        }
+        
+        // Close modal first
         setShowCameraModal(false);
+        
+        // Then reset states with a small delay to ensure clean closure
+        setTimeout(() => {
+            setCameraStream(null);
+            if (videoRef.current) {
+                videoRef.current.load(); // Reset video element completely
+            }
+        }, 100);
     };
 
     // Capture photo from video stream

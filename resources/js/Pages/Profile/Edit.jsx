@@ -11,19 +11,6 @@ import AppLayout from "@/Layouts/AppLayout";
 import ReactCrop from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import { useState, useRef, useCallback } from "react";
-import { Head, useForm, usePage, Link, router } from "@inertiajs/react";
-import { UserIcon, KeyIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { PencilIcon } from "@heroicons/react/24/solid";
-import InputError from "@/Components/InputError";
-import InputLabel from "@/Components/InputLabel";
-import PrimaryButton from "@/Components/PrimaryButton";
-import TextInput from "@/Components/TextInput";
-import DateInput from "@/Components/DateInput";
-import { Transition } from "@headlessui/react";
-import AppLayout from "@/Layouts/AppLayout";
-import ReactCrop from "react-image-crop";
-import "react-image-crop/dist/ReactCrop.css";
-import { useState, useRef, useCallback } from "react";
 
 export default function Edit({ mustVerifyEmail, status }) {
     const { auth } = usePage().props;
